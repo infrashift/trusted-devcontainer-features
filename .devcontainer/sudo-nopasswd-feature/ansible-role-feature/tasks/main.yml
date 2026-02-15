@@ -1,0 +1,61 @@
+# sudo-nopasswd-feature/ansible-role-feature/tasks/main.yml
+---
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+# Shortcircuit execution if the Secure DevContainer is incompatible with this role
+# Find _securedevcontainer_variant in hosts.yml inventory file; this variable is set in each 'ubi*' group for the host and passed in by the calling playbook
+# Find _securedevcontainer_compatibility_list definition in ./vars/main.yml
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# TARGET FEATURE TASKS
+- name: Add user to wheel group
+  ansible.builtin.user:
+    name: "{{ _sudo_nopasswd_user }}"
+    groups: wheel
+    append: yes
+
+- name: Configure sudoers for user without password
+  ansible.builtin.copy:
+    content: "{{ _sudo_nopasswd_user }}\tALL=(ALL)\tNOPASSWD: ALL\n"
+    dest: "/etc/sudoers.d/{{ _sudo_nopasswd_user }}"
+    owner: root
+    group: root
+    mode: '0440'
+
+- name: Display sudoers file for user
+  ansible.builtin.command:
+    cmd: "cat /etc/sudoers.d/{{ _sudo_nopasswd_user }}"
+  register: _sudoers_content
+  changed_when: false
+
+- name: Show sudoers file content
+  ansible.builtin.debug:
+    msg: "{{ _sudoers_content.stdout }}"
+
+- name: Check if user can sudo whoami
+  ansible.builtin.command:
+    cmd: "sudo -u {{ _sudo_nopasswd_user }} -i whoami"
+  register: _whoami_output
+  changed_when: false
+
+- name: Assert sudo whoami output is root
+  ansible.builtin.assert:
+    that:
+      - _whoami_output.stdout == '{{ _sudo_nopasswd_user }}'
+    fail_msg: "User {{ _sudo_nopasswd_user }} cannot run sudo whoami or the output is not '{{ _sudo_nopasswd_user }}'"
+
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null

@@ -1,0 +1,23 @@
+// SKELETON-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+{
+    "name": "SKELETON-feature",
+    "id": "SKELETON",
+    "version": "0.0.0",
+    "description": "A feature to install SKELETON on Redhat UBI DevContainers",
+    "options": {
+        "color_choice": {
+        "type": "string",
+        "proposals": ["blue", "green", "red"],
+        "default": "green",
+        "description": "Select a color"
+        },
+        "is_my_favorite_color": {
+            "type": "boolean",
+            "default": true,
+            "description": "true or false"
+            }
+
+    },
+    "installsAfter": []
+}

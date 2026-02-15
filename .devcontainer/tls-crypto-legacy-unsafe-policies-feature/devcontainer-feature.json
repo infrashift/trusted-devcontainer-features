@@ -1,0 +1,21 @@
+{
+    "name": "TLS Crypto Policies Unsafe Modification",
+    "id": "tls-crypto-policies-unsafe-mod",
+    "version": "1.0.0",
+    "description": "A feature to modify TLS crypto policies to allow UnsafeLegacyRenegotiation on Redhat UBI DevContainers",
+    // "options": {
+    //     "favorite": {
+    //         "type": "string",
+    //         "enum": [
+    //             "red",
+    //             "gold",
+    //             "green"
+    //         ],
+            // "default": "red",
+        //     "description": "Choose your favorite color."
+        // }
+    // },
+    "installsAfter": [
+        // "ghcr.io/devcontainers/features/common-utils"
+    ]
+}

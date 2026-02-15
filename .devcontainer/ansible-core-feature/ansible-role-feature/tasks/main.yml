@@ -1,0 +1,48 @@
+# ansible-core-pipenv-feature/ansible-role-feature/tasks/main.yml
+---
+- name: Check if pip3 is installed
+  ansible.builtin.command:
+    cmd: which pip3
+  register: pip3_installed
+  ignore_errors: yes
+  become: yes
+  become_user: "{{ target_username }}"
+
+- name: Assert pip3 is installed
+  ansible.builtin.assert:
+    that:
+      - pip3_installed.rc == 0
+    fail_msg: "pip3 is not installed"
+
+- name: Check if pipenv is installed
+  ansible.builtin.command:
+    cmd: which pipenv
+  environment:
+    PATH: "/home/{{ target_username }}/.local/bin:{{ ansible_env.PATH }}"
+  register: pipenv_installed
+  ignore_errors: yes
+  become: yes
+  become_user: "{{ target_username }}"
+
+- name: Assert pipenv is installed
+  ansible.builtin.assert:
+    that:
+      - pipenv_installed.rc == 0
+    fail_msg: "pipenv is not installed"
+
+- name: Create a directory for the Pipenv project
+  ansible.builtin.file:
+    path: "/home/{{ target_username }}/.pipenv_ansible_core"
+    state: directory
+    mode: 0775
+  become: true
+  become_user: "{{ target_username }}"
+
+- name: Install specified versions of ansible-core using pipenv
+  include_tasks: install_ansible_core_version.yml
+  loop: "{{ ansible_core_versions }}"
+  loop_control:
+    loop_var: ansible_core_version
+
+
+  

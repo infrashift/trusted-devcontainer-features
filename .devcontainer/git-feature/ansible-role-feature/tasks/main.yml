@@ -1,0 +1,51 @@
+# git-feature/ansible-role-feature/tasks/main.yml
+---
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+# Shortcircuit execution if the Secure DevContainer is incompatible with this role
+# Find _securedevcontainer_variant in hosts.yml inventory file; this variable is set in each 'ubi*' group for the host and passed in by the calling playbook
+# Find _securedevcontainer_compatibility_list definition in ./vars/main.yml
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# TARGET FEATURE TASKS
+- name: Configure UBI-{{ _securedevcontainer_ubi_version }}-BaseOS repository
+  ansible.builtin.yum_repository:
+    name: ubi-{{ _securedevcontainer_ubi_version }}-baseos-rpms
+    description: Red Hat Universal Base Image {{ _securedevcontainer_ubi_version }} (RPMs) - BaseOS
+    baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi{{ _securedevcontainer_ubi_version }}/{{ _securedevcontainer_ubi_version }}/$basearch/baseos/os
+    enabled: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    gpgcheck: yes
+
+- name: Install Git
+  ansible.builtin.package:
+    name: git
+    state: present
+
+- name: Get Git version
+  ansible.builtin.command:
+    cmd: git --version
+  register: _git_version_result
+
+- name: Assert that Git is installed and accessible
+  ansible.builtin.assert:
+    that: "'git version' in _git_version_result.stdout"
+    fail_msg: "{{ _git_version_result.stdout }}"
+    success_msg: "{{ _git_version_result.stdout }}"
+
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

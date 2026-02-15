@@ -1,0 +1,22 @@
+# golang-feature/ansible-role-feature/meta/main.yml
+---
+galaxy_info:
+  author: ryancraig
+  description: Go (Golang) installation for RHEL UBI containers
+  company: infrashift.sh
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+  - name: EL
+    versions:
+    - 7
+    - 8
+    - 9
+  galaxy_tags:
+    - golang
+    - go
+    - rhel
+    - ubi
+
+dependencies: []
+...

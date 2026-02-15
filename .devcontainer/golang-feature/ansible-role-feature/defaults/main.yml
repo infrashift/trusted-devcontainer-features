@@ -1,0 +1,10 @@
+# golang-feature/ansible-role-feature/defaults/main.yml
+---
+_go_version: "1.20.3"
+_go_platform: linux
+_go_arch: amd64
+_go_tarball: go{{ _go_version }}.{{ _go_platform }}-{{ _go_arch }}.tar.gz
+_go_download_url: https://go.dev/dl/{{ _go_tarball }}
+_go_checksum: '979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca'
+
+...

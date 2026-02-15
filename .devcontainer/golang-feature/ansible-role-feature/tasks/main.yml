@@ -1,0 +1,101 @@
+# golang-feature/ansible-role-feature/tasks/main.yml
+---
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+# Shortcircuit execution if the Secure DevContainer is incompatible with this role
+# Find _securedevcontainer_variant in hosts.yml inventory file; this variable is set in each 'ubi*' group for the host and passed in by the calling playbook
+# Find _securedevcontainer_compatibility_list definition in ./vars/main.yml
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# TARGET FEATURE TASKS
+- name: Check if Golang is already installed
+  ansible.builtin.command: /home/{{ _target_username }}/go version
+  ignore_errors: true
+  register: _go_version_result
+  changed_when: false
+
+- name: Remove current Golang installation
+  ansible.builtin.file:
+    state: absent
+    path: /home/{{ _target_username }}/go
+  when:
+    - _go_version_result is succeeded
+    - _go_version not in _go_version_result.stdout
+
+- name: Create /home/{{ _target_username }}/tmp directory
+  ansible.builtin.file:
+    path: /home/{{ _target_username }}/tmp
+    state: directory
+    mode: '0755'
+  when: _go_version_result is failed
+        or _go_version not in _go_version_result.stdout
+
+- name: Download Golang binary
+  ansible.builtin.get_url:
+    url: "{{ _go_download_url }}"
+    dest: /home/{{ _target_username }}/tmp/{{ _go_tarball }}
+    checksum: "sha256:{{ _go_checksum }}"
+  when: _go_version_result is failed
+        or _go_version not in _go_version_result.stdout
+
+- name: Extract Golang binary
+  ansible.builtin.unarchive:
+    src: /home/{{ _target_username }}/tmp/{{ _go_tarball }}
+    dest: /home/{{ _target_username }}
+    copy: no
+  when: _go_version_result is failed
+        or _go_version not in _go_version_result.stdout
+
+- name: Recursively change ownership of /home/{{ _target_username }}/go to {{ _target_username }}
+  ansible.builtin.file:
+    path: "/home/{{ _target_username }}/go"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+
+- name: Add Golang to to system-wide $PATH.
+  ansible.builtin.copy:
+    dest: /etc/profile.d/add-golang-to-path.sh
+    content: |-
+      export PATH=$PATH:/home/{{ _target_username }}/go/bin
+
+# Set for backwards compatibility
+# See discussion https://forum.golangbridge.org/t/gopath-or-go111module/15333
+- name: Set system-wide $GOPATH.
+  ansible.builtin.copy:
+    dest: /etc/profile.d/set-gopath.sh
+    content: |-
+      export GOPATH=/home/{{ _target_username }}/go/bin
+
+- name: Remove /home/{{ _target_username }}/tmp directory
+  ansible.builtin.file:
+    path: /home/{{ _target_username }}/tmp
+    state: absent
+
+- name: Get Golang version
+  ansible.builtin.command:
+    cmd: /home/{{ _target_username }}/go/bin/go version
+  register: _go_version_result
+
+- name: Assert that Golang is installed and accessible
+  ansible.builtin.assert:
+    that: "'go version' in _go_version_result.stdout"
+    fail_msg: "{{ _go_version_result.stdout }}"
+    success_msg: "{{ _go_version_result.stdout }}"
+
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

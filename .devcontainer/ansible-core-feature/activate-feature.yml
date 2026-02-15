@@ -1,0 +1,15 @@
+# Ansible Playbook
+# ansible-core-pipenv-feature/activate-feature.yml
+---
+- name: Install ansible-core using pipenv
+  hosts: ubi
+  roles:
+    - role: ansible-role-feature
+      vars:
+        ansible_core_versions: "{{ ansible_core_versions }}"
+        target_username: "{{ target_username }}"
+...
+
+# Usage: 
+# ansible-playbook --inventory hosts.yml feature-playbook.yml -e "ansible_core_versions=['2.13.0','2.12.0','2.11.0']" -e "target_username=vscode"
+# ansible-playbook --inventory hosts.yml feature-playbook.yml -e "ansible_core_versions=['latest']" -e "target_username=vscode"

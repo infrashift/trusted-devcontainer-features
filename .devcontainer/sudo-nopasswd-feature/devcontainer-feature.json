@@ -1,0 +1,8 @@
+{
+    "name": "Sudo without Password",
+    "id": "sudo-nopasswd",
+    "version": "1.0.0",
+    "description": " This feature is designed for Red Hat UBI DevContainers.It modifies an existing user to allow sudo without password (NOPASSWD) by updating the sudoers configuration.",
+    "options": {},
+    "installsAfter": []
+}

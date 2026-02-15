@@ -1,0 +1,123 @@
+# cuelang-feature/ansible-role-feature/tasks/main.yml
+---
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+# Shortcircuit execution if the Secure DevContainer is incompatible with this role
+# Find _securedevcontainer_variant in hosts.yml inventory file; this variable is set in each 'ubi*' group for the host and passed in by the calling playbook
+# Find _securedevcontainer_compatibility_list definition in ./vars/main.yml
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# TARGET FEATURE TASKS 
+- name: Check if CUElang is already installed
+  ansible.builtin.command: /home/{{ _target_username }}/cue version
+  ignore_errors: true
+  register: _cue_version_result
+  changed_when: false
+
+- name: Remove current CUElang installation
+  ansible.builtin.file:
+    state: absent
+    path: /home/{{ _target_username }}/cue
+  when:
+    - _cue_version_result is succeeded
+    - _cue_version not in _cue_version_result.stdout
+
+- name: Create /home/{{ _target_username }}/tmp directory
+  ansible.builtin.file:
+    path: /home/{{ _target_username }}/tmp
+    state: directory
+    mode: '0755'
+  when: _cue_version_result is failed
+        or _cue_version not in _cue_version_result.stdout
+    
+- name: Download CUElang binary checksums file
+  ansible.builtin.get_url:
+    url: "{{ _cue_checksums_download_url }}"
+    dest: /home/{{ _target_username }}/tmp/{{ _cue_version }}_{{ _cue_checksums_file }}
+  when: _cue_version_result is failed
+        or _cue_version not in _cue_version_result.stdout
+
+- name: Read checksums file
+  ansible.builtin.slurp:
+    src: /home/{{ _target_username }}/tmp/{{ _cue_version }}_{{ _cue_checksums_file }}
+  register: _checksums_file_content
+
+- name: Find the checksum for {{ _cue_tarball }}
+  ansible.builtin.set_fact:
+    _cue_checksum: "{{ item.split()[0] }}"
+  when: _cue_tarball in item
+  loop: "{{ _checksums_file_content.content | b64decode | split('\n') | reject('eq', '') | list }}"
+
+- name: Display the checksum
+  ansible.builtin.debug:
+    msg: "Checksum for {{ _cue_tarball }} is: {{ _cue_checksum }}"
+
+- name: Download CUElang binary
+  ansible.builtin.get_url:
+    url: "{{ _cue_download_url }}"
+    dest: /home/{{ _target_username }}/tmp/{{ _cue_tarball }}
+    checksum: "sha256:{{ _cue_checksum }}"
+  when: _cue_version_result is failed
+        or _cue_version not in _cue_version_result.stdout
+
+- name: Create /home/{{ _target_username }}/cue directory
+  ansible.builtin.file:
+    path: /home/{{ _target_username }}/cue
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
+- name: Extract CUElang binary
+  ansible.builtin.unarchive:
+    src: /home/{{ _target_username }}/tmp/{{ _cue_tarball }}
+    dest: /home/{{ _target_username }}/cue
+    copy: no
+  when: _cue_version_result is failed
+        or _cue_version not in _cue_version_result.stdout
+
+- name: Recursively change ownership of /home/{{ _target_username }}/cue to {{ _target_username }}
+  ansible.builtin.file:
+    path: "/home/{{ _target_username }}/cue"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+
+- name: Add CUElang to to system-wide $PATH.
+  ansible.builtin.copy:
+    dest: /etc/profile.d/add-cuelang-to-path.sh
+    content: |-
+      export PATH=$PATH:/home/{{ _target_username }}/cue
+
+- name: Remove /home/{{ _target_username }}/tmp directory
+  ansible.builtin.file:
+    path: /home/{{ _target_username }}/tmp
+    state: absent
+
+- name: Get CUElang version
+  ansible.builtin.command:
+    cmd: /home/{{ _target_username }}/cue/cue version
+  register: _cue_version_result
+
+- name: Assert that CUElang is installed and accessible
+  ansible.builtin.assert:
+    that: "'cue version' in _cue_version_result.stdout"
+    fail_msg: "{{ _cue_version_result.stdout }}"
+    success_msg: "{{ _cue_version_result.stdout }}"
+
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

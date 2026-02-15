@@ -1,0 +1,9 @@
+// git-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+{
+    "name": "Git Install",
+    "id": "git",
+    "version": "1.0.0",
+    "description": "A feature to install Git on Redhat UBI DevContainers",
+    "installsAfter": []
+}

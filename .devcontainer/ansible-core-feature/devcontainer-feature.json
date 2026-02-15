@@ -1,0 +1,31 @@
+{
+    "name": "Ansible Core",
+    "id": "ansible-core",
+    "version": "1.0.0",
+    "description": " This feature is designed for Red Hat UBI DevContainers.It installs one or more versions of Ansible Core in Pipenv virtual environments.",
+    "options": {
+        // CAUTION: Note the square brackets. We are passing in a string that is then interpreted as a list. So even if you are only passing one version value, enclose it in square brackets.
+        // Example of single version: "['2.14.4']". Example version list: "['2.13.0','2.13.2','2.14.1']"
+        "target_version": {
+        "type": "string",
+        "proposals": ["['2.15.0b2']", "['2.15.0b1']", "['2.14.4']", "['2.14.4rc1']", "['2.14.3']", "['2.14.3rc1']", "['2.14.2']", "['2.14.2rc1']", "['2.14.1']", "['2.14.1rc1']", "['2.14.0']", "['2.14.0rc2']", "['2.14.0rc1']", "['2.14.0rc1']", "['2.14.0b3']", "['2.14.0b2']", "['2.14.0b1']", "['2.13.8']", "['2.13.8rc1']", "['2.13.7']", "['2.13.7rc1']", "['2.13.6']", "['2.13.6rc1']", "['2.13.5']", "['2.13.5rc1']", "['2.13.4']", "['2.13.4rc1']", "['2.13.3']", "['2.13.0']"],
+        "default": "['2.14.4']",
+        "description": "Select a supported version"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions":
+                [
+                 "ms-python.python",
+                 "redhat.ansible",
+                 "redhat.vscode-yaml",
+                 "samuelcolvin.jinjahtml"
+                ]
+        }
+    },
+    "installsAfter": [
+        // Try not to establish hard, ordered dependencies between features!
+        "./pipenv-feature"
+    ]
+}

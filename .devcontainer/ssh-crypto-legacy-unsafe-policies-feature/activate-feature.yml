@@ -1,0 +1,40 @@
+# feature-playbook.yml
+# CAUTION: Only run this playbook if you suffer from SSH authentication issues caused by a platform only supporting SHA1 keys; 
+# Azure DevOps/TFS is just such a platform. Ultimately, this change reduces the security profile of your container; Just be aware.
+---
+- name: Configure crypto policies for RHEL
+  hosts: ubi
+  become: yes
+  tasks:
+    - name: Ensure /etc/crypto-policies/back-ends/opensshserver.config exists
+      ansible.builtin.copy:
+        dest: /etc/crypto-policies/back-ends/opensshserver.config
+        content: ""
+        force: no
+        mode: 0644
+
+    - name: Append ssh-rsa to PubkeyAcceptedAlgorithms in opensshserver.config
+      ansible.builtin.lineinfile:
+        path: /etc/crypto-policies/back-ends/opensshserver.config
+        regexp: '^(PubkeyAcceptedAlgorithms.*)'
+        line: '\1,ssh-rsa'
+        backrefs: yes
+
+    - name: Update crypto policies
+      ansible.builtin.command:
+        cmd: update-crypto-policies --set DEFAULT:SHA1
+      register: update_result
+      changed_when: "'Setting system policy to' in update_result.stdout"
+
+# Normally we want to restart sshd but not in containers
+  # handlers:
+  #   - name: Restart sshd
+  #     ansible.builtin.systemd:
+  #       name: sshd
+  #       state: restarted
+  #     listen: restart_sshd
+
+  # post_tasks:
+  #   - name: Notify sshd restart
+  #     ansible.builtin.meta:
+  #       flush_handlers

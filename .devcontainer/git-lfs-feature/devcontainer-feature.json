@@ -1,0 +1,9 @@
+// git-lfs-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+{
+    "name": "git-lfs-feature",
+    "id": "git-lfs",
+    "version": "1.0.0",
+    "description": "A feature to install Git LFS on Redhat UBI DevContainers",
+    "installsAfter": ["./git-feature"]
+}

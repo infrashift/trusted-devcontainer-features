@@ -1,0 +1,28 @@
+# ssh-crypto-policies-mod.yml
+# CAUTION: Only run this playbook if you suffer from TLS 1.3 to TLS < 1.3 negotiation errors that cannot be immediately and securely resolved.
+#          This is a common issue on RHEL8/9 and CentOS Stream 8/9. This change allows unsafe legacy renegotiation during TLS handshake by 
+#          setting UnsafeLegacyRenegotiation. Ultimately, this change reduces the security profile of your container; Just be aware.
+# feature-playbook.yml
+---
+- name: Configure UnsafeLegacyRenegotiation in OpenSSL
+  hosts: ubi
+  become: yes
+  tasks:
+    - name: Ensure /etc/pki/tls/openssl.cnf exists
+      ansible.builtin.stat:
+        path: /etc/pki/tls/openssl.cnf
+      register: openssl_config_stat
+
+    - name: Fail if /etc/pki/tls/openssl.cnf does not exist
+      ansible.builtin.fail:
+        msg: "/etc/pki/tls/openssl.cnf does not exist"
+      when: not openssl_config_stat.stat.exists
+
+    - name: Insert UnsafeLegacyRenegotiation under [crypto_policy] in openssl.cnf
+      ansible.builtin.blockinfile:
+        path: /etc/pki/tls/openssl.cnf
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        insertafter: '^\[ crypto_policy \]'
+        block: |
+          Options = UnsafeLegacyRenegotiation
+...

@@ -1,0 +1,16 @@
+# Ansible Playbook
+# SKELETON-feature/activate-feature.yml
+---
+- name: Activate DevContainer Feature - SKELETON
+  hosts: ubi
+  become: true
+  gather_facts: false
+
+  roles:
+  - role: ansible-role-feature
+    vars:
+    # securedevcontainer_variant is a group variable; see hosts.yml
+    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+    - _color: "{{ color }}"
+    - _is_favorite_color: " {{ is_favorite_color }}"
+...

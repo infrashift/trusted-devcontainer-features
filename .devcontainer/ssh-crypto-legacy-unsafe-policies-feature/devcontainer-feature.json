@@ -1,0 +1,8 @@
+{
+    "name": "SSH Crypto Unsafe Policies Modification",
+    "id": "ssh-crypto-legacy-unsafe-policies",
+    "version": "1.0.0",
+    "description": "A feature to modify SSH crypto policies to allow use of RSA SHA1 keys for authentication on Redhat UBI DevContainers",
+    "options": {},
+    "installsAfter": []
+}

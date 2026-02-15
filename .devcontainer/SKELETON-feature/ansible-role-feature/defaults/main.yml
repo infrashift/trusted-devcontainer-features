@@ -1,0 +1,5 @@
+# SKELETON-feature/ansible-role-feature/defaults/main.yml
+---
+_color: "blue"
+_is_favorite_color: true
+...

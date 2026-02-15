@@ -1,0 +1,38 @@
+# ansible-core-pipenv-feature/ansible-role-feature/tasks/install_ansible_core_version.yml
+- name: Create a directory for pipenv ansible_core virtual environment
+  ansible.builtin.file:
+    path: "/home/{{ target_username }}/.pipenv_ansible_core/{{'ansible_core_' + ansible_core_version if ansible_core_version != 'latest' else 'ansible_core_latest' }}"
+    state: directory
+    owner: "{{ target_username }}"
+    group: "{{ target_username }}"
+    mode: '0755'
+  become: true
+  become_user: "{{ target_username }}"
+
+- name: Install the specified version of ansible-core and ansible-lint using pipenv
+  ansible.builtin.command:
+    cmd: "pipenv install ansible-core{{ '==' + ansible_core_version if ansible_core_version != 'latest' else '' }} ansible-lint testinfra"
+    chdir: "/home/{{ target_username }}/.pipenv_ansible_core/{{'ansible_core_' + ansible_core_version if ansible_core_version != 'latest' else 'ansible_core_latest' }}"
+  environment:
+    PATH: "/home/{{ target_username }}/.local/bin:{{ ansible_env.PATH }}"
+  become: true
+  become_user: "{{ target_username }}"
+
+- name: Check if pipenv ansible_core virtual environment exists
+  ansible.builtin.shell:
+    cmd: "pipenv --venv"
+    chdir: "/home/{{ target_username }}/.pipenv_ansible_core/{{'ansible_core_' + ansible_core_version if ansible_core_version != 'latest' else 'ansible_core_latest' }}"
+  environment:
+    PATH: "/home/{{ target_username }}/.local/bin:{{ ansible_env.PATH }}"
+  register: pipenv_ansible_core_venv
+  ignore_errors: true
+  become: true
+  become_user: "{{ target_username }}"
+
+- name: Assert pipenv ansible_core virtual environment exists
+  ansible.builtin.assert:
+    that:
+      - pipenv_ansible_core_venv.rc == 0
+    fail_msg: "pipenv ansible_core virtual environment does not exist"
+
+
