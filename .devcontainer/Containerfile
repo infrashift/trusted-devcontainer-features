@@ -1,8 +1,5 @@
 FROM registry.access.redhat.com/ubi9/ubi:latest
 
-# ##########################################################################################
-# BEGIN: Bootstrap common configuration
-# ##########################################################################################
 USER root
 
 # Silence subscription messages
@@ -30,45 +27,43 @@ RUN export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH" \
 
 USER root
 
-# Create 'ansible' user for feature installations. 'ansible' is the default feature bootstrap user. 
-# 'ansible' MUST be part of the 'wheel' group because Ansible-managed feature activation often requires 'root' access.
-ENV DEVCONTAINER_FEATURE_USERNAME=${DEVCONTAINER_FEATURE_USERNAME:-ansible}
-ENV DEVCONTAINER_FEATURE_USER_UID=${DEVCONTAINER_FEATURE_USER_UID:-1001}
-ENV DEVCONTAINER_FEATURE_USER_GID=${DEVCONTAINER_FEATURE_USER_GID:-$DEVCONTAINER_FEATURE_USER_UID}
+# Create 'bootstrap' user for feature installations. 'bootstrap' is the default feature bootstrap user. 
+# 'bootstrap' MUST be part of the 'wheel' group because Ansible-managed feature activation often requires 'root' access.
+ENV FEATURE_BOOTSTRAP_USERNAME=${FEATURE_BOOTSTRAP_USERNAME:-bootstrap}
+ENV FEATURE_BOOTSTRAP_USER_UID=${FEATURE_BOOTSTRAP_USER_UID:-1001}
+ENV FEATURE_BOOTSTRAP_USER_GID=${FEATURE_BOOTSTRAP_USER_GID:-$FEATURE_BOOTSTRAP_USER_UID}
 
-RUN groupadd --gid $DEVCONTAINER_FEATURE_USER_GID $DEVCONTAINER_FEATURE_USERNAME \
- && useradd -m -s /bin/bash --uid $DEVCONTAINER_FEATURE_USER_UID --gid $DEVCONTAINER_FEATURE_USER_GID $DEVCONTAINER_FEATURE_USERNAME \
+RUN groupadd --gid $FEATURE_BOOTSTRAP_USER_GID $FEATURE_BOOTSTRAP_USERNAME \
+ && useradd -m -s /bin/bash --uid $FEATURE_BOOTSTRAP_USER_UID --gid $FEATURE_BOOTSTRAP_USER_GID $FEATURE_BOOTSTRAP_USERNAME \
  # Add sudo access sans password 
- && usermod -aG wheel $DEVCONTAINER_FEATURE_USERNAME \
- && echo "${DEVCONTAINER_FEATURE_USERNAME}    ALL=(ALL)    NOPASSWD: ALL" > /etc/sudoers.d/$DEVCONTAINER_FEATURE_USERNAME \
- && chmod 0440 /etc/sudoers.d/$DEVCONTAINER_FEATURE_USERNAME \
- && cat /etc/sudoers.d/$DEVCONTAINER_FEATURE_USERNAME
+ && usermod -aG wheel $FEATURE_BOOTSTRAP_USERNAME \
+ && echo "${FEATURE_BOOTSTRAP_USERNAME}    ALL=(ALL)    NOPASSWD: ALL" > /etc/sudoers.d/$FEATURE_BOOTSTRAP_USERNAME \
+ && chmod 0440 /etc/sudoers.d/$FEATURE_BOOTSTRAP_USERNAME \
+ && cat /etc/sudoers.d/$FEATURE_BOOTSTRAP_USERNAME
 
-USER $DEVCONTAINER_FEATURE_USERNAME
+USER $FEATURE_BOOTSTRAP_USERNAME
 
-ENV DEVCONTAINER_FEATURE_USER_HOME=${DEVCONTAINER_FEATURE_USER_HOME:-/home/$DEVCONTAINER_FEATURE_USERNAME}
+ENV FEATURE_BOOTSTRAP_USER_HOME=${FEATURE_BOOTSTRAP_USER_HOME:-/home/$FEATURE_BOOTSTRAP_USERNAME}
 # Ansible executable path
 # /home/ansible/.local/bin
-ENV DEVCONTAINER_FEATURE_USER_LOCAL_BIN_PATH=${DEVCONTAINER_FEATURE_USER_HOME}/.local/bin
+ENV FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH=${FEATURE_BOOTSTRAP_USER_HOME}/.local/bin
 
 # Copy Ansible Inventory file to the feature bootstrap user's home path
-COPY ./devcontainer-resources/hosts.yml $DEVCONTAINER_FEATURE_USER_HOME/hosts.yml
+COPY ./devcontainer-resources/hosts.yml $FEATURE_BOOTSTRAP_USER_HOME/hosts.yml
 
 # Install Ansible to faciliate DevContainer Feature activation
-ENV DEVCONTAINER_FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION=${DEVCONTAINER_FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION:-2.14.5}
+ENV FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION=${FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION:-2.14.5}
 
-RUN pip3 install --user ansible-core=="${DEVCONTAINER_FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION}" \
- && export PATH="${DEVCONTAINER_FEATURE_USER_LOCAL_BIN_PATH}:$PATH" \ 
- && echo 'export PATH="${DEVCONTAINER_FEATURE_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${DEVCONTAINER_FEATURE_USER_HOME}/.bashrc > /dev/null \
- && echo 'export PATH="${DEVCONTAINER_FEATURE_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${DEVCONTAINER_FEATURE_USER_HOME}/.bash_profile > /dev/null \
+RUN pip3 install --user ansible-core=="${FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION}" \
+ && export PATH="${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}:$PATH" \ 
+ && echo 'export PATH="${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${FEATURE_BOOTSTRAP_USER_HOME}/.bashrc > /dev/null \
+ && echo 'export PATH="${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${FEATURE_BOOTSTRAP_USER_HOME}/.bash_profile > /dev/null \
  && ansible --version
 
 USER $DEVCONTAINER_USERNAME
 
 ENTRYPOINT ["$@"]
 CMD ["sleep", "infinity"]
-# ##########################################################################################
-# END: Bootstrap common configuration
-# ##########################################################################################
+
 
 
