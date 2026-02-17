@@ -1,0 +1,17 @@
+# Ansible Playbook
+# nodejs-feature/activate-feature.yml
+---
+- name: Activate DevContainer Feature - Node.js
+  hosts: ubi
+  become: true
+  gather_facts: false
+
+  roles:
+  - role: ansible-role-feature
+    vars:
+    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+    - _nodejs_version: "{{ nodejs_version }}"
+    - _nodejs_checksum: "{{ nodejs_checksum }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
+...

@@ -1,0 +1,18 @@
+# Ansible Playbook
+# openjdk-feature/activate-feature.yml
+---
+- name: Activate DevContainer Feature - OpenJDK
+  hosts: ubi
+  become: true
+  gather_facts: false
+
+  roles:
+  - role: ansible-role-feature
+    vars:
+    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+    - _openjdk_major_version: "{{ openjdk_major_version }}"
+    - _openjdk_version: "{{ openjdk_version }}"
+    - _openjdk_checksum: "{{ openjdk_checksum }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
+...

@@ -1,0 +1,61 @@
+# npm-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# npm update tasks
+- name: Check current npm version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/npm --version"
+  ignore_errors: true
+  register: _npm_current_version
+  changed_when: false
+
+- name: Display current npm version
+  ansible.builtin.debug:
+    msg: "Current npm version: {{ _npm_current_version.stdout | default('not installed') }}"
+
+- name: Update npm to version {{ _npm_version }}
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/npm install -g npm@{{ _npm_version }} --prefix {{ _target_user_home }}/.local/share/nodejs"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  when: _npm_current_version is failed
+        or _npm_version not in _npm_current_version.stdout
+
+- name: Change ownership of Node.js directory after npm update
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/share/nodejs"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+
+- name: Get npm version after update
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/npm --version"
+  register: _npm_version_result
+
+- name: Assert that npm is installed at the correct version
+  ansible.builtin.assert:
+    that: "_npm_version in _npm_version_result.stdout"
+    fail_msg: "Expected npm {{ _npm_version }}, got {{ _npm_version_result.stdout }}"
+    success_msg: "npm {{ _npm_version_result.stdout }} installed successfully"
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

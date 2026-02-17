@@ -1,15 +1,17 @@
 # Ansible Playbook
-# ansible-core-pipenv-feature/activate-feature.yml
+# ansible-core-feature/activate-feature.yml
 ---
-- name: Install ansible-core using pipenv
+- name: Activate DevContainer Feature - ansible-core
   hosts: ubi
-  roles:
-    - role: ansible-role-feature
-      vars:
-        ansible_core_versions: "{{ ansible_core_versions }}"
-        target_username: "{{ target_username }}"
-...
+  become: true
+  gather_facts: false
 
-# Usage: 
-# ansible-playbook --inventory hosts.yml feature-playbook.yml -e "ansible_core_versions=['2.13.0','2.12.0','2.11.0']" -e "target_username=vscode"
-# ansible-playbook --inventory hosts.yml feature-playbook.yml -e "ansible_core_versions=['latest']" -e "target_username=vscode"
+  roles:
+  - role: ansible-role-feature
+    vars:
+    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+    - _ansible_core_version: "{{ ansible_core_version }}"
+    - _target_python_version: "{{ target_python_version }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
+...

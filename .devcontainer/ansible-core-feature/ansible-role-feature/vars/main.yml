@@ -1,4 +1,6 @@
-# ansible-core-pipenv-feature/ansible-role-feature/vars/main.yml
+# ansible-core-feature/ansible-role-feature/vars/main.yml
 ---
-# Placeholder
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
 ...

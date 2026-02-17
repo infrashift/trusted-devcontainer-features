@@ -4,10 +4,10 @@
 # Licensed under the MIT License.
 #-------------------------------------------------------------------------------------------------------------
 #
-# Docs: 
 # Maintainer: infrashift.sh
 #
-# Notes: This is the feature activation entrypoint script; It is ALWAYS executed as the 'root' user.
+# This is the feature activation entrypoint script; it is ALWAYS executed as the 'root' user.
+# See https://containers.dev/implementors/features/#user-env-var for devcontainer CLI variables.
 set -e
 
 echo "                                                                                "
@@ -17,52 +17,37 @@ echo "Activating feature 'ansible-core'...                                      
 echo "********************************************************************************"
 echo "                                                                                "
 
-# These following environment variables are passed in by the dev container CLI.
-# These may be useful in instances where the context of the final 
-# remoteUser or containerUser is useful.
-# For more details, see https://containers.dev/implementors/features#user-env-var
 echo "The effective DevContainer remoteUser is '${_REMOTE_USER}'"
 echo "The effective DevContainer remoteUser's home directory is '${_REMOTE_USER_HOME}'"
-
 echo "The effective DevContainer containerUser is '${_CONTAINER_USER}'"
 echo "The effective DevContainer containerUser's home directory is '${_CONTAINER_USER_HOME}'"
 
-echo "The effective DevContainer Feature user is '${FEATURE_BOOTSTRAP_USERNAME}'"
-echo "The effective DevContainer Feature user UID is '${FEATURE_BOOTSTRAP_USER_UID}'"
-echo "The effective DevContainer Feature user GID is '${FEATURE_BOOTSTRAP_USER_GID}'"
-echo "The effective DevContainer Feature user home is '${FEATURE_BOOTSTRAP_USER_HOME}'"
-
-# List feature installation assets
 ls -al .
 
-# Change ownership of feature installation assets
-chown -R ${FEATURE_BOOTSTRAP_USERNAME}:${FEATURE_BOOTSTRAP_USERNAME} .
-echo ""
+# Verify uv is available (provided by the base Containerfile)
+if ! command -v uv &> /dev/null; then
+    echo "ERROR: uv is not installed. It should be provided by the base Containerfile."
+    exit 1
+fi
+echo "uv version: $(uv --version)"
 
-# Execute ansible-inventory as the Secure DevContainer Feature user
-# This will showcase issues with the inventory before making use of the inventory to run the activate-feature playbook
+# Validate Ansible inventory
 echo "Parsing Ansible Inventory for host 'localhost'..."
-su -s /bin/bash ${FEATURE_BOOTSTRAP_USERNAME} <<EOF
-    ${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}/ansible-inventory --inventory ${FEATURE_BOOTSTRAP_USER_HOME}/hosts.yml --host localhost --yaml
-EOF
-echo ""
+uv run --with ansible-core ansible-inventory --inventory ./hosts.yml --host localhost --yaml
 
-# Execute ansible-playbook as 'ansible' user
-su -s /bin/bash ${FEATURE_BOOTSTRAP_USERNAME} <<EOF
-    ${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}/ansible-playbook --inventory ${FEATURE_BOOTSTRAP_USER_HOME}/hosts.yml activate-feature.yml -e "ansible_core_versions=${TARGET_VERSION}" -e "target_username=${DEVCONTAINER_USERNAME}"
-EOF
+# Execute ansible-playbook as root
+# TARGET_VERSION and TARGET_PYTHON_VERSION are defined in devcontainer-feature.json
+echo "Activating DevContainer Feature..."
+uv run --with ansible-core ansible-playbook \
+    --inventory ./hosts.yml \
+    activate-feature.yml \
+    -e "remote_user=${_REMOTE_USER}" \
+    -e "remote_user_home=${_REMOTE_USER_HOME}" \
+    -e "ansible_core_version=${TARGET_VERSION}" \
+    -e "target_python_version=${TARGET_PYTHON_VERSION}"
 
 echo "                                                                                "
 echo "********************************************************************************"
 echo "END FEATURE ACTIVATION                                                          "
 echo "********************************************************************************"
 echo "                                                                                "
-
-
-
-
-
-
-
-
-

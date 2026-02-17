@@ -1,0 +1,16 @@
+# Ansible Playbook
+# python-feature/activate-feature.yml
+---
+- name: Activate DevContainer Feature - Python
+  hosts: ubi
+  become: true
+  gather_facts: false
+
+  roles:
+  - role: ansible-role-feature
+    vars:
+    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+    - _python_version: "{{ python_version }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
+...

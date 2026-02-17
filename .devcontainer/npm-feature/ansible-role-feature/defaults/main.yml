@@ -1,0 +1,5 @@
+# npm-feature/ansible-role-feature/defaults/main.yml
+---
+_npm_version: "11.4.1"
+
+...

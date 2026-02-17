@@ -1,16 +1,16 @@
+# Git LFS Feature
+
+Installs Git LFS via dnf on Red Hat UBI DevContainers.
+
 ## OS Support
 
-This Feature works on recent versions of Redhat UBI distributions. `bash` is required to execute the `install.sh` script. An `ansible-core` bootstrap instance owned by the `ansible` bootstrap user performs the heavy lifting.
+Red Hat UBI9 and UBI10. Feature installation is orchestrated via `uv run --with ansible-core ansible-playbook`.
 
 ## Example Usage
 
-*accept option values*
-
 ```json
 // devcontainer.json
-...
 "features": {
     "./git-lfs-feature": {}
-},
-...
+}
 ```

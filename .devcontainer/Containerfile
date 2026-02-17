@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/ubi:latest
 
 USER root
 
-# Silence subscription messages
+# Silence subscription messages and update base packages
 RUN echo "enabled=0" >> /etc/yum/pluginconf.d/subscription-manager.conf \
  && dnf update --disablerepo=* --enablerepo=ubi-9-appstream-rpms --enablerepo=ubi-9-baseos-rpms -y && rm -rf /var/cache/yum
 
@@ -17,53 +17,20 @@ RUN groupadd --gid $DEVCONTAINER_USER_GID $DEVCONTAINER_USERNAME \
 USER $DEVCONTAINER_USERNAME
 
 ENV DEVCONTAINER_USER_HOME=${DEVCONTAINER_USER_HOME:-/home/$DEVCONTAINER_USERNAME}
-# devcontainer user local executable path
-# example: /home/vscode/.local/bin
 ENV DEVCONTAINER_USER_LOCAL_BIN_PATH=${DEVCONTAINER_USER_HOME}/.local/bin
 
+# Add ~/.local/bin to PATH for the devcontainer user
 RUN export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH" \
  && echo 'export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${DEVCONTAINER_USER_HOME}/.bashrc > /dev/null \
  && echo 'export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${DEVCONTAINER_USER_HOME}/.bash_profile > /dev/null
 
 USER root
 
-# Create 'bootstrap' user for feature installations. 'bootstrap' is the default feature bootstrap user. 
-# 'bootstrap' MUST be part of the 'wheel' group because Ansible-managed feature activation often requires 'root' access.
-ENV FEATURE_BOOTSTRAP_USERNAME=${FEATURE_BOOTSTRAP_USERNAME:-bootstrap}
-ENV FEATURE_BOOTSTRAP_USER_UID=${FEATURE_BOOTSTRAP_USER_UID:-1001}
-ENV FEATURE_BOOTSTRAP_USER_GID=${FEATURE_BOOTSTRAP_USER_GID:-$FEATURE_BOOTSTRAP_USER_UID}
-
-RUN groupadd --gid $FEATURE_BOOTSTRAP_USER_GID $FEATURE_BOOTSTRAP_USERNAME \
- && useradd -m -s /bin/bash --uid $FEATURE_BOOTSTRAP_USER_UID --gid $FEATURE_BOOTSTRAP_USER_GID $FEATURE_BOOTSTRAP_USERNAME \
- # Add sudo access sans password 
- && usermod -aG wheel $FEATURE_BOOTSTRAP_USERNAME \
- && echo "${FEATURE_BOOTSTRAP_USERNAME}    ALL=(ALL)    NOPASSWD: ALL" > /etc/sudoers.d/$FEATURE_BOOTSTRAP_USERNAME \
- && chmod 0440 /etc/sudoers.d/$FEATURE_BOOTSTRAP_USERNAME \
- && cat /etc/sudoers.d/$FEATURE_BOOTSTRAP_USERNAME
-
-USER $FEATURE_BOOTSTRAP_USERNAME
-
-ENV FEATURE_BOOTSTRAP_USER_HOME=${FEATURE_BOOTSTRAP_USER_HOME:-/home/$FEATURE_BOOTSTRAP_USERNAME}
-# Ansible executable path
-# /home/ansible/.local/bin
-ENV FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH=${FEATURE_BOOTSTRAP_USER_HOME}/.local/bin
-
-# Copy Ansible Inventory file to the feature bootstrap user's home path
-COPY ./devcontainer-resources/hosts.yml $FEATURE_BOOTSTRAP_USER_HOME/hosts.yml
-
-# Install Ansible to faciliate DevContainer Feature activation
-ENV FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION=${FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION:-2.14.5}
-
-RUN pip3 install --user ansible-core=="${FEATURE_BOOTSTRAP_ANSIBLE_CORE_VERSION}" \
- && export PATH="${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}:$PATH" \ 
- && echo 'export PATH="${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${FEATURE_BOOTSTRAP_USER_HOME}/.bashrc > /dev/null \
- && echo 'export PATH="${FEATURE_BOOTSTRAP_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${FEATURE_BOOTSTRAP_USER_HOME}/.bash_profile > /dev/null \
- && ansible --version
+# Install uv for feature bootstrap (ansible-playbook execution via 'uv run --with ansible-core')
+RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh \
+ && uv --version
 
 USER $DEVCONTAINER_USERNAME
 
 ENTRYPOINT ["$@"]
 CMD ["sleep", "infinity"]
-
-
-

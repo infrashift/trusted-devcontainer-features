@@ -12,5 +12,7 @@
     # securedevcontainer_variant is a group variable; see hosts.yml
     - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
     - _color: "{{ color }}"
-    - _is_favorite_color: " {{ is_favorite_color }}"
+    - _is_favorite_color: "{{ is_favorite_color }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
 ...

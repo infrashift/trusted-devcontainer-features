@@ -1,0 +1,5 @@
+# python-feature/ansible-role-feature/defaults/main.yml
+---
+_python_version: "3.12"
+
+...

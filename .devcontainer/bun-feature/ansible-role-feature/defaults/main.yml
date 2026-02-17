@@ -1,0 +1,12 @@
+# bun-feature/ansible-role-feature/defaults/main.yml
+---
+_bun_version: "1.2.17"
+_bun_platform: linux
+_bun_arch: x64
+# Example: bun-linux-x64.zip
+_bun_zipfile: "bun-{{ _bun_platform }}-{{ _bun_arch }}.zip"
+# Example: https://github.com/oven-sh/bun/releases/download/bun-v1.2.17/bun-linux-x64.zip
+_bun_download_url: "https://github.com/oven-sh/bun/releases/download/bun-v{{ _bun_version }}/{{ _bun_zipfile }}"
+_bun_checksum:
+
+...

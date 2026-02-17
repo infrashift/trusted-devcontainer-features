@@ -1,0 +1,41 @@
+// uv-ruff-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "uv-ruff-feature",
+    "id": "uv-ruff",
+    "version": "1.0.0",
+    "description": "Installs Astral UV package manager and Ruff linter on Red Hat UBI DevContainers.",
+    "options": {
+        // See available versions at https://github.com/astral-sh/uv/releases
+        "target_uv_version": {
+            "type": "string",
+            "proposals": ["0.10.3", "0.10.2"],
+            "default": "0.10.3",
+            "description": "Select a supported UV version"
+        },
+        "target_uv_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA256 checksum for the UV binary (leave empty to skip checksum verification)"
+        },
+        // See available versions at https://github.com/astral-sh/ruff/releases
+        "target_ruff_version": {
+            "type": "string",
+            "proposals": ["0.15.1", "0.15.0"],
+            "default": "0.15.1",
+            "description": "Select a supported Ruff version"
+        }
+    },
+    "containerEnv": {
+        "PATH": "${containerUserHome}/.local/bin:${localEnv:PATH}"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "charliermarsh.ruff"
+            ]
+        }
+    },
+    "installsAfter": []
+}

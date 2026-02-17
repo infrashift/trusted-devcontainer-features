@@ -1,0 +1,11 @@
+# jq-feature/ansible-role-feature/defaults/main.yml
+---
+_jq_version: "1.7.1"
+_jq_arch: amd64
+# Example: jq-linux-amd64
+_jq_binary: "jq-linux-{{ _jq_arch }}"
+# Example: https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+_jq_download_url: "https://github.com/jqlang/jq/releases/download/jq-{{ _jq_version }}/{{ _jq_binary }}"
+_jq_checksum:
+
+...

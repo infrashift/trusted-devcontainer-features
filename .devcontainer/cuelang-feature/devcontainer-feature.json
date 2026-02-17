@@ -1,19 +1,22 @@
 // cuelang-feature/devcontainer-feature.json
-// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
 {
     "name": "cuelang-feature",
     "id": "cuelang",
     "version": "1.0.0",
-    "description": "A feature to install CUElang on Redhat UBI DevContainers.",
+    "description": "Installs CUElang on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/cue-lang/cue/releases
-        // We are targeting cue_v{{ cue_version }}_linux_amd64.tar.gz 
+        // Targeting cue_v{{ target_version }}_linux_amd64.tar.gz
         "target_version": {
-        "type": "string",
-        "proposals": ["0.6.0-alpha.1", "0.5.0"],
-        "default": "0.6.0-alpha.1",
-        "description": "Select a supported CUElang binary version"
+            "type": "string",
+            "proposals": ["0.15.4", "0.14.1"],
+            "default": "0.15.4",
+            "description": "Select a supported CUElang binary version"
         }
+    },
+    "containerEnv": {
+        "PATH": "${containerUserHome}/.local/bin:${localEnv:PATH}"
     },
     "customizations": {
         "vscode": {
@@ -23,7 +26,6 @@
         }
     },
     "installsAfter": [
-        // Try not to establish hard, ordered dependencies between features!
         "./golang-feature"
     ]
 }

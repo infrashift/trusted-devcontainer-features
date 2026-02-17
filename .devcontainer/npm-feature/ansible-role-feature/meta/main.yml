@@ -1,0 +1,22 @@
+# npm-feature/ansible-role-feature/meta/main.yml
+---
+galaxy_info:
+  author: ryancraig
+  description: npm package manager update for RHEL UBI containers
+  company: infrashift.sh
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+  - name: EL
+    versions:
+    - 9
+    - 10
+  galaxy_tags:
+    - npm
+    - nodejs
+    - javascript
+    - rhel
+    - ubi
+
+dependencies: []
+...

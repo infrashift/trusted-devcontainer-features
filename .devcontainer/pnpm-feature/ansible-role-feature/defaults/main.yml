@@ -1,0 +1,12 @@
+# pnpm-feature/ansible-role-feature/defaults/main.yml
+---
+_pnpm_version: "10.12.1"
+_pnpm_platform: linux
+_pnpm_arch: x64
+# Example: pnpm-linux-x64
+_pnpm_binary: "pnpm-{{ _pnpm_platform }}-{{ _pnpm_arch }}"
+# Example: https://github.com/pnpm/pnpm/releases/download/v10.12.1/pnpm-linux-x64
+_pnpm_download_url: "https://github.com/pnpm/pnpm/releases/download/v{{ _pnpm_version }}/{{ _pnpm_binary }}"
+_pnpm_checksum:
+
+...

@@ -1,0 +1,17 @@
+# openjdk-feature/ansible-role-feature/defaults/main.yml
+---
+_openjdk_major_version: "21"
+_openjdk_version: "21.0.6+7"
+_openjdk_platform: linux
+_openjdk_arch: x64
+# URL-safe version: replace + with %2B
+_openjdk_version_urlencoded: "{{ _openjdk_version | regex_replace('\\+', '%2B') }}"
+# Underscore version for tarball name: replace + with _
+_openjdk_version_underscore: "{{ _openjdk_version | regex_replace('\\+', '_') }}"
+# Example: OpenJDK21U-jdk_x64_linux_hotspot_21.0.6_7.tar.gz
+_openjdk_tarball: "OpenJDK{{ _openjdk_major_version }}U-jdk_{{ _openjdk_arch }}_{{ _openjdk_platform }}_hotspot_{{ _openjdk_version_underscore }}.tar.gz"
+# Example: https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.6%2B7/OpenJDK21U-jdk_x64_linux_hotspot_21.0.6_7.tar.gz
+_openjdk_download_url: "https://github.com/adoptium/temurin{{ _openjdk_major_version }}-binaries/releases/download/jdk-{{ _openjdk_version_urlencoded }}/{{ _openjdk_tarball }}"
+_openjdk_checksum:
+
+...

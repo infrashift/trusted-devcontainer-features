@@ -1,0 +1,27 @@
+// jq-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "jq-feature",
+    "id": "jq",
+    "version": "1.0.0",
+    "description": "Installs jq JSON processor on Red Hat UBI DevContainers.",
+    "options": {
+        // See available versions at https://github.com/jqlang/jq/releases
+        "target_version": {
+            "type": "string",
+            "proposals": ["1.7.1", "1.7"],
+            "default": "1.7.1",
+            "description": "Select a supported jq version"
+        },
+        "target_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA256 checksum for the jq binary"
+        }
+    },
+    "containerEnv": {
+        "PATH": "${containerUserHome}/.local/bin:${localEnv:PATH}"
+    },
+    "installsAfter": []
+}

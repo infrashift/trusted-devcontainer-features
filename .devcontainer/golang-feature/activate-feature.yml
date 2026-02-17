@@ -14,5 +14,6 @@
     # go_version and go_checksum are parameters passed in from install.sh
     - _go_version: "{{ go_version }}"
     - _go_checksum: "{{ go_checksum }}"
-    - _target_username: "{{ target_username }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
 ...

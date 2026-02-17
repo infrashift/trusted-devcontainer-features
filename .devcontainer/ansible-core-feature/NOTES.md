@@ -1,49 +1,34 @@
+# ansible-core Feature
+
+Installs [ansible-core](https://pypi.org/project/ansible-core/) via `uv tool install` on Red Hat UBI DevContainers.
+
+## Install Location
+
+- Ansible binaries (`ansible`, `ansible-playbook`, etc.): `~/.local/bin/`
+- Managed venv: `~/.local/share/uv/tools/ansible-core/`
+
 ## OS Support
 
-This Feature works on recent versions of Redhat UBI distributions. `bash` is required to execute the `install.sh` script. An `ansible-core` bootstrap instance owned by the `ansible` bootstrap user performs the heavy lifting. `pipenv` is required to install `ansible-core`.
- 
+Red Hat UBI9 and UBI10. Feature installation is orchestrated via `uv run --with ansible-core ansible-playbook`.
+
+## Prerequisites
+
+- Python must be installed (use `python-feature` first)
+- UV must be available (from `uv-ruff-feature` or the bootstrap uv in `/usr/local/bin`)
+
+## Versions
+
+See available versions at https://pypi.org/project/ansible-core/
+
 ## Example Usage
 
-You can designate one or multiple Ansible Core versions for installation by enclosing the version numbers within square brackets. This is because the input string is interpreted as a list. Remember to use square brackets even if you are specifying only a single version.
-
-Example for a single version: `"['2.14.4']"`.
-
-Example for a list of versions: `"['2.13.0', '2.13.2', '2.14.1']"`.
-
-To pass the option value for specifying either a single or multiple Ansible Core versions in a devcontainer.json file, you can add the respective version(s) to the "target_ansibleCoreVersion" field within the "./ansible-core-pipenv-feature" object under the "features" section.
-
-*accept option defaults*
-
 ```json
 // devcontainer.json
-...
 "features": {
-    "./pipenv-feature": {},
-    "./ansible-core-feature": {}
-},
-...
-```
-
-*single version*
-
-```json
-// devcontainer.json
-...
-"features": {
-    "./pipenv-feature": {},
-    "./ansible-core-feature": { "target_version": "['2.14.4', '2.14.3', '2.13.0', '2.11.0']"}
-},
-...
-```
-
-*multiple versions*
-
-```json
-// devcontainer.json
-...
-"features": {
-    "./pipenv-feature": {},
-    "./ansible-core-feature": { "target_version": "['2.14.4', '2.14.3', '2.13.0', '2.11.0']"}
-},
-...
+    "./python-feature": {"target_version": "3.12"},
+    "./ansible-core-feature": {
+        "target_version": "2.18.2",
+        "target_python_version": "3.12"
+    }
+}
 ```

@@ -1,32 +1,25 @@
+# CUElang Feature
+
+Installs [CUE](https://cuelang.org/) on Red Hat UBI DevContainers.
+
+## Install Location
+
+- CUE: `~/.local/share/cue/`
+- Symlink: `~/.local/bin/cue`
+
 ## OS Support
 
-This Feature works on recent versions of Redhat UBI distributions. `bash` is required to execute the `install.sh` script. An `ansible-core` bootstrap instance owned by the `ansible` bootstrap user performs the heavy lifting.
+Red Hat UBI9 and UBI10. Feature installation is orchestrated via `uv run --with ansible-core ansible-playbook`.
+
+## Versions
+
+See available versions at https://github.com/cue-lang/cue/releases
 
 ## Example Usage
 
-*specify option values*
-
 ```json
 // devcontainer.json
-...
 "features": {
-    "./golang-feature": {
-        "target_version": "1.20.3",
-        "target_checksum": "979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca"
-        },
-    "./cuelang-feature": { "target_version": "0.6.0-alpha.1"}
-},
-...
-```
-
-*accept option values*
-
-```json
-// devcontainer.json
-...
-"features": {
-    "./golang-feature": {},
-    "./cuelang-feature": {}
-},
-...
+    "./cuelang-feature": {"target_version": "0.15.4"}
+}
 ```

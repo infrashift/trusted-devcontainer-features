@@ -1,0 +1,105 @@
+# uv-ruff-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# UV installation tasks
+- name: Check if UV is already installed for target user
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/uv --version"
+  ignore_errors: true
+  register: _uv_version_result
+  changed_when: false
+
+- name: Create temporary download directory
+  ansible.builtin.file:
+    path: /tmp/uv-ruff-feature-install
+    state: directory
+    mode: '0755'
+  when: _uv_version_result is failed
+        or _uv_version not in _uv_version_result.stdout
+
+- name: Download UV binary tarball
+  ansible.builtin.get_url:
+    url: "{{ _uv_download_url }}"
+    dest: "/tmp/uv-ruff-feature-install/{{ _uv_tarball }}"
+  when: _uv_version_result is failed
+        or _uv_version not in _uv_version_result.stdout
+
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
+- name: Extract UV binary (strip nested directory)
+  ansible.builtin.command:
+    cmd: "tar xzf /tmp/uv-ruff-feature-install/{{ _uv_tarball }} --strip-components=1 -C {{ _target_user_home }}/.local/bin/"
+  when: _uv_version_result is failed
+        or _uv_version not in _uv_version_result.stdout
+
+- name: Set ownership of uv and uvx binaries
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin/{{ item }}"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    mode: '0755'
+  loop:
+    - uv
+    - uvx
+
+- name: Remove temporary download directory
+  ansible.builtin.file:
+    path: /tmp/uv-ruff-feature-install
+    state: absent
+
+- name: Get UV version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/uv --version"
+  register: _uv_version_result
+
+- name: Assert that UV is installed and accessible
+  ansible.builtin.assert:
+    that: "'uv' in _uv_version_result.stdout"
+    fail_msg: "{{ _uv_version_result.stdout }}"
+    success_msg: "{{ _uv_version_result.stdout }}"
+
+# Ruff installation via uv tool install (as the target user)
+- name: Install Ruff via uv tool install
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/uv tool install ruff=={{ _ruff_version }}"
+  become: true
+  become_user: "{{ _target_username }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+
+- name: Get Ruff version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/ruff --version"
+  register: _ruff_version_result
+
+- name: Assert that Ruff is installed and accessible
+  ansible.builtin.assert:
+    that: "'ruff' in _ruff_version_result.stdout"
+    fail_msg: "{{ _ruff_version_result.stdout }}"
+    success_msg: "{{ _ruff_version_result.stdout }}"
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

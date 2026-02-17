@@ -1,0 +1,108 @@
+# nodejs-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# Node.js installation tasks
+- name: Check if Node.js is already installed
+  ansible.builtin.command: "{{ _target_user_home }}/.local/share/nodejs/bin/node --version"
+  ignore_errors: true
+  register: _nodejs_version_result
+  changed_when: false
+
+- name: Create temporary download directory
+  ansible.builtin.file:
+    path: /tmp/nodejs-feature-install
+    state: directory
+    mode: '0755'
+  when: _nodejs_version_result is failed
+        or _nodejs_version not in _nodejs_version_result.stdout
+
+- name: Download Node.js checksums file
+  ansible.builtin.get_url:
+    url: "{{ _nodejs_checksums_download_url }}"
+    dest: "/tmp/nodejs-feature-install/SHASUMS256.txt"
+  when:
+    - _nodejs_version_result is failed or _nodejs_version not in _nodejs_version_result.stdout
+    - _nodejs_checksum | default('', true) | length == 0
+
+- name: Read checksums file
+  ansible.builtin.slurp:
+    src: "/tmp/nodejs-feature-install/SHASUMS256.txt"
+  register: _nodejs_checksums_file_content
+  when: _nodejs_checksum | default('', true) | length == 0
+
+- name: Find the checksum for {{ _nodejs_tarball }}
+  ansible.builtin.set_fact:
+    _nodejs_checksum: "{{ item.split()[0] }}"
+  when:
+    - _nodejs_checksum | default('', true) | length == 0
+    - _nodejs_tarball in item
+  loop: "{{ _nodejs_checksums_file_content.content | b64decode | split('\n') | reject('eq', '') | list }}"
+
+- name: Display the checksum
+  ansible.builtin.debug:
+    msg: "Checksum for {{ _nodejs_tarball }} is: {{ _nodejs_checksum }}"
+
+- name: Download Node.js tarball
+  ansible.builtin.get_url:
+    url: "{{ _nodejs_download_url }}"
+    dest: "/tmp/nodejs-feature-install/{{ _nodejs_tarball }}"
+    checksum: "sha256:{{ _nodejs_checksum }}"
+  when: _nodejs_version_result is failed
+        or _nodejs_version not in _nodejs_version_result.stdout
+
+- name: Ensure ~/.local/share/nodejs directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/share/nodejs"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
+- name: Extract Node.js tarball (strip nested directory)
+  ansible.builtin.command:
+    cmd: "tar xzf /tmp/nodejs-feature-install/{{ _nodejs_tarball }} --strip-components=1 -C {{ _target_user_home }}/.local/share/nodejs/"
+  when: _nodejs_version_result is failed
+        or _nodejs_version not in _nodejs_version_result.stdout
+
+- name: Recursively change ownership of Node.js installation
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/share/nodejs"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+
+- name: Remove temporary download directory
+  ansible.builtin.file:
+    path: /tmp/nodejs-feature-install
+    state: absent
+
+- name: Get Node.js version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/node --version"
+  register: _nodejs_version_result
+
+- name: Assert that Node.js is installed and accessible
+  ansible.builtin.assert:
+    that: "'v' + _nodejs_version in _nodejs_version_result.stdout"
+    fail_msg: "{{ _nodejs_version_result.stdout }}"
+    success_msg: "{{ _nodejs_version_result.stdout }}"
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

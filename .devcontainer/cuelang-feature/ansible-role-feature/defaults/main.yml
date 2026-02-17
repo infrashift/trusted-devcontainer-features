@@ -1,14 +1,15 @@
 # cuelang-feature/ansible-role-feature/defaults/main.yml
 ---
-_cue_version: "0.6.0-alpha.1"
+_cue_version: "0.15.4"
 _cue_platform: linux
 _cue_arch: amd64
-# example: cue_v0.6.0-alpha.1_linux_amd64.tar.gz
+# Example: cue_v0.15.4_linux_amd64.tar.gz
 _cue_tarball: cue_v{{ _cue_version }}_{{ _cue_platform }}_{{ _cue_arch }}.tar.gz
 _cue_checksums_file: checksums.txt
-# example: https://github.com/cue-lang/cue/releases/download/v0.6.0-alpha.1/cue_v0.6.0-alpha.1_linux_amd64.tar.gz
+# Example: https://github.com/cue-lang/cue/releases/download/v0.15.4/cue_v0.15.4_linux_amd64.tar.gz
 _cue_download_url: https://github.com/cue-lang/cue/releases/download/v{{ _cue_version }}/{{ _cue_tarball }}
-# example: https://github.com/cue-lang/cue/releases/download/v0.6.0-alpha.1/checksums.txt
+# Example: https://github.com/cue-lang/cue/releases/download/v0.15.4/checksums.txt
 _cue_checksums_download_url: https://github.com/cue-lang/cue/releases/download/v{{ _cue_version }}/{{ _cue_checksums_file }}
-_cue_checksum: 
+_cue_checksum:
+
 ...

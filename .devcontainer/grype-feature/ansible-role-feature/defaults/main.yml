@@ -1,0 +1,15 @@
+# grype-feature/ansible-role-feature/defaults/main.yml
+---
+_grype_version: "0.108.0"
+_grype_platform: linux
+_grype_arch: amd64
+# Example: grype_0.108.0_linux_amd64.tar.gz
+_grype_tarball: grype_{{ _grype_version }}_{{ _grype_platform }}_{{ _grype_arch }}.tar.gz
+_grype_checksums_file: grype_{{ _grype_version }}_checksums.txt
+# Example: https://github.com/anchore/grype/releases/download/v0.108.0/grype_0.108.0_linux_amd64.tar.gz
+_grype_download_url: https://github.com/anchore/grype/releases/download/v{{ _grype_version }}/{{ _grype_tarball }}
+# Example: https://github.com/anchore/grype/releases/download/v0.108.0/grype_0.108.0_checksums.txt
+_grype_checksums_download_url: https://github.com/anchore/grype/releases/download/v{{ _grype_version }}/{{ _grype_checksums_file }}
+_grype_checksum:
+
+...

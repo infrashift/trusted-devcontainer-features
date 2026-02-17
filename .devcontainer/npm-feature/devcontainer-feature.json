@@ -1,0 +1,20 @@
+// npm-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "npm-feature",
+    "id": "npm",
+    "version": "1.0.0",
+    "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
+    "options": {
+        // See available versions at https://github.com/npm/cli/releases
+        "target_version": {
+            "type": "string",
+            "proposals": ["11.4.1", "10.9.2"],
+            "default": "11.4.1",
+            "description": "Select the npm version to install"
+        }
+    },
+    "installsAfter": [
+        "./nodejs-feature"
+    ]
+}

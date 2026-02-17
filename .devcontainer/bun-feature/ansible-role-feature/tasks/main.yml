@@ -1,0 +1,103 @@
+# bun-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# Install unzip (needed to extract Bun release zip)
+- name: Configure UBI-{{ _securedevcontainer_ubi_version }}-BaseOS repository
+  ansible.builtin.yum_repository:
+    name: ubi-{{ _securedevcontainer_ubi_version }}-baseos-rpms
+    description: Red Hat Universal Base Image {{ _securedevcontainer_ubi_version }} (RPMs) - BaseOS
+    baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi{{ _securedevcontainer_ubi_version }}/{{ _securedevcontainer_ubi_version }}/$basearch/baseos/os
+    enabled: yes
+    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+    gpgcheck: true
+
+- name: Install unzip
+  ansible.builtin.package:
+    name: unzip
+    state: present
+
+# Bun installation tasks
+- name: Check if Bun is already installed
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/bun --version"
+  ignore_errors: true
+  register: _bun_version_result
+  changed_when: false
+
+- name: Create temporary download directory
+  ansible.builtin.file:
+    path: /tmp/bun-feature-install
+    state: directory
+    mode: '0755'
+  when: _bun_version_result is failed
+        or _bun_version not in _bun_version_result.stdout
+
+- name: Download Bun zip file
+  ansible.builtin.get_url:
+    url: "{{ _bun_download_url }}"
+    dest: "/tmp/bun-feature-install/{{ _bun_zipfile }}"
+    checksum: "{{ 'sha256:' + _bun_checksum if _bun_checksum | default('', true) | length > 0 else omit }}"
+  when: _bun_version_result is failed
+        or _bun_version not in _bun_version_result.stdout
+
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
+- name: Extract Bun zip to temporary directory
+  ansible.builtin.unarchive:
+    src: "/tmp/bun-feature-install/{{ _bun_zipfile }}"
+    dest: /tmp/bun-feature-install
+    copy: no
+  when: _bun_version_result is failed
+        or _bun_version not in _bun_version_result.stdout
+
+- name: Copy bun binary to ~/.local/bin
+  ansible.builtin.copy:
+    src: "/tmp/bun-feature-install/bun-{{ _bun_platform }}-{{ _bun_arch }}/bun"
+    dest: "{{ _target_user_home }}/.local/bin/bun"
+    remote_src: yes
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    mode: '0755'
+  when: _bun_version_result is failed
+        or _bun_version not in _bun_version_result.stdout
+
+- name: Remove temporary download directory
+  ansible.builtin.file:
+    path: /tmp/bun-feature-install
+    state: absent
+
+- name: Get Bun version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/bun --version"
+  register: _bun_version_result
+
+- name: Assert that Bun is installed and accessible
+  ansible.builtin.assert:
+    that: "_bun_version in _bun_version_result.stdout"
+    fail_msg: "{{ _bun_version_result.stdout }}"
+    success_msg: "Bun {{ _bun_version_result.stdout }} installed successfully"
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

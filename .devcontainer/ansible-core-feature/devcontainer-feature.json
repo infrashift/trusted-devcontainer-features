@@ -1,31 +1,35 @@
+// ansible-core-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
 {
-    "name": "Ansible Core",
+    "name": "ansible-core-feature",
     "id": "ansible-core",
     "version": "1.0.0",
-    "description": " This feature is designed for Red Hat UBI DevContainers.It installs one or more versions of Ansible Core in Pipenv virtual environments.",
+    "description": "Installs ansible-core via UV tool on Red Hat UBI DevContainers.",
     "options": {
-        // CAUTION: Note the square brackets. We are passing in a string that is then interpreted as a list. So even if you are only passing one version value, enclose it in square brackets.
-        // Example of single version: "['2.14.4']". Example version list: "['2.13.0','2.13.2','2.14.1']"
+        // See available versions at https://pypi.org/project/ansible-core/
         "target_version": {
-        "type": "string",
-        "proposals": ["['2.15.0b2']", "['2.15.0b1']", "['2.14.4']", "['2.14.4rc1']", "['2.14.3']", "['2.14.3rc1']", "['2.14.2']", "['2.14.2rc1']", "['2.14.1']", "['2.14.1rc1']", "['2.14.0']", "['2.14.0rc2']", "['2.14.0rc1']", "['2.14.0rc1']", "['2.14.0b3']", "['2.14.0b2']", "['2.14.0b1']", "['2.13.8']", "['2.13.8rc1']", "['2.13.7']", "['2.13.7rc1']", "['2.13.6']", "['2.13.6rc1']", "['2.13.5']", "['2.13.5rc1']", "['2.13.4']", "['2.13.4rc1']", "['2.13.3']", "['2.13.0']"],
-        "default": "['2.14.4']",
-        "description": "Select a supported version"
+            "type": "string",
+            "proposals": ["2.18.2", "2.17.8"],
+            "default": "2.18.2",
+            "description": "Select the ansible-core version to install"
+        },
+        "target_python_version": {
+            "type": "string",
+            "proposals": ["3.12", "3.13", "3.11"],
+            "default": "3.12",
+            "description": "Select which Python version to use for the ansible-core venv"
         }
     },
     "customizations": {
         "vscode": {
-            "extensions":
-                [
-                 "ms-python.python",
-                 "redhat.ansible",
-                 "redhat.vscode-yaml",
-                 "samuelcolvin.jinjahtml"
-                ]
+            "extensions": [
+                "redhat.ansible",
+                "redhat.vscode-yaml",
+                "samuelcolvin.jinjahtml"
+            ]
         }
     },
     "installsAfter": [
-        // Try not to establish hard, ordered dependencies between features!
-        "./pipenv-feature"
+        "./python-feature"
     ]
 }

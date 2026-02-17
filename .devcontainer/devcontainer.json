@@ -1,14 +1,14 @@
 {
-	"build": {
-		"dockerfile": "./Containerfile",
-		"context": "."
-	},
+    "build": {
+        "dockerfile": "./Containerfile",
+        "context": "."
+    },
     // Uncomment for use with rootless podman
     // "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,Z,consistency=cached",
     // Comment out when using rootless podman
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
     "workspaceFolder": "/workspace",
-	"customizations": {
+    "customizations": {
         "vscode": {
             "settings": {
                 "json.schemas": [
@@ -18,8 +18,8 @@
                         ],
                         "url": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainerFeature.schema.json"
                     }
-                ], "terminal.integrated.defaultProfile.linux": "bash"
-
+                ],
+                "terminal.integrated.defaultProfile.linux": "bash"
             },
             "extensions": [
                 "usernamehw.indent-one-space",
@@ -29,26 +29,28 @@
         }
     },
     "features": {
-        "./sudo-nopasswd-feature": {},
         "./git-feature": {},
         "./git-lfs-feature": {},
         "./golang-feature": {},
         "./cuelang-feature": {},
-        "./zsh-feature": {}
-        // "./SKELETON-feature": {}
-        // "./ssh-crypto-legacy-unsafe-policies-feature": {},
-        // "./tls-crypto-legacy-unsafe-policies-feature": {},
-        // "./pipenv-feature": {},
-        // "./ansible-core-feature": {
-        //       "target_version": "['2.14.4','2.14.3','2.13.0','2.11.0']"
-        // }
+        "./jq-feature": {},
+        "./yq-feature": {},
+        "./uv-ruff-feature": {},
+        "./grype-feature": {},
+        "./syft-feature": {},
+        "./nodejs-feature": {},
+        "./npm-feature": {},
+        "./pnpm-feature": {},
+        "./bun-feature": {},
+        "./python-feature": {"target_version": "3.12"},
+        "./ansible-core-feature": {"target_version": "2.18.2", "target_python_version": "3.12"}
+        // "./openjdk-feature": {},
+        // "./dotnet-feature": {}
     },
-    // Use postCreateCommand to go install gopls -v
-    // "postCreateCommand": "npm install -g @devcontainers/cli",
     "runArgs": [
-        // uncomment for rootless podman
+        // Uncomment for rootless podman
         // "--userns=keep-id"
-       ],
+    ],
     "containerUser": "vscode",
     "updateRemoteUserUID": true
 }

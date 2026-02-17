@@ -1,0 +1,12 @@
+# dotnet-feature/ansible-role-feature/defaults/main.yml
+---
+_dotnet_version: "8.0.418"
+_dotnet_platform: linux
+_dotnet_arch: x64
+# Example: dotnet-sdk-8.0.418-linux-x64.tar.gz
+_dotnet_tarball: "dotnet-sdk-{{ _dotnet_version }}-{{ _dotnet_platform }}-{{ _dotnet_arch }}.tar.gz"
+# Example: https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+_dotnet_download_url: "https://builds.dotnet.microsoft.com/dotnet/Sdk/{{ _dotnet_version }}/{{ _dotnet_tarball }}"
+_dotnet_checksum:
+
+...

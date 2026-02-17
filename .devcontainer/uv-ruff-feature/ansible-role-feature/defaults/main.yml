@@ -1,0 +1,13 @@
+# uv-ruff-feature/ansible-role-feature/defaults/main.yml
+---
+_uv_version: "0.10.3"
+_uv_platform: x86_64-unknown-linux-gnu
+# Example: uv-x86_64-unknown-linux-gnu.tar.gz
+_uv_tarball: uv-{{ _uv_platform }}.tar.gz
+# Example: https://github.com/astral-sh/uv/releases/download/0.10.3/uv-x86_64-unknown-linux-gnu.tar.gz
+_uv_download_url: https://github.com/astral-sh/uv/releases/download/{{ _uv_version }}/{{ _uv_tarball }}
+_uv_checksum:
+
+_ruff_version: "0.15.1"
+
+...

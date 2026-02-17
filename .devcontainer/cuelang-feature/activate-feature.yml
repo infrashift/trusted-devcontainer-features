@@ -13,5 +13,6 @@
     - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
     # cue_version is a parameter passed in from install.sh
     - _cue_version: "{{ cue_version }}"
-    - _target_username: "{{ target_username }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
 ...

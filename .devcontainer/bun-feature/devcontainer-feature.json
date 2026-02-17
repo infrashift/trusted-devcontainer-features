@@ -1,0 +1,27 @@
+// bun-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "bun-feature",
+    "id": "bun",
+    "version": "1.0.0",
+    "description": "Installs Bun JavaScript runtime on Red Hat UBI DevContainers.",
+    "options": {
+        // See available versions at https://github.com/oven-sh/bun/releases
+        "target_version": {
+            "type": "string",
+            "proposals": ["1.2.17", "1.2.16"],
+            "default": "1.2.17",
+            "description": "Select a supported Bun version"
+        },
+        "target_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA256 checksum for the Bun binary"
+        }
+    },
+    "containerEnv": {
+        "PATH": "${containerUserHome}/.local/bin:${localEnv:PATH}"
+    },
+    "installsAfter": []
+}

@@ -1,0 +1,14 @@
+# nodejs-feature/ansible-role-feature/defaults/main.yml
+---
+_nodejs_version: "22.16.0"
+_nodejs_platform: linux
+_nodejs_arch: x64
+# Example: node-v22.16.0-linux-x64.tar.gz
+_nodejs_tarball: "node-v{{ _nodejs_version }}-{{ _nodejs_platform }}-{{ _nodejs_arch }}.tar.gz"
+# Example: https://nodejs.org/dist/v22.16.0/node-v22.16.0-linux-x64.tar.gz
+_nodejs_download_url: "https://nodejs.org/dist/v{{ _nodejs_version }}/{{ _nodejs_tarball }}"
+# Example: https://nodejs.org/dist/v22.16.0/SHASUMS256.txt
+_nodejs_checksums_download_url: "https://nodejs.org/dist/v{{ _nodejs_version }}/SHASUMS256.txt"
+_nodejs_checksum:
+
+...

@@ -2,5 +2,5 @@
 ---
 _securedevcontainer_compatibility_list:
   - ubi9
-  - ubi8
+  - ubi10
 ...

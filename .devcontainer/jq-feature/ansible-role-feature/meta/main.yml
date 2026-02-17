@@ -1,0 +1,21 @@
+# jq-feature/ansible-role-feature/meta/main.yml
+---
+galaxy_info:
+  author: ryancraig
+  description: jq JSON processor installation for RHEL UBI containers
+  company: infrashift.sh
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+  - name: EL
+    versions:
+    - 9
+    - 10
+  galaxy_tags:
+    - jq
+    - json
+    - rhel
+    - ubi
+
+dependencies: []
+...

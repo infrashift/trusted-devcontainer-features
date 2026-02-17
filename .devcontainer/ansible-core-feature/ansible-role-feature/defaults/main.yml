@@ -1,4 +1,6 @@
-# ansible-core-pipenv-feature/ansible-role-feature/default/main.yml
+# ansible-core-feature/ansible-role-feature/defaults/main.yml
 ---
-# Placeholder
+_ansible_core_version: "2.18.2"
+_target_python_version: "3.12"
+
 ...
