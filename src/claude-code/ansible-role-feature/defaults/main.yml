@@ -1,0 +1,5 @@
+# claude-code-feature/ansible-role-feature/defaults/main.yml
+---
+_claude_code_version: "latest"
+
+...

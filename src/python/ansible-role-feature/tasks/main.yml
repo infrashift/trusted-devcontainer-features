@@ -1,0 +1,80 @@
+# python-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+# Python installation tasks
+- name: Determine which uv binary to use
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/uv"
+  register: _uv_bin_stat
+
+- name: Set uv binary path fact
+  ansible.builtin.set_fact:
+    _uv_bin: "{{ _uv_bin_stat.stat.path if _uv_bin_stat.stat.exists else '/usr/local/bin/uv' }}"
+
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
+- name: Check if Python {{ _python_version }} is already installed
+  ansible.builtin.command:
+    cmd: "{{ _uv_bin }} python find {{ _python_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  ignore_errors: true
+  register: _python_find_result
+  changed_when: false
+
+- name: Install Python {{ _python_version }} via uv
+  ansible.builtin.command:
+    cmd: "{{ _uv_bin }} python install {{ _python_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  register: _python_install_log
+  when: _python_find_result is failed
+  # We use the fact that we are root to write to the user's home, 
+  # then we fix permissions in the next step.
+
+- name: Ensure Python installation directory ownership
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/share/uv"
+    state: directory
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+  ignore_errors: true
+
+- name: Verify Python {{ _python_version }} is installed
+  ansible.builtin.command:
+    cmd: "{{ _uv_bin }} python find {{ _python_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  register: _python_verify_result
+  changed_when: false
+
+- name: Assert that Python is installed and accessible
+  ansible.builtin.assert:
+    that: "_python_verify_result.rc == 0"
+    fail_msg: "Python {{ _python_version }} could not be found after installation. Error: {{ _python_verify_result.stderr }}"
+    success_msg: "Python {{ _python_version }} installed and verified."
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

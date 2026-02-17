@@ -1,0 +1,16 @@
+# Ansible Playbook
+# openai-codex-feature/activate-feature.yml
+---
+- name: Activate DevContainer Feature - OpenAI Codex
+  hosts: ubi
+  become: true
+  gather_facts: false
+
+  roles:
+  - role: ansible-role-feature
+    vars:
+    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+    - _codex_version: "{{ codex_version }}"
+    - _target_username: "{{ remote_user }}"
+    - _target_user_home: "{{ remote_user_home }}"
+...

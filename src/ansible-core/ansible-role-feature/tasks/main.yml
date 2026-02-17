@@ -1,0 +1,70 @@
+# ansible-core-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list."
+
+- name: Extract the UBI version number
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+# Determine which uv binary to use
+- name: Check if user uv exists
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/uv"
+  register: _user_uv_stat
+
+- name: Set uv binary path fact
+  ansible.builtin.set_fact:
+    _uv_bin: "{{ _user_uv_stat.stat.path if _user_uv_stat.stat.exists else '/usr/local/bin/uv' }}"
+
+# Verify target Python version is available
+- name: Verify Python {{ _target_python_version }} is available
+  ansible.builtin.command:
+    cmd: "{{ _uv_bin }} python find {{ _target_python_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  register: _python_find_result
+  changed_when: false
+
+# Install ansible-core as UV tool
+- name: Install ansible-core {{ _ansible_core_version }} via uv tool install
+  ansible.builtin.command:
+    cmd: "{{ _uv_bin }} tool install ansible-core=={{ _ansible_core_version }} --python {{ _target_python_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  register: _ansible_install_result
+  changed_when: "'installed' in _ansible_install_result.stderr or 'updated' in _ansible_install_result.stderr"
+
+# Ownership fix is required since we ran as root
+- name: Fix ownership of installed tools
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+
+# Verify installation
+- name: Get ansible version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/ansible --version"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  register: _ansible_version_result
+  changed_when: false
+
+- name: Assert that ansible-core is installed and accessible
+  ansible.builtin.assert:
+    that: "'ansible' in _ansible_version_result.stdout"
+    fail_msg: "Ansible not found. Output: {{ _ansible_version_result.stderr }}"
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

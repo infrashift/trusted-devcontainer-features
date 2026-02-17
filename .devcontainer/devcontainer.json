@@ -1,10 +1,10 @@
 {
     "build": {
         "dockerfile": "./Containerfile",
-        "context": "."
+        "context": ".."
     },
     // Uncomment for use with rootless podman
-    // "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,Z,consistency=cached",
+    //"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,Z,consistency=cached",
     // Comment out when using rootless podman
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
     "workspaceFolder": "/workspace",
@@ -29,23 +29,25 @@
         }
     },
     "features": {
-        "./git-feature": {},
-        "./git-lfs-feature": {},
-        "./golang-feature": {},
-        "./cuelang-feature": {},
-        "./jq-feature": {},
-        "./yq-feature": {},
-        "./uv-ruff-feature": {},
-        "./grype-feature": {},
-        "./syft-feature": {},
-        "./nodejs-feature": {},
-        "./npm-feature": {},
-        "./pnpm-feature": {},
-        "./bun-feature": {},
-        "./python-feature": {"target_version": "3.12"},
-        "./ansible-core-feature": {"target_version": "2.18.2", "target_python_version": "3.12"}
-        // "./openjdk-feature": {},
-        // "./dotnet-feature": {}
+        "../src/git": {},
+        "../src/git-lfs": {},
+        "../src/golang": {},
+        "../src/cuelang": {},
+        "../src/jq": {},
+        "../src/yq": {},
+        "../src/uv-ruff": {},
+        "../src/grype": {},
+        "../src/syft": {},
+        "../src/nodejs": {},
+        "../src/npm": {},
+        "../src/claude-code": {},
+        "../src/openai-codex": {},
+        "../src/pnpm": {},
+        "../src/bun": {},
+        "../src/python": {"target_version": "3.12"},
+        "../src/ansible-core": {"target_version": "2.18.2", "target_python_version": "3.12"},
+        "../src/openjdk": {},
+        "../src/dotnet": {}
     },
     "runArgs": [
         // Uncomment for rootless podman

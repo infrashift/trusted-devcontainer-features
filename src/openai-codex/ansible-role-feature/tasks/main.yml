@@ -1,0 +1,61 @@
+# openai-codex-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+- name: Display _securedevcontainer_ubi_version
+  ansible.builtin.debug:
+    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+
+# OpenAI Codex installation tasks
+- name: Check if OpenAI Codex is already installed
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.bun/bin/codex --version"
+  ignore_errors: true
+  register: _codex_current_version
+  changed_when: false
+
+- name: Display current OpenAI Codex version
+  ansible.builtin.debug:
+    msg: "Current OpenAI Codex version: {{ _codex_current_version.stdout | default('not installed') }}"
+
+- name: Install OpenAI Codex {{ _codex_version }}
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/bun install -g @openai/codex@{{ _codex_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  when: _codex_current_version is failed
+        or (_codex_version != "latest" and _codex_version not in _codex_current_version.stdout)
+
+- name: Change ownership of Bun global directory
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.bun"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    recurse: true
+
+- name: Get OpenAI Codex version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.bun/bin/codex --version"
+  register: _codex_version_result
+
+- name: Assert that OpenAI Codex is installed
+  ansible.builtin.assert:
+    that: "_codex_version_result.rc == 0"
+    fail_msg: "OpenAI Codex installation failed"
+    success_msg: "OpenAI Codex {{ _codex_version_result.stdout }} installed successfully"
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

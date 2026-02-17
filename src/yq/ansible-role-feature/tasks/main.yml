@@ -1,0 +1,53 @@
+# yq-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+- name: Extract the UBI version number from _securedevcontainer_variant
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+
+# yq installation tasks
+- name: Check if yq is already installed
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/yq --version"
+  ignore_errors: true
+  register: _yq_version_result
+  changed_when: false
+
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
+- name: Download yq binary (no checksum verification)
+  ansible.builtin.get_url:
+    url: "{{ _yq_download_url }}"
+    dest: "{{ _target_user_home }}/.local/bin/yq"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    mode: '0755'
+  when: _yq_version_result is failed or _yq_version not in _yq_version_result.stdout
+
+- name: Get yq version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/yq --version"
+  register: _yq_version_result
+  changed_when: false
+
+- name: Assert that yq is installed and accessible
+  ansible.builtin.assert:
+    that: "'yq' in _yq_version_result.stdout"
+    fail_msg: "Installed yq reported: {{ _yq_version_result.stdout }}"
+    success_msg: "yq version {{ _yq_version_result.stdout }} verified."
+
+# Cleanup
+- name: Unset _securedevcontainer_ubi_version
+  ansible.builtin.set_fact:
+    _securedevcontainer_ubi_version: null
+...

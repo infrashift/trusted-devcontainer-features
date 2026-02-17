@@ -1,0 +1,37 @@
+// golang-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "golang-feature",
+    "id": "golang",
+    "version": "1.0.0",
+    "description": "Installs Go (Golang) on Red Hat UBI DevContainers.",
+    "options": {
+        // See available versions at https://go.dev/dl/
+        // Targeting go{{ target_version }}.linux-amd64.tar.gz
+        "target_version": {
+            "type": "string",
+            "proposals": ["1.26.0", "1.24.4", "1.23.10"],
+            "default": "1.26.0",
+            "description": "Select a supported Golang binary version"
+        },
+        // See checksums at https://go.dev/dl/
+        "target_checksum": {
+            "type": "string",
+            "proposals": ["aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"],
+            "default": "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235",
+            "description": "Select the corresponding Golang binary checksum"
+        }
+    },
+    "containerEnv": {
+        "PATH": "/home/vscode/.local/share/go/bin:/home/vscode/.local/bin:${PATH}",
+        "GOPATH": "/home/vscode/.local/share/gopath"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.Go"
+            ]
+        }
+    },
+    "installsAfter": []
+}

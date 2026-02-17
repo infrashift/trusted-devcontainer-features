@@ -1,0 +1,26 @@
+// python-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "python-feature",
+    "id": "python",
+    "version": "1.0.0",
+    "description": "Installs a specific Python version via UV on Red Hat UBI DevContainers.",
+    "options": {
+        "target_version": {
+            "type": "string",
+            "proposals": ["3.14", "3.13", "3.12", "3.11", "3.10", "3.9"],
+            "default": "3.12",
+            "description": "Select a Python version to install"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    },
+    "installsAfter": [
+        "./uv-ruff"
+    ]
+}

@@ -1,0 +1,41 @@
+// openjdk-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "openjdk-feature",
+    "id": "openjdk",
+    "version": "1.0.0",
+    "description": "Installs Eclipse Temurin OpenJDK on Red Hat UBI DevContainers.",
+    "options": {
+        "target_major_version": {
+            "type": "string",
+            "proposals": ["21", "17"],
+            "default": "21",
+            "description": "Select the OpenJDK major version"
+        },
+        // See available versions at https://adoptium.net/temurin/releases/
+        "target_version": {
+            "type": "string",
+            "proposals": ["21.0.6+7"],
+            "default": "21.0.6+7",
+            "description": "Select the full OpenJDK version string"
+        },
+        "target_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA256 checksum for the OpenJDK tarball"
+        }
+    },
+    "containerEnv": {
+        "JAVA_HOME": "/home/vscode/.local/share/java",
+        "PATH": "/home/vscode/.local/share/java/bin:/home/vscode/.local/bin:${PATH}"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vscjava.vscode-java-pack"
+            ]
+        }
+    },
+    "installsAfter": []
+}

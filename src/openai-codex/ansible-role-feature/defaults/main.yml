@@ -1,0 +1,5 @@
+# openai-codex-feature/ansible-role-feature/defaults/main.yml
+---
+_codex_version: "latest"
+
+...

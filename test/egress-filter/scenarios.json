@@ -1,0 +1,10 @@
+{
+    "default": {
+        "image": "devcontainer-features-test-base:ubi9",
+        "remoteUser": "vscode",
+        "privileged": true,
+        "features": {
+            "egress-filter": {}
+        }
+    }
+}
