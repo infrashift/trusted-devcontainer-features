@@ -1,0 +1,36 @@
+---
+title: Grype
+description: Installs Anchore Grype vulnerability scanner on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'grype');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+Grype is a vulnerability scanner from Anchore that can analyze container images, filesystems, and Software Bills of Materials (SBOMs) for known security vulnerabilities. This feature downloads the Grype binary from Anchore's official GitHub releases and installs it into your devcontainer.
+
+The Ansible playbook downloads the linux-amd64 tarball for the specified Grype version. If a SHA256 checksum is provided via the `target_checksum` option, it verifies the download against that checksum. If no checksum is provided, the playbook downloads the official checksums file from the release and uses it for verification. After validation, the binary is extracted to `~/.local/bin` where it is available on PATH.
+
+The playbook verifies the installation by running `grype version` to confirm the binary is functional. Grype has no dependencies on other features in this collection and can be installed standalone. Once installed, you can scan your project with commands like `grype dir:.` to check for vulnerabilities in your application dependencies, or `grype <image>` to scan a container image. Pair Grype with the Syft feature for a complete SBOM generation and vulnerability scanning workflow.

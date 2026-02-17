@@ -1,0 +1,36 @@
+---
+title: npm
+description: Updates npm to a specific version on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'npm');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature updates npm to a specific version using `npm install -g npm@<version>`. Rather than downloading a standalone binary, it leverages the npm self-upgrade mechanism to replace the bundled version that ships with Node.js.
+
+The Ansible playbook runs the upgrade command after Node.js is installed, which is guaranteed by the nodejs feature dependency. When you include the npm feature in your devcontainer configuration, the dependency chain ensures that Node.js is set up first, and then npm is upgraded to the version specified in the `target_version` option.
+
+This is useful when you need a newer npm version than what ships with the installed Node.js release, or when your project requires a specific npm version for reproducible lockfile behavior. By splitting Node.js and npm into separate features, you can pin each version independently without being locked to whatever npm version a particular Node.js release bundles.

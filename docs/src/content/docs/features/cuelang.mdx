@@ -1,0 +1,36 @@
+---
+title: CUElang
+description: Installs CUElang on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'cuelang');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+CUElang is a data validation and configuration language that builds on JSON and adds types, constraints, and logic. This feature downloads the CUE binary from the official GitHub releases as a tarball (`cue_v<version>_linux_amd64.tar.gz`) and installs it into your devcontainer.
+
+The Ansible playbook downloads the release tarball for the specified version, extracts the `cue` binary, and places it in `~/.local/bin` where it is available on PATH. The installation is straightforward since CUE ships as a single static binary with no additional runtime dependencies.
+
+CUElang depends on Go being installed first via the golang feature for full module support and `cue mod` operations. When you include the cuelang feature in your devcontainer configuration, the dependency chain ensures that Go is installed before CUE, enabling you to work with CUE modules that reference Go packages, use `cue mod init`, and take advantage of the full CUE toolchain.

@@ -1,0 +1,93 @@
+---
+title: Feature Inventory
+description: Complete catalog of all 20 Infrashift DevContainer Features.
+---
+
+import features from '../../../data/features.json';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+All features are published to `ghcr.io/infrashift/devcontainer-features/<id>:latest` and designed for Red Hat UBI 9.
+
+## All Features
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Description</th>
+      <th>Version</th>
+      <th>Dependencies</th>
+      <th>Tests</th>
+    </tr>
+  </thead>
+  <tbody>
+    {features.map((f) => (
+      <tr>
+        <td><a href={`/devcontainer-features/features/${f.id}/`}><code>{f.id}</code></a></td>
+        <td>{f.description}</td>
+        <td><code>{f.version}</code></td>
+        <td>{f.dependencies.length > 0 ? f.dependencies.map((d) => <><a href={`/devcontainer-features/features/${d}/`}><code>{d}</code></a>{' '}</>)  : 'None'}</td>
+        <td>{f.testStatus === 'passing' ? '✅' : f.testStatus === 'failing' ? '❌' : '❓'}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+## By Category
+
+### Languages & Runtimes
+
+<div class="card-grid">
+  {features.filter(f => f.category === 'languages').map(f => (
+    <FeatureCard id={f.id} name={f.name} description={f.description} version={f.version} testStatus={f.testStatus} />
+  ))}
+</div>
+
+### Package Managers
+
+<div class="card-grid">
+  {features.filter(f => f.category === 'package-managers').map(f => (
+    <FeatureCard id={f.id} name={f.name} description={f.description} version={f.version} testStatus={f.testStatus} />
+  ))}
+</div>
+
+### CLI Tools
+
+<div class="card-grid">
+  {features.filter(f => f.category === 'cli').map(f => (
+    <FeatureCard id={f.id} name={f.name} description={f.description} version={f.version} testStatus={f.testStatus} />
+  ))}
+</div>
+
+### Security & SBOMs
+
+<div class="card-grid">
+  {features.filter(f => f.category === 'security').map(f => (
+    <FeatureCard id={f.id} name={f.name} description={f.description} version={f.version} testStatus={f.testStatus} />
+  ))}
+</div>
+
+### Infrastructure
+
+<div class="card-grid">
+  {features.filter(f => f.category === 'infrastructure').map(f => (
+    <FeatureCard id={f.id} name={f.name} description={f.description} version={f.version} testStatus={f.testStatus} />
+  ))}
+</div>
+
+### AI Coding Assistants
+
+<div class="card-grid">
+  {features.filter(f => f.category === 'ai').map(f => (
+    <FeatureCard id={f.id} name={f.name} description={f.description} version={f.version} testStatus={f.testStatus} />
+  ))}
+</div>
+
+<style>{`
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1em;
+    margin: 1em 0 2em;
+  }
+`}</style>

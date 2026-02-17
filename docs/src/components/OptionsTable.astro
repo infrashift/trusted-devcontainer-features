@@ -1,0 +1,55 @@
+---
+interface Option {
+	type: string;
+	default: string;
+	description: string;
+}
+
+interface Props {
+	options: Record<string, Option>;
+}
+
+const { options } = Astro.props;
+const entries = Object.entries(options);
+---
+
+{entries.length > 0 ? (
+	<table>
+		<thead>
+			<tr>
+				<th>Option</th>
+				<th>Type</th>
+				<th>Default</th>
+				<th>Description</th>
+			</tr>
+		</thead>
+		<tbody>
+			{entries.map(([name, opt]) => (
+				<tr>
+					<td><code>{name}</code></td>
+					<td><code>{opt.type}</code></td>
+					<td><code>{opt.default || '""'}</code></td>
+					<td>{opt.description}</td>
+				</tr>
+			))}
+		</tbody>
+	</table>
+) : (
+	<p>This feature has no configurable options.</p>
+)}
+
+<style>
+	table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+	th, td {
+		padding: 0.5em 0.75em;
+		text-align: left;
+		border-bottom: 1px solid var(--sl-color-gray-5);
+	}
+	th {
+		font-weight: 600;
+		background-color: var(--sl-color-gray-6);
+	}
+</style>

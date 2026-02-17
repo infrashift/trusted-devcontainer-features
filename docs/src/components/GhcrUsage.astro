@@ -1,0 +1,62 @@
+---
+interface Option {
+	type: string;
+	default: string;
+	description: string;
+}
+
+interface Props {
+	featureId: string;
+	options: Record<string, Option>;
+}
+
+const { featureId, options } = Astro.props;
+const entries = Object.entries(options);
+
+const hasOptions = entries.length > 0;
+const optionsSnippet = hasOptions
+	? entries
+		.filter(([_, opt]) => opt.default && opt.default !== '')
+		.map(([name, opt]) => `            "${name}": "${opt.default}"`)
+		.join(',\n')
+	: '';
+
+const featureRef = `ghcr.io/infrashift/devcontainer-features/${featureId}:latest`;
+const snippet = hasOptions && optionsSnippet
+	? `{
+    "features": {
+        "${featureRef}": {
+${optionsSnippet}
+        }
+    }
+}`
+	: `{
+    "features": {
+        "${featureRef}": {}
+    }
+}`;
+---
+
+<div class="ghcr-usage">
+	<div class="code-header">
+		<span>devcontainer.json</span>
+	</div>
+	<pre><code set:text={snippet} /></pre>
+</div>
+
+<style>
+	.ghcr-usage {
+		margin: 1em 0;
+	}
+	.code-header {
+		background-color: var(--sl-color-gray-5);
+		padding: 0.4em 0.75em;
+		border-radius: 6px 6px 0 0;
+		font-size: 0.85em;
+		font-weight: 600;
+	}
+	pre {
+		margin-top: 0;
+		border-radius: 0 0 6px 6px;
+	}
+</style>

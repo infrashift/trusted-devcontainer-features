@@ -1,0 +1,36 @@
+---
+title: pnpm
+description: Installs pnpm package manager on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'pnpm');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads the pnpm binary from the official GitHub releases. The Ansible playbook creates the `~/.local/share/pnpm` directory, downloads the pnpm binary for the specified version, and optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option. Once downloaded, the executable bit is set and `PNPM_HOME` and PATH are configured so the `pnpm` command is immediately available.
+
+pnpm requires Node.js to be installed, as it uses the Node.js runtime under the hood. This dependency is declared in the feature configuration, so including pnpm in your devcontainer will automatically trigger Node.js installation first through the dependency chain.
+
+pnpm is an alternative package manager for Node.js that uses a content-addressable store and hard links to save disk space and improve installation speed. It enforces strict dependency isolation by default, which prevents phantom dependencies that can cause subtle bugs in projects managed by npm or Yarn. If your project uses a `pnpm-lock.yaml` lockfile, this feature ensures you have the right pnpm version available in the devcontainer.

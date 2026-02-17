@@ -1,0 +1,36 @@
+---
+title: Python
+description: Installs a specific Python version via UV on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'python');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature uses UV (from the uv-ruff feature) to install a managed Python version. The Ansible playbook runs `uv python install <version>`, which downloads a standalone Python build from the Astral Python builds project and installs it in UV's managed location. UV handles the download, extraction, and setup automatically, so no system-level package installation or compilation from source is required.
+
+The dependency on uv-ruff ensures that UV is installed before Python setup begins. When you include the python feature in your devcontainer configuration, the dependency chain installs UV and Ruff first, and then Python is set up at the requested version. This approach provides fast, reproducible Python installations without relying on the system package manager.
+
+The VS Code Python extension is recommended for a full-featured development experience including IntelliSense, debugging, and linting. Since Ruff is already available through the uv-ruff dependency, you get a fast Python linter and formatter out of the box. Other features like ansible-core also depend on this Python feature, so the installed Python version may be shared across multiple tools in the devcontainer.

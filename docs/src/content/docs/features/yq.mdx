@@ -1,0 +1,36 @@
+---
+title: yq
+description: Installs yq YAML/JSON/XML processor on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'yq');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads the yq binary from Mike Farah's GitHub releases, specifically the `yq_linux_amd64` artifact for the requested version. yq is a portable command-line processor for YAML, JSON, and XML that uses jq-like syntax, making it easy to query and manipulate structured data formats commonly used in DevOps and cloud-native workflows.
+
+The Ansible playbook downloads the binary to `~/.local/bin/yq`, optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option. If no checksum is provided, the playbook downloads the checksums file from the GitHub release to perform verification. Once verified, the executable bit is set and the installation is confirmed by running yq to check the installed version.
+
+Like jq, yq is a standalone static binary with no external dependencies, so this feature has no dependency chain and installs quickly. It pairs naturally with the jq feature for comprehensive structured data processing across YAML, JSON, and XML formats in shell scripts and CI/CD pipelines.

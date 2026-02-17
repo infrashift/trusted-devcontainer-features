@@ -1,0 +1,36 @@
+---
+title: Ansible Core
+description: Installs ansible-core via UV tool on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'ansible-core');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+Ansible Core is installed into a dedicated virtual environment managed by UV, the fast Python package manager from Astral. Rather than installing ansible-core globally or cluttering the system Python, this feature creates a fully isolated environment that keeps your devcontainer clean and reproducible.
+
+The install script delegates to an Ansible playbook via `uv run --with ansible-core ansible-playbook`, which bootstraps the installation process. It creates an isolated Python venv at the specified version, installs ansible-core into it, and symlinks the `ansible`, `ansible-playbook`, and related binaries into `~/.local/bin` so they are available on PATH.
+
+This feature depends on the Python feature, which itself depends on UV & Ruff. When you include ansible-core in your devcontainer configuration, the dependency chain ensures that UV is installed first, then Python is set up at the requested version, and finally ansible-core is installed into its own venv. This layered approach means you can pin both the Python version and the ansible-core version independently.

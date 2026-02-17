@@ -1,0 +1,36 @@
+---
+title: Go
+description: Installs Go (Golang) on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'golang');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads the official Go binary distribution from `go.dev` as a tarball (`go<version>.linux-amd64.tar.gz`) and installs it into a user-local directory. Go is a statically typed, compiled language designed for simplicity and performance, widely used for cloud infrastructure tooling, container runtimes, and CLI applications.
+
+The Ansible playbook creates `~/.local/share/go` as the Go installation root, downloads the tarball for the specified version, and verifies the SHA256 checksum to ensure the download has not been tampered with. A default checksum is provided for the bundled version, but you can override it when pinning to a different version. After verification, the tarball is extracted into the installation directory.
+
+The playbook configures `GOPATH` at `~/.local/share/gopath`, which is where Go modules, build caches, and installed binaries are stored. Both the Go binary directory (`~/.local/share/go/bin`) and the GOPATH bin directory (`~/.local/share/gopath/bin`) are added to PATH, so the `go` command and any binaries installed via `go install` are immediately available. The VS Code Go extension is recommended for full language support including IntelliSense, debugging, and test integration.

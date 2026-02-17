@@ -1,0 +1,36 @@
+---
+title: OpenAI Codex
+description: Installs OpenAI Codex CLI on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'openai-codex');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature uses Bun to globally install the `@openai/codex` npm package. The Ansible playbook runs `bun install --global @openai/codex@<version>`, which places the `codex` CLI binary in `~/.bun/bin`. Because this installation method relies on Bun as the package manager and runtime, the Bun feature must be installed first, which is handled automatically through the dependency chain.
+
+To use OpenAI Codex after installation, you need to set the `OPENAI_API_KEY` environment variable. You can do this in your `devcontainer.json` using `containerEnv` or `remoteEnv`, or by configuring it in a `.env` file that your devcontainer mounts.
+
+The VS Code ChatGPT extension is also recommended as a companion to the Codex CLI for an integrated AI-assisted development experience. Codex provides a terminal-based AI coding assistant that can generate, explain, and refactor code directly from the command line, complementing editor-based AI tools.

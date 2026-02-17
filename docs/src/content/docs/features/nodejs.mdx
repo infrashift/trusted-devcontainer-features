@@ -1,0 +1,36 @@
+---
+title: Node.js
+description: Installs Node.js on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'nodejs');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads the official Node.js binary distribution from nodejs.org as a tarball (`node-v<version>-linux-x64.tar.xz`). The Ansible playbook creates the `~/.local/share/nodejs` directory, downloads the tarball for the specified version, and optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option.
+
+Once verified, the tarball is extracted into `~/.local/share/nodejs`, and the Node.js `bin` directory is added to PATH. This provides both the `node` runtime and the bundled `npm` package manager immediately after installation.
+
+If you need a different npm version than what ships with the installed Node.js release, combine this feature with the npm feature. The npm feature declares nodejs as a dependency, so including it will automatically trigger Node.js installation first and then upgrade npm to the specified version. This two-feature approach gives you independent control over both the Node.js runtime version and the npm version.

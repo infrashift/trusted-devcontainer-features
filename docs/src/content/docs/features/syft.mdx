@@ -1,0 +1,36 @@
+---
+title: Syft
+description: Installs Anchore Syft SBOM generator on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'syft');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads the Syft SBOM generator from Anchore's GitHub releases. The Ansible playbook downloads the `syft_<version>_linux_amd64.tar.gz` tarball for the specified version and optionally verifies the SHA256 checksum. If no checksum is provided via the `target_checksum` option, the playbook downloads the checksums file from the release to perform verification. Once verified, the binary is extracted to `~/.local/bin`.
+
+After installation, the playbook verifies that Syft is working correctly by running `syft version` to confirm the installed version. Syft has no external dependencies, so this feature installs cleanly without a dependency chain.
+
+Syft generates Software Bills of Materials (SBOMs) in CycloneDX, SPDX, and other standard formats from container images, filesystems, and archives. SBOMs are increasingly required for software supply chain security compliance, and having Syft available in your devcontainer allows you to generate and inspect SBOMs as part of your development workflow. Syft pairs well with the Grype feature, which uses Syft-generated SBOMs to scan for known vulnerabilities.

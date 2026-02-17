@@ -1,0 +1,36 @@
+---
+title: Git
+description: Installs Git from source on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'git');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature compiles Git from source on Red Hat UBI 9 to provide a current version of Git rather than relying on the older version available in the UBI package repositories. The UBI 9 base image ships with a Git version that may lag significantly behind upstream, which can cause compatibility issues with modern Git features, hosting platforms, and workflows.
+
+The Ansible playbook installs the required build dependencies including curl, gcc, make, openssl-devel, zlib-devel, and other development libraries needed to compile Git. It then downloads the Git source tarball for the target version, compiles it with the default configuration, and installs it system-wide so it is available to all users in the container.
+
+This is one of the simplest features in the collection, with no configurable options and no dependencies on other features. It serves as a foundational building block for features like Git LFS, which requires Git to be installed first. After installation, you can verify the version by running `git --version` in your terminal.

@@ -1,0 +1,390 @@
+[
+  {
+    "id": "ansible-core",
+    "name": "Ansible Core",
+    "description": "Installs ansible-core via UV tool on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "infrastructure",
+    "dependencies": ["python"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "2.18.2",
+        "description": "Select the ansible-core version to install"
+      },
+      "target_python_version": {
+        "type": "string",
+        "default": "3.12",
+        "description": "Select which Python version to use for the ansible-core venv"
+      }
+    }
+  },
+  {
+    "id": "bun",
+    "name": "Bun",
+    "description": "Installs Bun JavaScript runtime on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "languages",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.2.17",
+        "description": "Select a supported Bun version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the Bun binary"
+      }
+    }
+  },
+  {
+    "id": "claude-code",
+    "name": "Claude Code",
+    "description": "Installs Claude Code (Anthropic's AI coding assistant CLI) on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "ai",
+    "dependencies": ["bun"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "latest",
+        "description": "Select the Claude Code version to install"
+      }
+    }
+  },
+  {
+    "id": "cuelang",
+    "name": "CUElang",
+    "description": "Installs CUElang on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": ["golang"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "0.15.4",
+        "description": "Select a supported CUElang binary version"
+      }
+    }
+  },
+  {
+    "id": "dotnet",
+    "name": ".NET SDK",
+    "description": "Installs Microsoft .NET SDK on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "languages",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "8.0.418",
+        "description": "Select a supported .NET SDK version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the .NET SDK tarball"
+      }
+    }
+  },
+  {
+    "id": "egress-filter",
+    "name": "Egress Filter",
+    "description": "Domain-based egress filtering using Squid proxy and iptables for Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "security",
+    "dependencies": [],
+    "options": {
+      "allowed_domains": {
+        "type": "string",
+        "default": "example.com",
+        "description": "Comma-separated list of allowed domains. Prefix with '.' for subdomain matching."
+      },
+      "squid_port": {
+        "type": "string",
+        "default": "3128",
+        "description": "Localhost port for the Squid proxy."
+      },
+      "allow_localhost": {
+        "type": "boolean",
+        "default": "true",
+        "description": "Allow connections to localhost without proxy."
+      }
+    }
+  },
+  {
+    "id": "git",
+    "name": "Git",
+    "description": "Installs Git from source on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {}
+  },
+  {
+    "id": "git-lfs",
+    "name": "Git LFS",
+    "description": "Installs Git LFS on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": ["git"],
+    "options": {}
+  },
+  {
+    "id": "golang",
+    "name": "Go",
+    "description": "Installs Go (Golang) on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "languages",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.26.0",
+        "description": "Select a supported Golang binary version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235",
+        "description": "Select the corresponding Golang binary checksum"
+      }
+    }
+  },
+  {
+    "id": "grype",
+    "name": "Grype",
+    "description": "Installs Anchore Grype vulnerability scanner on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "security",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "0.108.0",
+        "description": "Select a supported Grype binary version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the Grype binary"
+      }
+    }
+  },
+  {
+    "id": "jq",
+    "name": "jq",
+    "description": "Installs jq JSON processor on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.7.1",
+        "description": "Select a supported jq version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the jq binary"
+      }
+    }
+  },
+  {
+    "id": "nodejs",
+    "name": "Node.js",
+    "description": "Installs Node.js on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "languages",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "22.16.0",
+        "description": "Select a supported Node.js version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the Node.js tarball"
+      }
+    }
+  },
+  {
+    "id": "npm",
+    "name": "npm",
+    "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "package-managers",
+    "dependencies": ["nodejs"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "11.4.1",
+        "description": "Select the npm version to install"
+      }
+    }
+  },
+  {
+    "id": "openai-codex",
+    "name": "OpenAI Codex",
+    "description": "Installs OpenAI Codex CLI on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "ai",
+    "dependencies": ["bun"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "latest",
+        "description": "Select the OpenAI Codex version to install"
+      }
+    }
+  },
+  {
+    "id": "openjdk",
+    "name": "OpenJDK",
+    "description": "Installs Eclipse Temurin OpenJDK on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "languages",
+    "dependencies": [],
+    "options": {
+      "target_major_version": {
+        "type": "string",
+        "default": "21",
+        "description": "Select the OpenJDK major version"
+      },
+      "target_version": {
+        "type": "string",
+        "default": "21.0.6+7",
+        "description": "Select the full OpenJDK version string"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the OpenJDK tarball"
+      }
+    }
+  },
+  {
+    "id": "pnpm",
+    "name": "pnpm",
+    "description": "Installs pnpm package manager on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "package-managers",
+    "dependencies": ["nodejs"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "10.12.1",
+        "description": "Select a supported pnpm version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the pnpm binary"
+      }
+    }
+  },
+  {
+    "id": "python",
+    "name": "Python",
+    "description": "Installs a specific Python version via UV on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "languages",
+    "dependencies": ["uv-ruff"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "3.12",
+        "description": "Select a Python version to install"
+      }
+    }
+  },
+  {
+    "id": "syft",
+    "name": "Syft",
+    "description": "Installs Anchore Syft SBOM generator on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "security",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.42.0",
+        "description": "Select a supported Syft binary version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the Syft binary"
+      }
+    }
+  },
+  {
+    "id": "uv-ruff",
+    "name": "UV & Ruff",
+    "description": "Installs Astral UV package manager and Ruff linter on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "package-managers",
+    "dependencies": [],
+    "options": {
+      "target_uv_version": {
+        "type": "string",
+        "default": "0.10.3",
+        "description": "Select a supported UV version"
+      },
+      "target_uv_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the UV binary"
+      },
+      "target_ruff_version": {
+        "type": "string",
+        "default": "0.15.1",
+        "description": "Select a supported Ruff version"
+      }
+    }
+  },
+  {
+    "id": "yq",
+    "name": "yq",
+    "description": "Installs yq YAML/JSON/XML processor on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "4.45.4",
+        "description": "Select a supported yq version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the yq binary"
+      }
+    }
+  }
+]

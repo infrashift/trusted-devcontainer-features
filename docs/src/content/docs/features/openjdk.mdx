@@ -1,0 +1,36 @@
+---
+title: OpenJDK
+description: Installs Eclipse Temurin OpenJDK on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'openjdk');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads Eclipse Temurin OpenJDK from the Adoptium project. The Ansible playbook downloads the JDK tarball for the specified major and full version (`OpenJDK<major>U-jdk_x64_linux_hotspot_<version>.tar.gz`), optionally verifies the SHA256 checksum if one is provided, and extracts it to `~/.local/share/java`.
+
+After extraction, the playbook configures `JAVA_HOME` to point to the installed JDK directory and adds the JDK `bin` directory to PATH, making `java`, `javac`, and all other JDK tools immediately available. The VS Code Java Extension Pack is recommended for a full-featured Java development experience in the devcontainer.
+
+This is the only feature in the collection that uses a separate major version option (`target_major_version`) in addition to the full version string (`target_version`). The major version is needed because the Adoptium download URL structure uses the major version in the path, while the full version string (e.g., `21.0.6+7`) is used for the tarball filename. Both values must be provided and must be consistent with each other for the download to succeed.

@@ -1,0 +1,36 @@
+---
+title: .NET SDK
+description: Installs Microsoft .NET SDK on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'dotnet');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature downloads the .NET SDK tarball from Microsoft's official CDN for the linux-x64 architecture and installs it into a user-local directory. The .NET SDK includes the runtime, libraries, and CLI tools needed to build and run .NET applications including ASP.NET Core, Blazor, and console apps.
+
+The Ansible playbook creates the `~/.local/share/dotnet` directory, downloads the SDK tarball for the specified version, and optionally verifies the SHA256 checksum if one is provided. After extraction, the playbook configures the necessary environment variables: `DOTNET_ROOT` is set to point at the installation directory, and `~/.local/share/dotnet` is added to PATH so that the `dotnet` CLI is available globally.
+
+CLI telemetry is disabled by default via the `DOTNET_CLI_TELEMETRY_OPTOUT=1` environment variable, which prevents Microsoft from collecting usage data inside your devcontainer. The VS Code C# Dev Kit extension is recommended for full IntelliSense, debugging, and project management support. This feature has no dependencies on other features and can be installed standalone.
