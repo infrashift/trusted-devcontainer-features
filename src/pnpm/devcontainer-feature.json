@@ -21,8 +21,8 @@
         }
     },
     "containerEnv": {
-        "PATH": "/home/vscode/.local/share/pnpm:/home/vscode/.local/bin:${PATH}",
-        "PNPM_HOME": "/home/vscode/.local/share/pnpm"
+        "PATH": "/home/dev/.local/share/pnpm:/home/dev/.local/bin:${PATH}",
+        "PNPM_HOME": "/home/dev/.local/share/pnpm"
     },
     "installsAfter": [
         "./nodejs"

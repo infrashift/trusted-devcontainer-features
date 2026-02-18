@@ -22,7 +22,7 @@
         }
     },
     "containerEnv": {
-        "PATH": "/home/vscode/.bun/bin:${PATH}"
+        "PATH": "/home/dev/.bun/bin:${PATH}"
     },
     "installsAfter": [
         "./bun"

@@ -27,8 +27,8 @@
         }
     },
     "containerEnv": {
-        "JAVA_HOME": "/home/vscode/.local/share/java",
-        "PATH": "/home/vscode/.local/share/java/bin:/home/vscode/.local/bin:${PATH}"
+        "JAVA_HOME": "/home/dev/.local/share/java",
+        "PATH": "/home/dev/.local/share/java/bin:/home/dev/.local/bin:${PATH}"
     },
     "customizations": {
         "vscode": {

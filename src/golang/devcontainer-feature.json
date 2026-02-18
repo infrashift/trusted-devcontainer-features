@@ -23,8 +23,8 @@
         }
     },
     "containerEnv": {
-        "PATH": "/home/vscode/.local/share/go/bin:/home/vscode/.local/bin:${PATH}",
-        "GOPATH": "/home/vscode/.local/share/gopath"
+        "PATH": "/home/dev/.local/share/go/bin:/home/dev/.local/bin:${PATH}",
+        "GOPATH": "/home/dev/.local/share/gopath"
     },
     "customizations": {
         "vscode": {

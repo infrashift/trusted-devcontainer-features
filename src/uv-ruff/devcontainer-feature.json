@@ -28,7 +28,7 @@
         }
     },
     "containerEnv": {
-        "PATH": "/home/vscode/.local/bin:${PATH}"
+        "PATH": "/home/dev/.local/bin:${PATH}"
     },
     "customizations": {
         "vscode": {

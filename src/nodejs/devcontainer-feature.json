@@ -21,7 +21,7 @@
         }
     },
     "containerEnv": {
-        "PATH": "/home/vscode/.local/share/nodejs/bin:/home/vscode/.local/bin:${PATH}"
+        "PATH": "/home/dev/.local/share/nodejs/bin:/home/dev/.local/bin:${PATH}"
     },
     "installsAfter": []
 }

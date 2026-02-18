@@ -19,12 +19,12 @@ echo "                                                                          
 
 # Defensive programming: Fallback to 'vscode' if variables are empty during build
 EFFECTIVE_USER="${_REMOTE_USER:-vscode}"
-EFFECTIVE_HOME="${_REMOTE_USER_HOME:-/home/vscode}"
+EFFECTIVE_HOME="${_REMOTE_USER_HOME:-/home/dev}"
 
 echo "The effective DevContainer remoteUser is '${EFFECTIVE_USER}'"
 echo "The effective DevContainer remoteUser's home directory is '${EFFECTIVE_HOME}'"
 echo "The effective DevContainer containerUser is '${_CONTAINER_USER:-vscode}'"
-echo "The effective DevContainer containerUser's home directory is '${_CONTAINER_USER_HOME:-/home/vscode}'"
+echo "The effective DevContainer containerUser's home directory is '${_CONTAINER_USER_HOME:-/home/dev}'"
 
 ls -al .
 
