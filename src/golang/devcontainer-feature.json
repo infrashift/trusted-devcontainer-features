@@ -3,7 +3,7 @@
 {
     "name": "golang-feature",
     "id": "golang",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Installs Go (Golang) on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://go.dev/dl/

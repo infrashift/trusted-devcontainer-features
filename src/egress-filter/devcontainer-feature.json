@@ -3,7 +3,7 @@
 {
     "name": "egress-filter-feature",
     "id": "egress-filter",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Domain-based egress filtering using Squid proxy and iptables for Red Hat UBI DevContainers.",
     "options": {
         "allowed_domains": {

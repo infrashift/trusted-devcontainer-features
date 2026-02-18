@@ -3,7 +3,7 @@
 {
     "name": "dotnet-feature",
     "id": "dotnet",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Installs Microsoft .NET SDK on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://dotnet.microsoft.com/download/dotnet

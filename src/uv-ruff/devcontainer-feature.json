@@ -3,7 +3,7 @@
 {
     "name": "uv-ruff-feature",
     "id": "uv-ruff",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Installs Astral UV package manager and Ruff linter on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/astral-sh/uv/releases
