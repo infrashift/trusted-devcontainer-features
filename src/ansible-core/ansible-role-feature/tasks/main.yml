@@ -21,7 +21,7 @@
     _uv_bin: "{{ _user_uv_stat.stat.path if _user_uv_stat.stat.exists else '/usr/local/bin/uv' }}"
 
 # Verify target Python version is available
-- name: Verify Python {{ _target_python_version }} is available
+- name: Check if Python {{ _target_python_version }} is available
   ansible.builtin.command:
     cmd: "{{ _uv_bin }} python find {{ _target_python_version }}"
   environment:
@@ -29,6 +29,7 @@
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
   register: _python_find_result
   changed_when: false
+  ignore_errors: true
 
 # Install ansible-core as UV tool
 - name: Install ansible-core {{ _ansible_core_version }} via uv tool install

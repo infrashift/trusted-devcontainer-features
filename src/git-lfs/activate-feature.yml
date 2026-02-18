@@ -3,12 +3,12 @@
 ---
 - name: Activate DevContainer Feature - Git LFS
   hosts: ubi
-  become: true
+  become: false
   gather_facts: false
 
   roles:
   - role: ansible-role-feature
     vars:
-    # securedevcontainer_variant is a group variable; see hosts.yml
-    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+      # securedevcontainer_variant is a group variable; see hosts.yml
+      _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
 ...

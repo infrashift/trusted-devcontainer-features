@@ -3,14 +3,14 @@
 ---
 - name: Activate DevContainer Feature - npm
   hosts: ubi
-  become: true
+  become: false
   gather_facts: false
 
   roles:
   - role: ansible-role-feature
     vars:
-    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
-    - _npm_version: "{{ npm_version }}"
-    - _target_username: "{{ remote_user }}"
-    - _target_user_home: "{{ remote_user_home }}"
+      _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+      _npm_version: "{{ npm_version }}"
+      _target_username: "{{ remote_user }}"
+      _target_user_home: "{{ remote_user_home }}"
 ...

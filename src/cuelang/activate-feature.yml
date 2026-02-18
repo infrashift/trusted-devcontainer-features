@@ -3,16 +3,16 @@
 ---
 - name: Activate DevContainer Feature - CUElang
   hosts: ubi
-  become: true
+  become: false
   gather_facts: false
 
   roles:
   - role: ansible-role-feature
     vars:
-    # securedevcontainer_variant is a group variable; see hosts.yml
-    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
-    # cue_version is a parameter passed in from install.sh
-    - _cue_version: "{{ cue_version }}"
-    - _target_username: "{{ remote_user }}"
-    - _target_user_home: "{{ remote_user_home }}"
+      # securedevcontainer_variant is a group variable; see hosts.yml
+      _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+      # cue_version is a parameter passed in from install.sh
+      _cue_version: "{{ cue_version }}"
+      _target_username: "{{ remote_user }}"
+      _target_user_home: "{{ remote_user_home }}"
 ...

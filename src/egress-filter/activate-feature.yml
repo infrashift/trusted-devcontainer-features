@@ -3,16 +3,16 @@
 ---
 - name: Activate DevContainer Feature - Egress Filter
   hosts: ubi
-  become: true
+  become: false
   gather_facts: false
 
   roles:
   - role: ansible-role-feature
     vars:
-    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
-    - _egress_allowed_domains: "{{ _egress_allowed_domains }}"
-    - _egress_squid_port: "{{ _egress_squid_port }}"
-    - _egress_allow_localhost: "{{ _egress_allow_localhost }}"
-    - _target_username: "{{ remote_user }}"
-    - _target_user_home: "{{ remote_user_home }}"
+      _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+      _egress_allowed_domains: "{{ _egress_allowed_domains }}"
+      _egress_squid_port: "{{ _egress_squid_port }}"
+      _egress_allow_localhost: "{{ _egress_allow_localhost }}"
+      _target_username: "{{ remote_user }}"
+      _target_user_home: "{{ remote_user_home }}"
 ...

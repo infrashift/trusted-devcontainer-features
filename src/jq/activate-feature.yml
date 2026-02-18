@@ -3,15 +3,15 @@
 ---
 - name: Activate DevContainer Feature - jq
   hosts: ubi
-  become: true
+  become: false
   gather_facts: false
 
   roles:
   - role: ansible-role-feature
     vars:
-    - _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
-    - _jq_version: "{{ jq_version }}"
-    - _jq_checksum: "{{ jq_checksum }}"
-    - _target_username: "{{ remote_user }}"
-    - _target_user_home: "{{ remote_user_home }}"
+      _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+      _jq_version: "{{ jq_version }}"
+      _jq_checksum: "{{ jq_checksum }}"
+      _target_username: "{{ remote_user }}"
+      _target_user_home: "{{ remote_user_home }}"
 ...

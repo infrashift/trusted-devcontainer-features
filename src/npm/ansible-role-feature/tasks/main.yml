@@ -19,6 +19,9 @@
 - name: Check current npm version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/npm --version"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
   ignore_errors: true
   register: _npm_current_version
   changed_when: false
@@ -46,6 +49,9 @@
 - name: Get npm version after update
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/npm --version"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
   register: _npm_version_result
 
 - name: Assert that npm is installed at the correct version
