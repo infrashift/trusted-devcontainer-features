@@ -1,0 +1,15 @@
+# Ansible Playbook
+# sudo-feature/activate-feature.yml
+---
+- name: Activate DevContainer Feature - sudo
+  hosts: ubi
+  become: false
+  gather_facts: false
+
+  roles:
+  - role: ansible-role-feature
+    vars:
+      _securedevcontainer_variant: "{{ securedevcontainer_variant }}"
+      _target_username: "{{ remote_user }}"
+      _target_user_home: "{{ remote_user_home }}"
+...
