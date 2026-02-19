@@ -21,4 +21,5 @@ check "python3 is installed" python3 --version
 check "ansible is installed" ansible --version
 check "java is installed" java -version
 check "dotnet is installed" dotnet --version
+check "sudo works" sudo -n true
 reportResults

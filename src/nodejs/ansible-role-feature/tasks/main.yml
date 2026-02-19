@@ -101,6 +101,18 @@
     fail_msg: "{{ _nodejs_version_result.stdout }}"
     success_msg: "{{ _nodejs_version_result.stdout }}"
 
+- name: Create symlinks in ~/.local/bin for Node.js binaries
+  ansible.builtin.file:
+    src: "{{ _target_user_home }}/.local/share/nodejs/bin/{{ item }}"
+    dest: "{{ _target_user_home }}/.local/bin/{{ item }}"
+    state: link
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+  loop:
+    - node
+    - npm
+    - npx
+
 # Cleanup
 - name: Unset _securedevcontainer_ubi_version
   ansible.builtin.set_fact:

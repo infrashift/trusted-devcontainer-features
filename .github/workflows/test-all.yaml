@@ -14,23 +14,14 @@ jobs:
       fail-fast: false
       matrix:
         feature:
-          - ansible-core
           - bun
-          - claude-code
-          - cuelang
           - dotnet
-          - egress-filter
           - git
-          - git-lfs
           - golang
           - grype
           - jq
           - nodejs
-          - npm
-          - openai-codex
           - openjdk
-          - pnpm
-          - python
           - sudo
           - syft
           - uv-ruff
