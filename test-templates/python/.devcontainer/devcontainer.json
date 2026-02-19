@@ -3,15 +3,15 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
-        "../../../src/python": {
+        "./python": {
             "target_version": "3.12"
         },
-        "../../../src/uv-ruff": {},
-        "../../../src/git": {},
-        "../../../src/git-lfs": {},
-        "../../../src/grype": {},
-        "../../../src/syft": {},
-        "../../../src/jq": {},
-        "../../../src/yq": {}
+        "./uv-ruff": {},
+        "./git": {},
+        "./git-lfs": {},
+        "./grype": {},
+        "./syft": {},
+        "./jq": {},
+        "./yq": {}
     }
 }

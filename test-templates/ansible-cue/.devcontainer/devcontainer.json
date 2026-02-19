@@ -3,19 +3,19 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
-        "../../../src/ansible-core": {
+        "./ansible-core": {
             "target_version": "2.18.2",
             "target_python_version": "3.12"
         },
-        "../../../src/python": {
+        "./python": {
             "target_version": "3.12"
         },
-        "../../../src/cuelang": {},
-        "../../../src/git": {},
-        "../../../src/git-lfs": {},
-        "../../../src/grype": {},
-        "../../../src/syft": {},
-        "../../../src/jq": {},
-        "../../../src/yq": {}
+        "./cuelang": {},
+        "./git": {},
+        "./git-lfs": {},
+        "./grype": {},
+        "./syft": {},
+        "./jq": {},
+        "./yq": {}
     }
 }

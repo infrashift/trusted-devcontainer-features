@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Copy features into test template
+        run: cp -r src/* "test-templates/${{ matrix.template }}/.devcontainer/"
+
       - name: Build and start devcontainer
         run: |
           npx @devcontainers/cli up \

@@ -3,15 +3,15 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
-        "../../../src/dotnet": {},
-        "../../../src/nodejs": {},
-        "../../../src/npm": {},
-        "../../../src/pnpm": {},
-        "../../../src/git": {},
-        "../../../src/git-lfs": {},
-        "../../../src/grype": {},
-        "../../../src/syft": {},
-        "../../../src/jq": {},
-        "../../../src/yq": {}
+        "./dotnet": {},
+        "./nodejs": {},
+        "./npm": {},
+        "./pnpm": {},
+        "./git": {},
+        "./git-lfs": {},
+        "./grype": {},
+        "./syft": {},
+        "./jq": {},
+        "./yq": {}
     }
 }

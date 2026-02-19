@@ -3,12 +3,12 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
-        "../../../src/openjdk": {},
-        "../../../src/git": {},
-        "../../../src/git-lfs": {},
-        "../../../src/grype": {},
-        "../../../src/syft": {},
-        "../../../src/jq": {},
-        "../../../src/yq": {}
+        "./openjdk": {},
+        "./git": {},
+        "./git-lfs": {},
+        "./grype": {},
+        "./syft": {},
+        "./jq": {},
+        "./yq": {}
     }
 }

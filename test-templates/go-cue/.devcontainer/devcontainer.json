@@ -3,13 +3,13 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
-        "../../../src/golang": {},
-        "../../../src/cuelang": {},
-        "../../../src/git": {},
-        "../../../src/git-lfs": {},
-        "../../../src/grype": {},
-        "../../../src/syft": {},
-        "../../../src/jq": {},
-        "../../../src/yq": {}
+        "./golang": {},
+        "./cuelang": {},
+        "./git": {},
+        "./git-lfs": {},
+        "./grype": {},
+        "./syft": {},
+        "./jq": {},
+        "./yq": {}
     }
 }

@@ -3,10 +3,10 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
-        "../../../src/nodejs": {},
-        "../../../src/bun": {},
-        "../../../src/claude-code": {},
-        "../../../src/openai-codex": {},
-        "../../../src/sudo": {}
+        "./nodejs": {},
+        "./bun": {},
+        "./claude-code": {},
+        "./openai-codex": {},
+        "./sudo": {}
     }
 }
