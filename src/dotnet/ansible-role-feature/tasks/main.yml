@@ -91,22 +91,6 @@
     fail_msg: "{{ _dotnet_version_result.stdout }}"
     success_msg: ".NET SDK {{ _dotnet_version_result.stdout }} installed successfully"
 
-- name: Ensure ~/.local/bin directory exists
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.local/bin"
-    state: directory
-    mode: '0755'
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-
-- name: Create symlink in ~/.local/bin for dotnet
-  ansible.builtin.file:
-    src: "{{ _target_user_home }}/.local/share/dotnet/dotnet"
-    dest: "{{ _target_user_home }}/.local/bin/dotnet"
-    state: link
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-
 # Cleanup
 - name: Unset _securedevcontainer_ubi_version
   ansible.builtin.set_fact:

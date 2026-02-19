@@ -19,9 +19,6 @@
 - name: Check if OpenAI Codex is already installed
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.bun/bin/codex --version"
-  environment:
-    HOME: "{{ _target_user_home }}"
-    PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:{{ _target_user_home }}/.bun/bin:/usr/local/bin:/usr/bin:/bin"
   ignore_errors: true
   register: _codex_current_version
   changed_when: false
@@ -49,9 +46,6 @@
 - name: Get OpenAI Codex version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.bun/bin/codex --version"
-  environment:
-    HOME: "{{ _target_user_home }}"
-    PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:{{ _target_user_home }}/.bun/bin:/usr/local/bin:/usr/bin:/bin"
   register: _codex_version_result
 
 - name: Assert that OpenAI Codex is installed
