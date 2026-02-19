@@ -27,6 +27,9 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   register: _python_find_result
   changed_when: false
   ignore_errors: true
@@ -38,16 +41,11 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   register: _ansible_install_result
   changed_when: "'installed' in _ansible_install_result.stderr or 'updated' in _ansible_install_result.stderr"
-
-# Ownership fix is required since we ran as root
-- name: Fix ownership of installed tools
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.local"
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    recurse: true
 
 # Verify installation
 - name: Get ansible version
@@ -56,6 +54,9 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   register: _ansible_version_result
   changed_when: false
 

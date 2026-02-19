@@ -33,15 +33,11 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   when: _codex_current_version is failed
         or (_codex_version != "latest" and _codex_version not in _codex_current_version.stdout)
-
-- name: Change ownership of Bun global directory
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.bun"
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    recurse: true
 
 - name: Get OpenAI Codex version
   ansible.builtin.command:

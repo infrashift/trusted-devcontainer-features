@@ -36,15 +36,11 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   when: _npm_current_version is failed
         or _npm_version not in _npm_current_version.stdout
-
-- name: Change ownership of Node.js directory after npm update
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.local/share/nodejs"
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    recurse: true
 
 - name: Get npm version after update
   ansible.builtin.command:

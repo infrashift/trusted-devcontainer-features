@@ -78,27 +78,16 @@
     success_msg: "{{ _uv_version_result.stdout }}"
 
 # Ruff installation via uv tool install
-# Note: Removed become: true to avoid sudo requirement in UBI images.
-# We explicitly set the UV_TOOL_DIR and use --bin-dir to target the user's local path.
-# Ruff installation via uv tool install
 - name: Install Ruff via uv tool install
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/bin/uv tool install --python 3.12 ruff=={{ _ruff_version }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-    # This is the magic variable that tells uv where to install the tool environments
-    UV_TOOL_DIR: "{{ _target_user_home }}/.local/share/uv/tools"
-    # This ensures the executable symlink goes to the right place
-    UV_TOOL_BIN_DIR: "{{ _target_user_home }}/.local/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   changed_when: true
-
-- name: Ensure correct ownership of installed tools
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.local"
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    recurse: true
 
 - name: Get Ruff version
   ansible.builtin.command:

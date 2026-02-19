@@ -34,6 +34,9 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   ignore_errors: true
   register: _python_find_result
   changed_when: false
@@ -44,19 +47,11 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   register: _python_install_log
   when: _python_find_result is failed
-  # We use the fact that we are root to write to the user's home, 
-  # then we fix permissions in the next step.
-
-- name: Ensure Python installation directory ownership
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.local/share/uv"
-    state: directory
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    recurse: true
-  ignore_errors: true
 
 - name: Verify Python {{ _python_version }} is installed
   ansible.builtin.command:
@@ -64,6 +59,9 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  become: true
+  become_user: "{{ _target_username }}"
+  become_method: su
   register: _python_verify_result
   changed_when: false
 
