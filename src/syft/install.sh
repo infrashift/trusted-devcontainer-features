@@ -26,7 +26,7 @@ ls -al .
 
 # Prevent root-owned caches in dev user home during feature install
 export UV_CACHE_DIR=/tmp/uv-feature-cache
-export ANSIBLE_LOCAL_TMP=/tmp/ansible-feature-tmp
+export ANSIBLE_HOME=/tmp/ansible-feature-home
 
 # Verify uv is available (provided by the base Containerfile)
 if ! command -v uv &> /dev/null; then
