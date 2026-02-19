@@ -1,0 +1,14 @@
+{
+    "build": { "dockerfile": "../../shared/Containerfile" },
+    "containerUser": "dev",
+    "updateRemoteUserUID": false,
+    "features": {
+        "../../../src/openjdk": {},
+        "../../../src/git": {},
+        "../../../src/git-lfs": {},
+        "../../../src/grype": {},
+        "../../../src/syft": {},
+        "../../../src/jq": {},
+        "../../../src/yq": {}
+    }
+}

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/../shared/test-lib.sh"
+check "ansible" ansible --version
+check "python" python3.12 --version
+check "cue" cue version
+check "git" git --version
+check "git-lfs" git-lfs --version
+check "grype" grype version
+check "syft" syft version
+check "jq" jq --version
+check "yq" yq --version
+report_results

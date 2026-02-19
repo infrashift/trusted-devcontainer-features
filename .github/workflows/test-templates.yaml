@@ -1,0 +1,44 @@
+name: Test Features in Templates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: "template (${{ matrix.template }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template:
+          - go-cue
+          - dotnet-node
+          - java
+          - python
+          - ansible-cue
+          - extras
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start devcontainer
+        run: |
+          npx @devcontainers/cli up \
+            --workspace-folder "$(pwd)" \
+            --config "./test-templates/${{ matrix.template }}/.devcontainer/devcontainer.json" \
+            --id-label "test=${{ matrix.template }}"
+
+      - name: Run tests
+        run: |
+          npx @devcontainers/cli exec \
+            --workspace-folder "$(pwd)" \
+            --config "./test-templates/${{ matrix.template }}/.devcontainer/devcontainer.json" \
+            --id-label "test=${{ matrix.template }}" \
+            bash ./test-templates/${{ matrix.template }}/tests.sh
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker ps -q --filter "label=test=${{ matrix.template }}" | xargs -r docker rm -f

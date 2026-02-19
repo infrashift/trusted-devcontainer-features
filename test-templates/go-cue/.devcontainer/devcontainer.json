@@ -1,0 +1,15 @@
+{
+    "build": { "dockerfile": "../../shared/Containerfile" },
+    "containerUser": "dev",
+    "updateRemoteUserUID": false,
+    "features": {
+        "../../../src/golang": {},
+        "../../../src/cuelang": {},
+        "../../../src/git": {},
+        "../../../src/git-lfs": {},
+        "../../../src/grype": {},
+        "../../../src/syft": {},
+        "../../../src/jq": {},
+        "../../../src/yq": {}
+    }
+}
