@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/test-lib.sh"
 check "ansible" which ansible
-check "python" uv run --python 3.12 python3 --version
+check "python" uv python find 3.12
 check "cue" cue version
 check "git" git --version
 check "git-lfs" git-lfs --version
