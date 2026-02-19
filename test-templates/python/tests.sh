@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/../shared/test-lib.sh"
+source "$(dirname "$0")/test-lib.sh"
 check "python" python3.12 --version
 check "uv" uv --version
 check "ruff" ruff --version

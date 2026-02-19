@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/../shared/test-lib.sh"
+source "$(dirname "$0")/test-lib.sh"
 check "ansible" ansible --version
 check "python" python3.12 --version
 check "cue" cue version

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/../shared/test-lib.sh"
+source "$(dirname "$0")/test-lib.sh"
 check "dotnet" dotnet --version
 check "node" node --version
 check "npm" npm --version

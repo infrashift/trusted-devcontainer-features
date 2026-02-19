@@ -23,23 +23,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy features into test template
-        run: cp -r src/* "test-templates/${{ matrix.template }}/.devcontainer/"
+      - name: Prepare test template
+        run: |
+          cp -r src/* "test-templates/${{ matrix.template }}/.devcontainer/"
+          cp test-templates/shared/test-lib.sh "test-templates/${{ matrix.template }}/"
 
       - name: Build and start devcontainer
         run: |
           npx @devcontainers/cli up \
-            --workspace-folder "$(pwd)" \
-            --config "./test-templates/${{ matrix.template }}/.devcontainer/devcontainer.json" \
+            --workspace-folder "$(pwd)/test-templates/${{ matrix.template }}" \
             --id-label "test=${{ matrix.template }}"
 
       - name: Run tests
         run: |
           npx @devcontainers/cli exec \
-            --workspace-folder "$(pwd)" \
-            --config "./test-templates/${{ matrix.template }}/.devcontainer/devcontainer.json" \
+            --workspace-folder "$(pwd)/test-templates/${{ matrix.template }}" \
             --id-label "test=${{ matrix.template }}" \
-            bash ./test-templates/${{ matrix.template }}/tests.sh
+            bash tests.sh
 
       - name: Cleanup
         if: always()
