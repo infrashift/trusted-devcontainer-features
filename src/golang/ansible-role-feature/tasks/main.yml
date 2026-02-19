@@ -93,6 +93,14 @@
     fail_msg: "{{ _go_version_result.stdout }}"
     success_msg: "{{ _go_version_result.stdout }}"
 
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
 - name: Create symlinks in ~/.local/bin for Go binaries
   ansible.builtin.file:
     src: "{{ _target_user_home }}/.local/share/go/bin/{{ item }}"

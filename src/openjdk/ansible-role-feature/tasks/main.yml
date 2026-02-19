@@ -89,6 +89,14 @@
     fail_msg: "stdout: {{ _java_version_result.stdout }} stderr: {{ _java_version_result.stderr }}"
     success_msg: "{{ _java_version_result.stderr }}"
 
+- name: Ensure ~/.local/bin directory exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+
 - name: Create symlinks in ~/.local/bin for Java binaries
   ansible.builtin.file:
     src: "{{ _target_user_home }}/.local/share/java/bin/{{ item }}"
