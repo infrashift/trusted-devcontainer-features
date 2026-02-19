@@ -30,7 +30,8 @@ ls -al .
 
 # Prevent root-owned caches in dev user home during feature install
 export UV_CACHE_DIR=/tmp/uv-feature-cache
-export ANSIBLE_HOME=/tmp/ansible-feature-home
+export ANSIBLE_LOCAL_TMP=/tmp/ansible-feature-tmp
+export ANSIBLE_REMOTE_TMP=/tmp/ansible-feature-remote-tmp
 
 # Verify uv is available (provided by the base Containerfile)
 if ! command -v uv &> /dev/null; then
@@ -56,6 +57,11 @@ uv run --with ansible-core ansible-playbook \
     -e "_egress_squid_port=${SQUID_PORT:-3128}" \
     -e "_egress_allow_localhost=${ALLOW_LOCALHOST:-true}"
 
+
+# Cleanup: fix ownership of any root-owned dirs in dev user home
+if [ -n "${_REMOTE_USER}" ] && [ -d "${_REMOTE_USER_HOME}/.ansible" ]; then
+    chown -R "${_REMOTE_USER}" "${_REMOTE_USER_HOME}/.ansible"
+fi
 echo "                                                                                "
 echo "********************************************************************************"
 echo "END FEATURE ACTIVATION                                                          "
