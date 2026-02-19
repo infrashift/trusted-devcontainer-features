@@ -3,6 +3,7 @@
         "image": "devcontainer-features-test-base:ubi9",
         "remoteUser": "vscode",
         "features": {
+            "nodejs": {},
             "bun": {},
             "openai-codex": {}
         }

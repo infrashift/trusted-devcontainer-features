@@ -25,6 +25,7 @@
         "PATH": "/home/dev/.bun/bin:${PATH}"
     },
     "installsAfter": [
-        "./bun"
+        "./bun",
+        "./nodejs"
     ]
 }

@@ -18,7 +18,7 @@
 # Claude Code installation tasks
 - name: Check if Claude Code is already installed
   ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.bun/bin/claude --version"
+    cmd: "{{ _target_user_home }}/.local/bin/bun {{ _target_user_home }}/.bun/bin/claude --version"
   ignore_errors: true
   register: _claude_code_current_version
   changed_when: false
@@ -45,7 +45,7 @@
 
 - name: Get Claude Code version
   ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.bun/bin/claude --version"
+    cmd: "{{ _target_user_home }}/.local/bin/bun {{ _target_user_home }}/.bun/bin/claude --version"
   register: _claude_code_version_result
 
 - name: Assert that Claude Code is installed
