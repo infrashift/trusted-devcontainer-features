@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/test-lib.sh"
-check "python" python3.12 --version
+check "python" uv run --python 3.12 python3 --version
 check "uv" uv --version
 check "ruff" ruff --version
 check "git" git --version
