@@ -6,7 +6,7 @@ description: Complete catalog of all 20 Infrashift DevContainer Features.
 import features from '../../../data/features.json';
 import FeatureCard from '../../../components/FeatureCard.astro';
 
-All features are published to `ghcr.io/infrashift/devcontainer-features/<id>:latest` and designed for Red Hat UBI 9.
+All features are published to `ghcr.io/infrashift/trusted-devcontainer-features/<id>:latest` and designed for Red Hat UBI 9.
 
 ## All Features
 
@@ -23,10 +23,10 @@ All features are published to `ghcr.io/infrashift/devcontainer-features/<id>:lat
   <tbody>
     {features.map((f) => (
       <tr>
-        <td><a href={`/devcontainer-features/features/${f.id}/`}><code>{f.id}</code></a></td>
+        <td><a href={`/trusted-devcontainer-features/features/${f.id}/`}><code>{f.id}</code></a></td>
         <td>{f.description}</td>
         <td><code>{f.version}</code></td>
-        <td>{f.dependencies.length > 0 ? f.dependencies.map((d) => <><a href={`/devcontainer-features/features/${d}/`}><code>{d}</code></a>{' '}</>)  : 'None'}</td>
+        <td>{f.dependencies.length > 0 ? f.dependencies.map((d) => <><a href={`/trusted-devcontainer-features/features/${d}/`}><code>{d}</code></a>{' '}</>)  : 'None'}</td>
         <td>{f.testStatus === 'passing' ? '✅' : f.testStatus === 'failing' ? '❌' : '❓'}</td>
       </tr>
     ))}

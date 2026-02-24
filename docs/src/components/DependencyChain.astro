@@ -10,7 +10,7 @@ const { dependencies } = Astro.props;
 	<div class="dependency-chain">
 		{dependencies.map((dep, i) => (
 			<>
-				<a href={`/devcontainer-features/features/${dep}/`} class="dep-link">
+				<a href={`/trusted-devcontainer-features/features/${dep}/`} class="dep-link">
 					<code>{dep}</code>
 				</a>
 				{i < dependencies.length - 1 && <span class="arrow"> → </span>}

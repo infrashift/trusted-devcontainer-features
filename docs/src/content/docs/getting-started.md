@@ -17,11 +17,11 @@ Each feature is published to the GitHub Container Registry. Add features to your
 {
     "image": "registry.access.redhat.com/ubi9/ubi:latest",
     "features": {
-        "ghcr.io/infrashift/devcontainer-features/git:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/nodejs:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/git:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/nodejs:latest": {
             "target_version": "22.16.0"
         },
-        "ghcr.io/infrashift/devcontainer-features/python:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/python:latest": {
             "target_version": "3.12"
         }
     }
@@ -35,7 +35,7 @@ Most features accept options to pin versions or provide checksums. Check each fe
 ```jsonc
 {
     "features": {
-        "ghcr.io/infrashift/devcontainer-features/golang:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/golang:latest": {
             "target_version": "1.26.0",
             "target_checksum": "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"
         }
@@ -89,6 +89,6 @@ make test
 
 ## Next steps
 
-- Browse the [Feature Inventory](/devcontainer-features/features/) for the full list of available features
-- Read about [AI-Powered DevContainers](/devcontainer-features/ai-support/) for Claude Code and OpenAI Codex setup
-- Check the [Architecture](/devcontainer-features/reference/architecture/) for how features work under the hood
+- Browse the [Feature Inventory](/trusted-devcontainer-features/features/) for the full list of available features
+- Read about [AI-Powered DevContainers](/trusted-devcontainer-features/ai-support/) for Claude Code and OpenAI Codex setup
+- Check the [Architecture](/trusted-devcontainer-features/reference/architecture/) for how features work under the hood

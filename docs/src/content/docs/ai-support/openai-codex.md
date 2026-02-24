@@ -14,8 +14,8 @@ Add the OpenAI Codex feature to your `devcontainer.json`:
 ```jsonc
 {
     "features": {
-        "ghcr.io/infrashift/devcontainer-features/bun:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/openai-codex:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/bun:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/openai-codex:latest": {
             "target_version": "latest"
         }
     }
@@ -72,5 +72,5 @@ codex "convert this class component to a functional React component with hooks"
 ## Security Considerations
 
 - **API keys**: Never commit API keys to version control. Use `containerEnv` with `localEnv` references.
-- **Egress filtering**: Pair with the [Egress Filter](/devcontainer-features/ai-support/egress-filter/) feature to restrict network access to `api.openai.com` and other required domains.
+- **Egress filtering**: Pair with the [Egress Filter](/trusted-devcontainer-features/ai-support/egress-filter/) feature to restrict network access to `api.openai.com` and other required domains.
 - **Container isolation**: Codex runs within the DevContainer boundary and cannot access your host filesystem beyond the mounted workspace.

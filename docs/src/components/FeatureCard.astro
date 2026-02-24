@@ -12,7 +12,7 @@ interface Props {
 const { id, name, description, version, testStatus } = Astro.props;
 ---
 
-<a href={`/devcontainer-features/features/${id}/`} class="feature-card">
+<a href={`/trusted-devcontainer-features/features/${id}/`} class="feature-card">
 	<div class="card-header">
 		<strong>{name}</strong>
 		<TestBadge status={testStatus} />

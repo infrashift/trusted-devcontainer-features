@@ -13,7 +13,7 @@ A feature for cloning and applying personal dotfiles repositories. Would support
 - **Ruby**: Install via ruby-build with version pinning
 
 ### User-Voted Features
-We welcome feature requests via [GitHub Issues](https://github.com/infrashift/devcontainer-features/issues). Popular requests will be prioritized for implementation.
+We welcome feature requests via [GitHub Issues](https://github.com/infrashift/trusted-devcontainer-features/issues). Popular requests will be prioritized for implementation.
 
 ## Security Enhancements
 
@@ -44,4 +44,4 @@ Step-by-step video guides for common workflows: setting up AI assistants, config
 
 ## Contributing
 
-Have an idea for a feature or improvement? [Open an issue](https://github.com/infrashift/devcontainer-features/issues) or check the [Contributing guide](/devcontainer-features/reference/contributing/) to get started.
+Have an idea for a feature or improvement? [Open an issue](https://github.com/infrashift/trusted-devcontainer-features/issues) or check the [Contributing guide](/trusted-devcontainer-features/reference/contributing/) to get started.

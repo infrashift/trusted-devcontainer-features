@@ -21,7 +21,7 @@ const optionsSnippet = hasOptions
 		.join(',\n')
 	: '';
 
-const featureRef = `ghcr.io/infrashift/devcontainer-features/${featureId}:latest`;
+const featureRef = `ghcr.io/infrashift/trusted-devcontainer-features/${featureId}:latest`;
 const snippet = hasOptions && optionsSnippet
 	? `{
     "features": {

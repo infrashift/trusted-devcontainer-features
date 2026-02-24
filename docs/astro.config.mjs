@@ -5,15 +5,15 @@ import starlight from '@astrojs/starlight';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://infrashift.github.io',
-	base: '/devcontainer-features',
+	base: '/trusted-devcontainer-features',
 	integrations: [
 		starlight({
 			title: 'DevContainer Features',
 			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/infrashift/devcontainer-features' },
+				{ icon: 'github', label: 'GitHub', href: 'https://github.com/infrashift/trusted-devcontainer-features' },
 			],
 			editLink: {
-				baseUrl: 'https://github.com/infrashift/devcontainer-features/edit/main/docs/',
+				baseUrl: 'https://github.com/infrashift/trusted-devcontainer-features/edit/main/docs/',
 			},
 			customCss: ['./src/styles/custom.css'],
 			sidebar: [

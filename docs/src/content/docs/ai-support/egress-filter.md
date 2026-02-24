@@ -5,7 +5,7 @@ description: Controlling AI agent network access with domain-based egress filter
 
 ## Overview
 
-When running AI coding assistants inside DevContainers, you may want to restrict their network access to only the domains they need. The [Egress Filter](/devcontainer-features/features/egress-filter/) feature provides domain-based allowlisting using Squid proxy and iptables.
+When running AI coding assistants inside DevContainers, you may want to restrict their network access to only the domains they need. The [Egress Filter](/trusted-devcontainer-features/features/egress-filter/) feature provides domain-based allowlisting using Squid proxy and iptables.
 
 ## Why Filter AI Agent Traffic?
 
@@ -23,9 +23,9 @@ To allow Claude Code to function while filtering all other traffic:
 ```jsonc
 {
     "features": {
-        "ghcr.io/infrashift/devcontainer-features/bun:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/claude-code:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/egress-filter:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/bun:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/claude-code:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/egress-filter:latest": {
             "allowed_domains": "api.anthropic.com,.anthropic.com,.github.com,.githubusercontent.com"
         }
     },
@@ -40,9 +40,9 @@ To allow Claude Code to function while filtering all other traffic:
 ```jsonc
 {
     "features": {
-        "ghcr.io/infrashift/devcontainer-features/bun:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/openai-codex:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/egress-filter:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/bun:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/openai-codex:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/egress-filter:latest": {
             "allowed_domains": "api.openai.com,.openai.com,.github.com,.githubusercontent.com"
         }
     },
@@ -57,10 +57,10 @@ To allow Claude Code to function while filtering all other traffic:
 ```jsonc
 {
     "features": {
-        "ghcr.io/infrashift/devcontainer-features/bun:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/claude-code:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/openai-codex:latest": {},
-        "ghcr.io/infrashift/devcontainer-features/egress-filter:latest": {
+        "ghcr.io/infrashift/trusted-devcontainer-features/bun:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/claude-code:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/openai-codex:latest": {},
+        "ghcr.io/infrashift/trusted-devcontainer-features/egress-filter:latest": {
             "allowed_domains": "api.anthropic.com,.anthropic.com,api.openai.com,.openai.com,.github.com,.githubusercontent.com"
         }
     }
