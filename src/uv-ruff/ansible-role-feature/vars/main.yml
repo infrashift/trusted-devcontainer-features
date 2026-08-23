@@ -3,4 +3,35 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# astral-sh/uv names its assets by GNU triple; _target_arch is injected as
+# amd64 / arm64 by /opt/bootstrap/run-feature.sh. Never mask it with
+# `| default(...)`.
+#
+# NOTE: this feature pins its own uv, separate from the uv the bootstrap
+# feature installs at /usr/local/bin/uv. The userland lane puts
+# ~/.local/bin first on PATH, so the version below is the one a developer
+# gets on the command line while Ansible keeps using bootstrap's.
+# ---------------------------------------------------------------------------
+_uv_platform: "{{ 'aarch64' if _target_arch == 'arm64' else 'x86_64' }}-unknown-linux-gnu"
+# Example: uv-x86_64-unknown-linux-gnu.tar.gz
+_uv_tarball: uv-{{ _uv_platform }}.tar.gz
+# Example: https://github.com/astral-sh/uv/releases/download/0.10.3/uv-x86_64-unknown-linux-gnu.tar.gz
+_uv_download_url: https://github.com/astral-sh/uv/releases/download/{{ _uv_version }}/{{ _uv_tarball }}
+
+# SHA256 digests pinned per version, per platform triple, from the .sha256
+# files astral-sh publishes beside each asset. The uv download previously
+# passed no checksum argument at all.
+_uv_pinned_checksums:
+  "0.10.3":
+    x86_64-unknown-linux-gnu: "c60b9956a0e6727f0ddd881c303a706c6408b2047f3a8fa4d1454a826338ccdc"
+    aarch64-unknown-linux-gnu: "cce7d1e4c34e22955cd647b256409b6504f4ae72acf190a6f26189efefbc9a9d"
+
+_uv_effective_checksum: >-
+  {{ _uv_checksum if _uv_checksum | length > 0
+     else _uv_pinned_checksums.get(_uv_version, {}).get(_uv_platform, '') }}
 ...

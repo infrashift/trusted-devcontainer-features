@@ -7,7 +7,7 @@ description: How to add Infrashift DevContainer Features to your project.
 
 - A container runtime: [Docker Desktop](https://www.docker.com/products/docker-desktop/), [Podman](https://podman.io/), or [Rancher Desktop](https://rancherdesktop.io/)
 - [VS Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers), or a Dev Container CLI
-- A Red Hat UBI 9 base image (the features are designed for UBI, not Alpine or Debian)
+- A trusted Fedora 43 or UBI base image (the features target RPM-based images, not Alpine or Debian)
 
 ## Adding a feature
 
@@ -15,7 +15,7 @@ Each feature is published to the GitHub Container Registry. Add features to your
 
 ```jsonc
 {
-    "image": "registry.access.redhat.com/ubi9/ubi:latest",
+    "image": "ghcr.io/infrashift/trusted-base-images/trusted/fedora43-minimal:latest",
     "features": {
         "ghcr.io/infrashift/trusted-devcontainer-features/git:latest": {},
         "ghcr.io/infrashift/trusted-devcontainer-features/nodejs:latest": {
@@ -30,18 +30,31 @@ Each feature is published to the GitHub Container Registry. Add features to your
 
 ## Configuring options
 
-Most features accept options to pin versions or provide checksums. Check each feature's reference page for available options.
+Most features accept options to pin versions. Check each feature's reference page for available options.
 
 ```jsonc
 {
     "features": {
         "ghcr.io/infrashift/trusted-devcontainer-features/golang:latest": {
-            "target_version": "1.26.0",
-            "target_checksum": "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"
+            "target_version": "1.26.0"
         }
     }
 }
 ```
+
+You do not normally pass a checksum. Each role pins a SHA256 per version *and* per architecture, so
+the default version verifies on both amd64 and arm64 with nothing supplied. `target_checksum` is the
+escape hatch for a version the role does not pin — and if you select such a version without it, the
+build stops with a named error rather than downloading unverified:
+
+```
+No SHA256 is pinned for go1.25.0.linux-amd64.tar.gz on amd64. Pass target_checksum
+to install a version or architecture that is not in the role's pinned map.
+```
+
+Option defaults live in each feature's `devcontainer-feature.json` and nowhere else — the Ansible
+roles carry no defaults of their own. See
+[ADR-012](/trusted-devcontainer-features/decisions/adr-012-feature-role-contract/).
 
 ## Dependency ordering
 
@@ -58,19 +71,31 @@ Some features depend on others. The Dev Container runtime handles ordering autom
 
 You don't need to worry about installation order — just declare the features you need and the runtime resolves the dependency graph.
 
-## Using a UBI9 base image
+## Using a trusted base image
 
-These features are designed for Red Hat UBI 9. For the best experience, use a Containerfile that sets up a non-root `vscode` user:
+These features target the trusted Fedora 43 and UBI base images. They require the `bootstrap` feature, which every feature declares under `dependsOn`, so it is installed automatically. Use a Containerfile that sets up a non-root `dev` user:
 
 ```dockerfile
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM ghcr.io/infrashift/trusted-base-images/trusted/fedora43-minimal:latest
 
-RUN groupadd --gid 1000 vscode \
-    && useradd -m -s /bin/bash --uid 1000 --gid 1000 vscode
+# fedora43-minimal is genuinely minimal. Features need these:
+#   tar/gzip  archive extraction
+#   curl      downloads
+#   util-linux  setpriv, used to drop to the target user
+RUN dnf5 -y install --allowerasing --setopt=install_weak_deps=False \
+        tar gzip curl util-linux unzip libicu openssl-libs \
+    && dnf5 clean all && rm -rf /var/cache/dnf
 
-# UV is required as the feature bootstrapper
-RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh
+RUN groupadd --gid 1001 dev \
+    && useradd -m -s /bin/bash --uid 1001 --gid 1001 dev
+
+USER dev
+ENV PATH="/home/dev/.local/bin:${PATH}"
 ```
+
+You no longer install `uv` yourself. The `bootstrap` feature installs a pinned,
+checksum-verified `uv` and builds the Ansible environment the other features run
+from — see [ADR-008](/trusted-devcontainer-features/decisions/adr-008-pinned-bootstrap-environment/).
 
 ## Local testing
 

@@ -1,13 +1,12 @@
 # yq-feature/ansible-role-feature/defaults/main.yml
 ---
-_yq_version: "4.45.4"
-_yq_arch: amd64
-# Example: yq_linux_amd64
-_yq_binary: "yq_linux_{{ _yq_arch }}"
-# Example: https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_amd64
-_yq_download_url: "https://github.com/mikefarah/yq/releases/download/v{{ _yq_version }}/{{ _yq_binary }}"
-# Example: https://github.com/mikefarah/yq/releases/download/v4.45.4/checksums
-_yq_checksums_download_url: "https://github.com/mikefarah/yq/releases/download/v{{ _yq_version }}/checksums"
-_yq_checksum:
-
+# Intentionally empty. This role has NO defaults.
+#
+# Every input is supplied as an extra-var by install.sh, sourced from the
+# option default in devcontainer-feature.json. A default here would be dead
+# code -- extra-vars outrank role defaults -- and a second source of truth
+# that silently wins whenever the wiring is broken.
+#
+# Derived values and role constants belong in vars/main.yml.
+# Required inputs are asserted in the PARAMETER BRACKET in tasks/main.yml.
 ...

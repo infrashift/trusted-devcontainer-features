@@ -3,7 +3,7 @@
 {
     "name": "cuelang-feature",
     "id": "cuelang",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs CUElang on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/cue-lang/cue/releases
@@ -13,6 +13,11 @@
             "proposals": ["0.15.4", "0.14.1"],
             "default": "0.15.4",
             "description": "Select a supported CUElang binary version"
+        },
+        "target_checksum": {
+            "type": "string",
+            "default": "",
+            "description": "SHA256 of the release tarball. Required when target_version is not the default."
         }
     },
     "containerEnv": {
@@ -27,5 +32,8 @@
     },
     "installsAfter": [
         "./golang"
-    ]
+    ],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

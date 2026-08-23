@@ -3,7 +3,10 @@
 {
     "name": "sudo-feature",
     "id": "sudo",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "A feature to install sudo and configure passwordless sudo for the devcontainer user on Redhat UBI DevContainers",
-    "installsAfter": []
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

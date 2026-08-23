@@ -7,33 +7,47 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _bun_version is defined and _bun_version | length > 0
+      - _bun_checksum is defined
+      - _bun_version is match('^\d+\.\d+\.\d+$')
+      - _bun_checksum | length == 0 or _bun_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _bun_version  <- target_version   (mandatory, non-empty)
+        _bun_checksum <- target_checksum  (may be empty; uses the pinned map)
 
-# Install unzip (needed to extract Bun release zip)
-- name: Configure UBI-{{ _securedevcontainer_ubi_version }}-BaseOS repository
-  ansible.builtin.yum_repository:
-    name: ubi-{{ _securedevcontainer_ubi_version }}-baseos-rpms
-    description: Red Hat Universal Base Image {{ _securedevcontainer_ubi_version }} (RPMs) - BaseOS
-    baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi{{ _securedevcontainer_ubi_version }}/{{ _securedevcontainer_ubi_version }}/$basearch/baseos/os
-    enabled: yes
-    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    gpgcheck: true
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "bun {{ _bun_version }} ({{ _bun_arch }})"
 
-- name: Install unzip
-  ansible.builtin.package:
-    name: unzip
-    state: present
+# unzip now come from the template base image rather than being installed
+# here. This keeps the feature entirely userland, so it runs as the target
+# user and needs no privileged lane.
 
 # Bun installation tasks
 - name: Check if Bun is already installed
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/bun --version"
-  ignore_errors: true
+  failed_when: false
   register: _bun_version_result
   changed_when: false
 
@@ -42,15 +56,29 @@
     path: /tmp/bun-feature-install
     state: directory
     mode: '0755'
-  when: _bun_version_result is failed
+  when: _bun_version_result.rc != 0
+        or _bun_version not in _bun_version_result.stdout
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unpinned version/arch pair is a
+# named error, not a silently unverified download (ADR-006).
+- name: Assert that a checksum is available for Bun {{ _bun_version }} ({{ _bun_arch }})
+  ansible.builtin.assert:
+    that: _bun_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for {{ _bun_zipfile }} on {{ _bun_arch }}. Pass
+      target_checksum to install a version or architecture that is not in the
+      role's pinned map.
+  when: _bun_version_result.rc != 0
         or _bun_version not in _bun_version_result.stdout
 
 - name: Download Bun zip file
   ansible.builtin.get_url:
     url: "{{ _bun_download_url }}"
     dest: "/tmp/bun-feature-install/{{ _bun_zipfile }}"
-    checksum: "{{ 'sha256:' + _bun_checksum if _bun_checksum | default('', true) | length > 0 else omit }}"
-  when: _bun_version_result is failed
+    checksum: "sha256:{{ _bun_effective_checksum }}"
+    timeout: 60
+  when: _bun_version_result.rc != 0
         or _bun_version not in _bun_version_result.stdout
 
 - name: Ensure ~/.local/bin directory exists
@@ -66,7 +94,7 @@
     src: "/tmp/bun-feature-install/{{ _bun_zipfile }}"
     dest: /tmp/bun-feature-install
     copy: no
-  when: _bun_version_result is failed
+  when: _bun_version_result.rc != 0
         or _bun_version not in _bun_version_result.stdout
 
 - name: Copy bun binary to ~/.local/bin
@@ -77,7 +105,7 @@
     owner: "{{ _target_username }}"
     group: "{{ _target_username }}"
     mode: '0755'
-  when: _bun_version_result is failed
+  when: _bun_version_result.rc != 0
         or _bun_version not in _bun_version_result.stdout
 
 - name: Remove temporary download directory
@@ -88,6 +116,7 @@
 - name: Get Bun version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/bin/bun --version"
+  changed_when: false
   register: _bun_version_result
 
 - name: Assert that Bun is installed and accessible
@@ -97,7 +126,4 @@
     success_msg: "Bun {{ _bun_version_result.stdout }} installed successfully"
 
 # Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

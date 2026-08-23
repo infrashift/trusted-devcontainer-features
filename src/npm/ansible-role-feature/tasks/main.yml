@@ -7,13 +7,34 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _npm_version is defined and _npm_version | length > 0
+      - _npm_version is match('^\d+\.\d+\.\d+$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _npm_version <- target_version
+
+        target_version must look like X.Y.Z
+    success_msg: "npm {{ _npm_version }}"
 
 # npm update tasks
 - name: Check current npm version
@@ -22,7 +43,7 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  ignore_errors: true
+  failed_when: false
   register: _npm_current_version
   changed_when: false
 
@@ -36,15 +57,13 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
-  when: _npm_current_version is failed
+  when: _npm_current_version.rc != 0
         or _npm_version not in _npm_current_version.stdout
 
 - name: Get npm version after update
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/share/nodejs/bin/npm --version"
+  changed_when: false
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
@@ -55,9 +74,4 @@
     that: "_npm_version in _npm_version_result.stdout"
     fail_msg: "Expected npm {{ _npm_version }}, got {{ _npm_version_result.stdout }}"
     success_msg: "npm {{ _npm_version_result.stdout }} installed successfully"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

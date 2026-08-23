@@ -1,23 +1,42 @@
 // SKELETON-feature/devcontainer-feature.json
 // Find Development Container Feature Specification at https://containers.dev/implementors/features/
+//
+// THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR EVERY OPTION DEFAULT.
+// The Ansible role deliberately carries no defaults of its own: the devcontainer
+// CLI materializes each "default" below into an env var, install.sh forwards it
+// as an Ansible extra-var, and extra-vars outrank role defaults. A second copy
+// in defaults/main.yml could therefore only ever be dead code or a decoy.
 {
     "name": "SKELETON-feature",
     "id": "SKELETON",
     "version": "0.0.0",
     "description": "A feature to install SKELETON on Redhat UBI DevContainers",
     "options": {
+        "target_version": {
+            "type": "string",
+            "proposals": ["1.0.0"],
+            "default": "1.0.0",
+            "description": "Select a supported SKELETON binary version"
+        },
+        "target_checksum": {
+            "type": "string",
+            "default": "",
+            "description": "SHA256 of the release tarball. Required when target_version is not pinned in the role's _skeleton_pinned_checksums map."
+        },
         "color_choice": {
-        "type": "string",
-        "proposals": ["blue", "green", "red"],
-        "default": "green",
-        "description": "Select a color"
+            "type": "string",
+            "proposals": ["blue", "green", "red"],
+            "default": "green",
+            "description": "Select a color"
         },
         "is_my_favorite_color": {
             "type": "boolean",
             "default": true,
             "description": "true or false"
-            }
-
+        }
     },
-    "installsAfter": []
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

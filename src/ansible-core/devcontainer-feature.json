@@ -3,7 +3,7 @@
 {
     "name": "ansible-core-feature",
     "id": "ansible-core",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs ansible-core via UV tool on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://pypi.org/project/ansible-core/
@@ -31,5 +31,8 @@
     },
     "installsAfter": [
         "./python"
-    ]
+    ],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

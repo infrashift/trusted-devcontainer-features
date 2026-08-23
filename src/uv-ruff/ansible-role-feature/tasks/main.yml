@@ -7,18 +7,46 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _uv_version is defined and _uv_version | length > 0
+      - _uv_checksum is defined
+      - _ruff_version is defined and _ruff_version | length > 0
+      - _uv_version is match('^\d+\.\d+\.\d+$')
+      - _ruff_version is match('^\d+\.\d+\.\d+$')
+      - _uv_checksum | length == 0 or _uv_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _uv_version   <- target_uv_version    (mandatory, non-empty)
+        _uv_checksum  <- target_uv_checksum   (may be empty; uses the pinned map)
+        _ruff_version <- target_ruff_version  (mandatory, non-empty)
+
+        target_uv_version and target_ruff_version must look like X.Y.Z
+        target_uv_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "uv {{ _uv_version }} + ruff {{ _ruff_version }} ({{ _target_arch }})"
 
 # UV installation tasks
 - name: Check if UV is already installed for target user
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/uv --version"
-  ignore_errors: true
+  failed_when: false
   register: _uv_version_result
   changed_when: false
 
@@ -27,14 +55,28 @@
     path: /tmp/uv-ruff-feature-install
     state: directory
     mode: '0755'
-  when: _uv_version_result is failed
+  when: _uv_version_result.rc != 0
+        or _uv_version not in _uv_version_result.stdout
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unpinned version/platform pair is
+# a named error, not a silently unverified tarball (ADR-006).
+- name: Assert that a checksum is available for uv {{ _uv_version }} ({{ _uv_platform }})
+  ansible.builtin.assert:
+    that: _uv_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for {{ _uv_tarball }}. Pass target_uv_checksum to
+      install a version or platform that is not in the role's pinned map.
+  when: _uv_version_result.rc != 0
         or _uv_version not in _uv_version_result.stdout
 
 - name: Download UV binary tarball
   ansible.builtin.get_url:
     url: "{{ _uv_download_url }}"
     dest: "/tmp/uv-ruff-feature-install/{{ _uv_tarball }}"
-  when: _uv_version_result is failed
+    checksum: "sha256:{{ _uv_effective_checksum }}"
+    timeout: 60
+  when: _uv_version_result.rc != 0
         or _uv_version not in _uv_version_result.stdout
 
 - name: Ensure ~/.local/bin directory exists
@@ -48,7 +90,7 @@
 - name: Extract UV binary (strip nested directory)
   ansible.builtin.command:
     cmd: "tar xzf /tmp/uv-ruff-feature-install/{{ _uv_tarball }} --strip-components=1 -C {{ _target_user_home }}/.local/bin/"
-  when: _uv_version_result is failed
+  when: _uv_version_result.rc != 0
         or _uv_version not in _uv_version_result.stdout
 
 - name: Set ownership of uv and uvx binaries
@@ -69,24 +111,33 @@
 - name: Get UV version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/bin/uv --version"
+  changed_when: false
   register: _uv_version_result
 
 - name: Assert that UV is installed and accessible
   ansible.builtin.assert:
-    that: "'uv' in _uv_version_result.stdout"
-    fail_msg: "{{ _uv_version_result.stdout }}"
+    that: "_uv_version in _uv_version_result.stdout"
+    fail_msg: "Expected uv {{ _uv_version }}; uv reported: {{ _uv_version_result.stdout }}"
     success_msg: "{{ _uv_version_result.stdout }}"
 
 # Ruff installation via uv tool install
-- name: Install Ruff via uv tool install
+- name: Check the currently installed Ruff version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/ruff --version"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  failed_when: false
+  changed_when: false
+  register: _ruff_installed
+
+- name: Install Ruff {{ _ruff_version }} via uv tool install
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/bin/uv tool install --python 3.12 ruff=={{ _ruff_version }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
+  when: _ruff_installed.rc != 0 or _ruff_version not in (_ruff_installed.stdout | default(''))
   changed_when: true
 
 - name: Get Ruff version
@@ -97,12 +148,7 @@
 
 - name: Assert that Ruff is installed and accessible
   ansible.builtin.assert:
-    that: "'ruff' in _ruff_version_result.stdout"
-    fail_msg: "{{ _ruff_version_result.stdout }}"
+    that: "_ruff_version in _ruff_version_result.stdout"
+    fail_msg: "Expected ruff {{ _ruff_version }}; ruff reported: {{ _ruff_version_result.stdout }}"
     success_msg: "{{ _ruff_version_result.stdout }}"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

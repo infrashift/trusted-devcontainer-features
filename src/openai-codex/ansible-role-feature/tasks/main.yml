@@ -7,19 +7,43 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _codex_version is defined and _codex_version | length > 0
+      - _codex_version is match('^(latest|\d+\.\d+\.\d+)$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _codex_version <- target_version
+
+        target_version must be 'latest' or look like X.Y.Z
+    success_msg: "openai-codex {{ _codex_version }}"
 
 # OpenAI Codex installation tasks
 - name: Check if OpenAI Codex is already installed
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.bun/bin/codex --version"
-  ignore_errors: true
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  failed_when: false
   register: _codex_current_version
   changed_when: false
 
@@ -32,26 +56,27 @@
     cmd: "{{ _target_user_home }}/.local/bin/bun install -g @openai/codex@{{ _codex_version }}"
   environment:
     HOME: "{{ _target_user_home }}"
-    PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
-  when: _codex_current_version is failed
+    PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  when: _codex_current_version.rc != 0
         or (_codex_version != "latest" and _codex_version not in _codex_current_version.stdout)
 
 - name: Get OpenAI Codex version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.bun/bin/codex --version"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  changed_when: false
   register: _codex_version_result
 
 - name: Assert that OpenAI Codex is installed
   ansible.builtin.assert:
-    that: "_codex_version_result.rc == 0"
-    fail_msg: "OpenAI Codex installation failed"
+    that:
+      - _codex_version_result.rc == 0
+      - _codex_version_result.stdout is search('\d+\.\d+\.\d+')
+      - _codex_version == 'latest' or _codex_version in _codex_version_result.stdout
+    fail_msg: >-
+      Expected OpenAI Codex {{ _codex_version }}; codex reported:
+      '{{ _codex_version_result.stdout }}' (rc={{ _codex_version_result.rc }})
     success_msg: "OpenAI Codex {{ _codex_version_result.stdout }} installed successfully"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

@@ -2,18 +2,24 @@
 ---
 galaxy_info:
   author: ryancraig
-  description: SKELETON installation for RHEL UBI containers
+  description: SKELETON installation for RHEL UBI and Fedora containers
   company: infrashift.sh
-  license: MIT
-  min_ansible_version: 2.9
+  # The bootstrap feature pins ansible-core 2.18.2. Roles use `is defined`
+  # guards and dict .get() chains that predate this, but the floor is set to
+  # what actually runs so a mismatch surfaces instead of being assumed away.
+  min_ansible_version: "2.18"
   platforms:
   - name: EL
     versions:
     - 9
     - 10
+  - name: Fedora
+    versions:
+    - 43
   galaxy_tags:
     - SKELETON
     - rhel
+    - fedora
     - ubi
 
 dependencies: []

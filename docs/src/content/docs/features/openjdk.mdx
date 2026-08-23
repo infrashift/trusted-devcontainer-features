@@ -29,7 +29,7 @@ export const feature = features.find(f => f.id === 'openjdk');
 
 ## How It Works
 
-This feature downloads Eclipse Temurin OpenJDK from the Adoptium project. The Ansible playbook downloads the JDK tarball for the specified major and full version (`OpenJDK<major>U-jdk_x64_linux_hotspot_<version>.tar.gz`), optionally verifies the SHA256 checksum if one is provided, and extracts it to `~/.local/share/java`.
+This feature downloads Eclipse Temurin OpenJDK from the Adoptium project. The Ansible playbook downloads the JDK tarball for the specified major and full version (`OpenJDK<major>U-jdk_<arch>_linux_hotspot_<version>.tar.gz`), verifies the SHA256 checksum against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided, and extracts it to `~/.local/share/java`.
 
 After extraction, the playbook configures `JAVA_HOME` to point to the installed JDK directory and adds the JDK `bin` directory to PATH, making `java`, `javac`, and all other JDK tools immediately available. The VS Code Java Extension Pack is recommended for a full-featured Java development experience in the devcontainer.
 

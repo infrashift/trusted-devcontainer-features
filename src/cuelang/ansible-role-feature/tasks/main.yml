@@ -1,93 +1,113 @@
 # cuelang-feature/ansible-role-feature/tasks/main.yml
 ---
-# Assert that the devcontainer variant is compatible with this role
+# The variant is detected once, at bootstrap install time, from /etc/os-release
+# and published as a group var in /opt/bootstrap/inventory.yml.
 - name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
   ansible.builtin.assert:
     that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _cue_version is defined and _cue_version | length > 0
+      - _cue_checksum is defined
+      - _cue_version is match('^\d+\.\d+\.\d+$')
+      - _cue_checksum | length == 0 or _cue_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _cue_version  <- target_version   (mandatory, non-empty)
+        _cue_checksum <- target_checksum  (may be empty; uses the pinned map)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "cue {{ _cue_version }} ({{ _cue_arch }})"
 
 # CUElang installation tasks
-- name: Check if CUElang is already installed
+- name: Check the currently installed CUElang version
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/cue version"
-  ignore_errors: true
-  register: _cue_version_result
+  register: _cue_installed
+  failed_when: false
   changed_when: false
 
-- name: Create temporary download directory
-  ansible.builtin.file:
-    path: /tmp/cuelang-feature-install
-    state: directory
-    mode: '0755'
-  when: _cue_version_result is failed or _cue_version not in _cue_version_result.stdout
+- name: Determine whether CUElang {{ _cue_version }} needs installing
+  ansible.builtin.set_fact:
+    _cue_install_required: >-
+      {{ _cue_installed.rc != 0 or _cue_version not in (_cue_installed.stdout | default('')) }}
 
-- name: Download CUElang binary (No checksum verification)
-  ansible.builtin.get_url:
-    url: "{{ _cue_download_url }}"
-    dest: "/tmp/cuelang-feature-install/{{ _cue_tarball }}"
-    mode: '0644'
-  when: _cue_version_result is failed or _cue_version not in _cue_version_result.stdout
-
-- name: Ensure ~/.local/share/cue directory exists
+- name: Ensure ~/.local/share/cue exists
   ansible.builtin.file:
     path: "{{ _target_user_home }}/.local/share/cue"
     state: directory
     mode: '0755'
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
 
-- name: Extract CUElang binary
-  ansible.builtin.unarchive:
-    src: "/tmp/cuelang-feature-install/{{ _cue_tarball }}"
-    dest: "{{ _target_user_home }}/.local/share/cue"
-    remote_src: yes
-  when: _cue_version_result is failed or _cue_version not in _cue_version_result.stdout
-
-- name: Ensure ~/.local/bin directory exists
+- name: Ensure ~/.local/bin exists
   ansible.builtin.file:
     path: "{{ _target_user_home }}/.local/bin"
     state: directory
     mode: '0755'
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
 
-- name: Create symlink for cue binary in ~/.local/bin
+- name: Assert that a checksum is available for CUElang {{ _cue_version }} ({{ _cue_arch }})
+  ansible.builtin.assert:
+    that: _cue_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for cue {{ _cue_version }} on {{ _cue_arch }}.
+      Pass target_checksum to install a version other than the default.
+  when: _cue_install_required | bool
+
+# get_url is idempotent and verifies the download in the same step.
+- name: Download the CUElang release tarball
+  ansible.builtin.get_url:
+    url: "{{ _cue_download_url }}"
+    dest: "/tmp/{{ _cue_tarball }}"
+    mode: '0644'
+    checksum: "sha256:{{ _cue_effective_checksum }}"
+    timeout: 60
+  when: _cue_install_required | bool
+
+- name: Extract the CUElang binary
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ _cue_tarball }}"
+    dest: "{{ _target_user_home }}/.local/share/cue"
+    remote_src: true
+  when: _cue_install_required | bool
+
+- name: Remove the downloaded tarball
+  ansible.builtin.file:
+    path: "/tmp/{{ _cue_tarball }}"
+    state: absent
+
+- name: Symlink the cue binary into ~/.local/bin
   ansible.builtin.file:
     src: "{{ _target_user_home }}/.local/share/cue/cue"
     dest: "{{ _target_user_home }}/.local/bin/cue"
     state: link
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    force: yes
 
-- name: Recursively fix ownership of CUE installation
-  ansible.builtin.file:
-    path: "{{ _target_user_home }}/.local/share/cue"
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    recurse: true
-
-- name: Remove temporary download directory
-  ansible.builtin.file:
-    path: /tmp/cuelang-feature-install
-    state: absent
-
-- name: Get CUElang version
-  ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.local/bin/cue version"
-  register: _cue_version_result_check
+- name: Verify the installed CUElang version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/cue version"
+  register: _cue_verify
   changed_when: false
 
-- name: Assert that CUElang is installed and accessible
+- name: Assert that CUElang {{ _cue_version }} is installed and accessible
   ansible.builtin.assert:
-    that: "'cue version' in _cue_version_result_check.stdout"
-    fail_msg: "Installed cue reported: {{ _cue_version_result_check.stdout }}"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
+    that: "'v' ~ _cue_version in _cue_verify.stdout"
+    fail_msg: "Expected cue v{{ _cue_version }}; installed cue reported: {{ _cue_verify.stdout }}"
+    success_msg: "CUElang {{ _cue_version }} installed and verified."
 ...

@@ -3,4 +3,29 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Computed from the inputs install.sh passes. Not caller-settable, so they live
+# here rather than in defaults/main.yml — defaults/ is reserved for inputs, and
+# this role has none.
+#
+# _target_arch is injected unconditionally by /opt/bootstrap/run-feature.sh
+# (amd64 | arm64), and anchore publishes assets under those same names. It is
+# deliberately not masked with `| default(...)`: the mask would hide a broken
+# runner by installing an amd64 binary on arm64 that then passes its own
+# amd64 checksum from the upstream checksums file.
+# ---------------------------------------------------------------------------
+_grype_platform: linux
+_grype_arch: "{{ _target_arch }}"
+_grype_tarball: grype_{{ _grype_version }}_{{ _grype_platform }}_{{ _grype_arch }}.tar.gz
+_grype_checksums_file: grype_{{ _grype_version }}_checksums.txt
+_grype_download_url: https://github.com/anchore/grype/releases/download/v{{ _grype_version }}/{{ _grype_tarball }}
+_grype_checksums_download_url: https://github.com/anchore/grype/releases/download/v{{ _grype_version }}/{{ _grype_checksums_file }}
+# Resolved checksum: an explicit _grype_checksum wins, otherwise the value parsed
+# from the upstream checksums file (set_fact cannot override an extra-var, so
+# the input and the resolved value must be separate names).
+_grype_effective_checksum: "{{ _grype_checksum }}"
 ...

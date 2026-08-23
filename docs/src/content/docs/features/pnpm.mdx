@@ -29,7 +29,7 @@ export const feature = features.find(f => f.id === 'pnpm');
 
 ## How It Works
 
-This feature downloads the pnpm binary from the official GitHub releases. The Ansible playbook creates the `~/.local/share/pnpm` directory, downloads the pnpm binary for the specified version, and optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option. Once downloaded, the executable bit is set and `PNPM_HOME` and PATH are configured so the `pnpm` command is immediately available.
+This feature downloads the pnpm binary from the official GitHub releases. The Ansible playbook creates the `~/.local/share/pnpm` directory, downloads the pnpm binary for the specified version, and verifies the SHA256 checksum against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided. Once downloaded, the executable bit is set and `PNPM_HOME` and PATH are configured so the `pnpm` command is immediately available.
 
 pnpm requires Node.js to be installed, as it uses the Node.js runtime under the hood. This dependency is declared in the feature configuration, so including pnpm in your devcontainer will automatically trigger Node.js installation first through the dependency chain.
 

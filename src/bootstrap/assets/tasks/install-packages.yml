@@ -1,0 +1,53 @@
+# bootstrap-feature/assets/tasks/install-packages.yml -> /opt/bootstrap/tasks/install-packages.yml
+#
+# Shared system-package installer for features running in the --privileged lane.
+#
+# Ansible's package/dnf5 modules cannot be used here. They import the libdnf5
+# Python bindings, which exist only for the system interpreter — the pinned
+# .bootstrap venv cannot see them, and installing python3-libdnf5 would mean
+# adding a system Python to a deliberately minimal image and exposing system
+# site-packages to the venv, defeating its isolation.
+#
+# So this shells out to dnf5 directly, with an rpm query for idempotency.
+#
+# Usage:
+#   - name: Install system packages
+#     ansible.builtin.include_tasks: /opt/bootstrap/tasks/install-packages.yml
+#     vars:
+#       _packages:
+#         - git
+---
+- name: Assert that _packages was supplied
+  ansible.builtin.assert:
+    that:
+      - _packages is defined
+      - _packages | length > 0
+    fail_msg: "include_tasks install-packages.yml requires a non-empty _packages list"
+
+- name: Check whether {{ _packages | join(', ') }} are already installed
+  ansible.builtin.command: "rpm -q {{ _packages | join(' ') }}"
+  register: _pkg_query
+  failed_when: false
+  changed_when: false
+
+- name: Install {{ _packages | join(', ') }}
+  ansible.builtin.command: >-
+    dnf5 -y install --setopt=install_weak_deps=False {{ _packages | join(' ') }}
+  register: _pkg_install
+  when: _pkg_query.rc != 0
+  changed_when: _pkg_install.rc == 0
+
+# 'clean packages' not 'clean all': the latter also discards repository metadata,
+# so every subsequent privileged feature in the same build has to re-download it
+# (several minutes each). This reclaims the downloaded RPMs, which is the bulk of
+# the space, while leaving metadata cached for the next feature.
+- name: Clean downloaded packages from the dnf cache
+  ansible.builtin.command: dnf5 clean packages
+  when: _pkg_query.rc != 0
+  changed_when: false
+
+- name: Verify {{ _packages | join(', ') }} are installed
+  ansible.builtin.command: "rpm -q {{ _packages | join(' ') }}"
+  register: _pkg_verify
+  changed_when: false
+...

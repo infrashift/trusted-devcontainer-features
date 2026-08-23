@@ -6,64 +6,25 @@
 #
 # Maintainer: infrashift.sh
 #
-# This is the feature activation entrypoint script; it is ALWAYS executed as the 'root' user.
-# See https://containers.dev/implementors/features/#user-env-var for devcontainer CLI variables.
-set -e
+# Thin wrapper. All installation logic lives in ansible-role-feature/.
+# The shared runner is provided by the 'bootstrap' feature (see dependsOn).
+#
+# --privileged: this feature mutates system state (packages, /etc), so the
+# runner keeps it as root instead of dropping to the target user.
+set -euo pipefail
 
-echo "                                                                                "
-echo "********************************************************************************"
-echo "BEGIN FEATURE ACTIVATION                                                        "
-echo "Activating feature 'Egress Filter'...                                           "
-echo "********************************************************************************"
-echo "                                                                                "
+# Fail in the shell when a mandatory option resolves empty. This is the earliest
+# and clearest failure point: the role's assert cannot tell "unset" from "empty
+# string", and an empty value silently builds a malformed URL or command.
+#
+# Never add a `:-fallback` for a mandatory option — that reintroduces the second
+# source of truth this design removes, and shadows the default in
+# devcontainer-feature.json rather than surfacing that it went missing.
+: "${ALLOWED_DOMAINS:?feature option 'allowed_domains' resolved empty — devcontainer-feature.json must declare a default}"
+: "${SQUID_PORT:?feature option 'squid_port' resolved empty — devcontainer-feature.json must declare a default}"
 
-# Defensive programming: Fallback to 'vscode' if variables are empty during build
-EFFECTIVE_USER="${_REMOTE_USER:-vscode}"
-EFFECTIVE_HOME="${_REMOTE_USER_HOME:-/home/dev}"
-
-echo "The effective DevContainer remoteUser is '${EFFECTIVE_USER}'"
-echo "The effective DevContainer remoteUser's home directory is '${EFFECTIVE_HOME}'"
-echo "The effective DevContainer containerUser is '${_CONTAINER_USER:-vscode}'"
-echo "The effective DevContainer containerUser's home directory is '${_CONTAINER_USER_HOME:-/home/dev}'"
-
-ls -al .
-
-# Prevent root-owned caches in dev user home during feature install
-export UV_CACHE_DIR=/tmp/uv-feature-cache
-export ANSIBLE_LOCAL_TMP=/tmp/ansible-feature-tmp
-export ANSIBLE_REMOTE_TMP=/tmp/ansible-feature-remote-tmp
-
-# Verify uv is available (provided by the base Containerfile)
-if ! command -v uv &> /dev/null; then
-    echo "ERROR: uv is not installed. It should be provided by the base Containerfile."
-    exit 1
-fi
-echo "uv version: $(uv --version)"
-
-# Validate Ansible inventory
-echo "Parsing Ansible Inventory for host 'localhost'..."
-uv run --with ansible-core ansible-inventory --inventory ./hosts.yml --host localhost --yaml
-
-# Execute ansible-playbook as root
-echo "Activating DevContainer Feature for user ${EFFECTIVE_USER}..."
-uv run --with ansible-core ansible-playbook \
-    --inventory ./hosts.yml \
-    activate-feature.yml \
-    -e "remote_user=${EFFECTIVE_USER}" \
-    -e "remote_user_home=${EFFECTIVE_HOME}" \
-    -e "_target_username=${EFFECTIVE_USER}" \
-    -e "_target_user_home=${EFFECTIVE_HOME}" \
-    -e "_egress_allowed_domains=${ALLOWED_DOMAINS:-example.com}" \
-    -e "_egress_squid_port=${SQUID_PORT:-3128}" \
-    -e "_egress_allow_localhost=${ALLOW_LOCALHOST:-true}"
-
-
-# Cleanup: fix ownership of any root-owned dirs in dev user home
-if [ -n "${_REMOTE_USER}" ] && [ -d "${_REMOTE_USER_HOME}/.ansible" ]; then
-    chown -R "${_REMOTE_USER}" "${_REMOTE_USER_HOME}/.ansible"
-fi
-echo "                                                                                "
-echo "********************************************************************************"
-echo "END FEATURE ACTIVATION                                                          "
-echo "********************************************************************************"
-echo "                                                                                "
+exec /opt/bootstrap/run-feature.sh \
+    --role ansible-role-feature \
+    --privileged \
+    -e "_egress_allowed_domains=${ALLOWED_DOMAINS}" \
+    -e "_egress_squid_port=${SQUID_PORT}"

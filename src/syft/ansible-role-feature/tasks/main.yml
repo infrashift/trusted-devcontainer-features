@@ -7,18 +7,44 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _syft_version is defined and _syft_version | length > 0
+      - _syft_checksum is defined
+      - _syft_version is match('^\d+\.\d+\.\d+$')
+      - _syft_checksum | length == 0 or _syft_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _syft_version  <- target_version   (mandatory, non-empty)
+        _syft_checksum <- target_checksum  (may be empty; resolved from the
+                                           upstream checksums file)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "syft {{ _syft_version }} ({{ _syft_arch }})"
 
 # Syft installation tasks
 - name: Check if Syft is already installed
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/syft version"
-  ignore_errors: true
+  failed_when: false
   register: _syft_version_result
   changed_when: false
 
@@ -27,41 +53,58 @@
     path: /tmp/syft-feature-install
     state: directory
     mode: '0755'
-  when: _syft_version_result is failed
+  when: _syft_version_result.rc != 0
         or _syft_version not in _syft_version_result.stdout
 
 - name: Download Syft checksums file
   ansible.builtin.get_url:
     url: "{{ _syft_checksums_download_url }}"
     dest: "/tmp/syft-feature-install/{{ _syft_checksums_file }}"
+    timeout: 60
   when:
-    - _syft_version_result is failed or _syft_version not in _syft_version_result.stdout
+    - _syft_version_result.rc != 0 or _syft_version not in _syft_version_result.stdout
     - _syft_checksum | default('', true) | length == 0
 
 - name: Read checksums file
   ansible.builtin.slurp:
     src: "/tmp/syft-feature-install/{{ _syft_checksums_file }}"
   register: _syft_checksums_file_content
-  when: _syft_checksum | default('', true) | length == 0
+  when:
+    - _syft_version_result.rc != 0 or _syft_version not in _syft_version_result.stdout
+    - _syft_checksum | default('', true) | length == 0
 
 - name: Find the checksum for {{ _syft_tarball }}
   ansible.builtin.set_fact:
-    _syft_checksum: "{{ item.split()[0] }}"
+    _syft_effective_checksum: "{{ item.split()[0] }}"
   when:
+    - _syft_version_result.rc != 0 or _syft_version not in _syft_version_result.stdout
     - _syft_checksum | default('', true) | length == 0
     - _syft_tarball in item
   loop: "{{ _syft_checksums_file_content.content | b64decode | split('\n') | reject('eq', '') | list }}"
 
 - name: Display the checksum
   ansible.builtin.debug:
-    msg: "Checksum for {{ _syft_tarball }} is: {{ _syft_checksum }}"
+    msg: "Checksum for {{ _syft_tarball }} is: {{ _syft_effective_checksum }}"
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unparseable or missing upstream
+# checksums entry is a named error, not a silently unverified binary (ADR-006).
+- name: Assert that a checksum is available for Syft {{ _syft_version }} ({{ _syft_arch }})
+  ansible.builtin.assert:
+    that: _syft_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 resolved for {{ _syft_tarball }}. It was not found in
+      {{ _syft_checksums_file }}, and no target_checksum was supplied.
+  when: _syft_version_result.rc != 0
+        or _syft_version not in _syft_version_result.stdout
 
 - name: Download Syft binary
   ansible.builtin.get_url:
     url: "{{ _syft_download_url }}"
     dest: "/tmp/syft-feature-install/{{ _syft_tarball }}"
-    checksum: "sha256:{{ _syft_checksum }}"
-  when: _syft_version_result is failed
+    checksum: "sha256:{{ _syft_effective_checksum }}"
+    timeout: 60
+  when: _syft_version_result.rc != 0
         or _syft_version not in _syft_version_result.stdout
 
 - name: Ensure ~/.local/bin directory exists
@@ -80,7 +123,7 @@
     extra_opts:
       - --wildcards
       - syft
-  when: _syft_version_result is failed
+  when: _syft_version_result.rc != 0
         or _syft_version not in _syft_version_result.stdout
 
 - name: Set ownership of syft binary
@@ -98,16 +141,12 @@
 - name: Get Syft version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/bin/syft version"
+  changed_when: false
   register: _syft_version_result
 
 - name: Assert that Syft is installed and accessible
   ansible.builtin.assert:
-    that: "'Application' in _syft_version_result.stdout or 'syft' in _syft_version_result.stdout"
-    fail_msg: "{{ _syft_version_result.stdout }}"
+    that: "_syft_version in _syft_version_result.stdout"
+    fail_msg: "Expected syft {{ _syft_version }}; syft reported: {{ _syft_version_result.stdout }}"
     success_msg: "{{ _syft_version_result.stdout }}"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

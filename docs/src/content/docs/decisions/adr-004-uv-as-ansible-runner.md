@@ -3,7 +3,7 @@ title: "ADR-004: UV as Ansible Runner"
 description: Decision to use UV's ephemeral environment to run Ansible without pre-installing it.
 ---
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-008](/trusted-devcontainer-features/decisions/adr-008-pinned-bootstrap-environment/)
 
 ## Context
 

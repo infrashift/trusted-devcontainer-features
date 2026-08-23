@@ -3,4 +3,35 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Microsoft names its SDK assets x64 / arm64; _target_arch is injected as
+# amd64 / arm64 by /opt/bootstrap/run-feature.sh. Never mask it with
+# `| default(...)`.
+# ---------------------------------------------------------------------------
+_dotnet_platform: linux
+_dotnet_arch: "{{ 'arm64' if _target_arch == 'arm64' else 'x64' }}"
+# Example: dotnet-sdk-8.0.418-linux-x64.tar.gz
+_dotnet_tarball: "dotnet-sdk-{{ _dotnet_version }}-{{ _dotnet_platform }}-{{ _dotnet_arch }}.tar.gz"
+# Example: https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+_dotnet_download_url: "https://builds.dotnet.microsoft.com/dotnet/Sdk/{{ _dotnet_version }}/{{ _dotnet_tarball }}"
+
+# Microsoft publishes SHA512 (not SHA256) alongside each SDK tarball, at
+# <download_url>.sha512. These are pinned per version, per architecture. The
+# role previously passed `else omit` to get_url, which skipped verification
+# entirely whenever target_checksum was empty — that is, always, by default.
+#
+# Note the algorithm: target_checksum for this feature is a SHA512.
+_dotnet_checksum_algorithm: sha512
+_dotnet_pinned_checksums:
+  "8.0.418":
+    x64: "fbd9fc9f0bca73f771e79c12d721a18da97ba23c43794b941b110ccaac0fcd16156c996a5b9cfc0650120601791f2909e93ecb268f687c7b82889934c766c2b9"
+    arm64: "9193c9a77a5eedfac24974160e9b2d95865e88c8c4f0741042d2ebb4bc3317bf341ecb974ac6dad91c10d7adee22db717b35d3fef686f5aad67f4aff44574033"
+
+_dotnet_effective_checksum: >-
+  {{ _dotnet_checksum if _dotnet_checksum | length > 0
+     else _dotnet_pinned_checksums.get(_dotnet_version, {}).get(_dotnet_arch, '') }}
 ...

@@ -29,7 +29,7 @@ export const feature = features.find(f => f.id === 'syft');
 
 ## How It Works
 
-This feature downloads the Syft SBOM generator from Anchore's GitHub releases. The Ansible playbook downloads the `syft_<version>_linux_amd64.tar.gz` tarball for the specified version and optionally verifies the SHA256 checksum. If no checksum is provided via the `target_checksum` option, the playbook downloads the checksums file from the release to perform verification. Once verified, the binary is extracted to `~/.local/bin`.
+This feature downloads the Syft SBOM generator from Anchore's GitHub releases. The Ansible playbook downloads the `syft_<version>_linux_<arch>.tar.gz` tarball for the specified version and verifies the SHA256 checksum. If no checksum is provided via the `target_checksum` option, the playbook downloads the checksums file from the release to perform verification. Once verified, the binary is extracted to `~/.local/bin`.
 
 After installation, the playbook verifies that Syft is working correctly by running `syft version` to confirm the installed version. Syft has no external dependencies, so this feature installs cleanly without a dependency chain.
 

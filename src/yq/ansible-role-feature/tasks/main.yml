@@ -6,14 +6,43 @@
     that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _yq_version is defined and _yq_version | length > 0
+      - _yq_checksum is defined
+      - _yq_version is match('^\d+\.\d+\.\d+$')
+      - _yq_checksum | length == 0 or _yq_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _yq_version  <- target_version   (mandatory, non-empty)
+        _yq_checksum <- target_checksum  (may be empty; uses the pinned map)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "yq {{ _yq_version }} ({{ _yq_arch }})"
 
 # yq installation tasks
 - name: Check if yq is already installed
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/yq --version"
-  ignore_errors: true
+  failed_when: false
   register: _yq_version_result
   changed_when: false
 
@@ -25,14 +54,29 @@
     owner: "{{ _target_username }}"
     group: "{{ _target_username }}"
 
-- name: Download yq binary (no checksum verification)
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unpinned version/arch pair is a
+# named error, not a silently unverified binary (ADR-006).
+- name: Assert that a checksum is available for yq {{ _yq_version }} ({{ _yq_arch }})
+  ansible.builtin.assert:
+    that: _yq_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for {{ _yq_binary }} on {{ _yq_arch }}. Pass
+      target_checksum to install a version or architecture that is not in the
+      role's pinned map.
+  when: _yq_version_result.rc != 0
+        or _yq_version not in _yq_version_result.stdout
+
+- name: Download yq binary
   ansible.builtin.get_url:
     url: "{{ _yq_download_url }}"
     dest: "{{ _target_user_home }}/.local/bin/yq"
+    checksum: "sha256:{{ _yq_effective_checksum }}"
     owner: "{{ _target_username }}"
     group: "{{ _target_username }}"
     mode: '0755'
-  when: _yq_version_result is failed or _yq_version not in _yq_version_result.stdout
+    timeout: 60
+  when: _yq_version_result.rc != 0 or _yq_version not in _yq_version_result.stdout
 
 - name: Get yq version
   ansible.builtin.command:
@@ -42,12 +86,7 @@
 
 - name: Assert that yq is installed and accessible
   ansible.builtin.assert:
-    that: "'yq' in _yq_version_result.stdout"
-    fail_msg: "Installed yq reported: {{ _yq_version_result.stdout }}"
+    that: "'v' ~ _yq_version in _yq_version_result.stdout"
+    fail_msg: "Expected yq v{{ _yq_version }}; yq reported: {{ _yq_version_result.stdout }}"
     success_msg: "yq version {{ _yq_version_result.stdout }} verified."
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

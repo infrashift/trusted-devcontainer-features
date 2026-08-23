@@ -3,4 +3,38 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Computed from the inputs install.sh passes. Not caller-settable, so they live
+# here rather than in defaults/main.yml — defaults/ is reserved for inputs, and
+# this role has none.
+#
+# go.dev names its assets amd64/arm64, matching the _target_arch injected by
+# /opt/bootstrap/run-feature.sh. Never mask it with `| default(...)`.
+# ---------------------------------------------------------------------------
+_go_platform: linux
+_go_arch: "{{ _target_arch }}"
+# Example: go1.26.0.linux-amd64.tar.gz
+_go_tarball: go{{ _go_version }}.{{ _go_platform }}-{{ _go_arch }}.tar.gz
+# Example: https://go.dev/dl/go1.26.0.linux-amd64.tar.gz
+_go_download_url: https://go.dev/dl/{{ _go_tarball }}
+
+# SHA256 digests pinned per version, per architecture, from the signed manifest
+# at https://go.dev/dl/?mode=json. Previously a single amd64 digest lived in the
+# target_checksum option default, so an arm64 build would have verified an
+# arm64 tarball against an amd64 digest.
+_go_pinned_checksums:
+  "1.26.0":
+    amd64: "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"
+    arm64: "bd03b743eb6eb4193ea3c3fd3956546bf0e3ca5b7076c8226334afe6b75704cd"
+
+# Resolved checksum: an explicit _go_checksum wins, otherwise the pinned value
+# for this version and arch. A pair absent from the map resolves to '' and is
+# caught by the assert in tasks/main.yml.
+_go_effective_checksum: >-
+  {{ _go_checksum if _go_checksum | length > 0
+     else _go_pinned_checksums.get(_go_version, {}).get(_go_arch, '') }}
 ...

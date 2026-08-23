@@ -3,4 +3,42 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Computed from the inputs install.sh passes, or constants this role owns.
+# None of it is caller-settable, which is why it lives here rather than in
+# defaults/main.yml — defaults/ is reserved for inputs, and this role has none.
+#
+# _target_arch is injected unconditionally by /opt/bootstrap/run-feature.sh
+# (amd64 | arm64). It is deliberately NOT masked with `| default('amd64')`:
+# that mask only hides a broken runner, and hiding it means installing an
+# amd64 binary on arm64 that then passes its amd64 checksum.
+# ---------------------------------------------------------------------------
+_cue_platform: linux
+_cue_arch: "{{ _target_arch }}"
+# Example: cue_v0.15.4_linux_amd64.tar.gz
+_cue_tarball: cue_v{{ _cue_version }}_{{ _cue_platform }}_{{ _cue_arch }}.tar.gz
+# Example: https://github.com/cue-lang/cue/releases/download/v0.15.4/cue_v0.15.4_linux_amd64.tar.gz
+_cue_download_url: https://github.com/cue-lang/cue/releases/download/v{{ _cue_version }}/{{ _cue_tarball }}
+
+# SHA256 digests pinned per version, per architecture.
+#
+# cue-lang/cue publishes no checksums file — the previous
+# _cue_checksums_download_url pointed at a release asset that does not exist,
+# which is why verification was never actually performed.
+_cue_pinned_checksums:
+  "0.15.4":
+    amd64: "4709f0d3e9988b82192a205953fefdbb3637317a1cef63d84fe65b7b92ef95a3"
+    arm64: "f5a47ef6a6566849543b0ea84a7058c690bbb1492a1c101a6d62feaf59f8112e"
+
+# Resolved checksum: an explicit _cue_checksum wins, otherwise the pinned value
+# for this version and arch. The input and the resolved value must be separate
+# names — set_fact cannot override an extra-var. A version/arch pair absent
+# from the map resolves to '' and is caught by the assert in tasks/main.yml.
+_cue_effective_checksum: >-
+  {{ _cue_checksum if _cue_checksum | length > 0
+     else _cue_pinned_checksums.get(_cue_version, {}).get(_cue_arch, '') }}
 ...

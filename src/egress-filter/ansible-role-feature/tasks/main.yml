@@ -7,30 +7,51 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _egress_allowed_domains is defined and _egress_allowed_domains | length > 0
+      - _egress_squid_port is defined and _egress_squid_port | length > 0
+      - _egress_squid_port | string == _egress_container_env_port
+      - _egress_squid_port is match('^[0-9]+$')
+      - _egress_squid_port | int > 0 and _egress_squid_port | int < 65536
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _egress_allowed_domains <- allowed_domains
+        _egress_squid_port      <- squid_port
+
+        squid_port must equal {{ _egress_container_env_port }}: the http_proxy /
+        https_proxy values in devcontainer-feature.json containerEnv are literals
+        and the feature spec cannot interpolate an option into them, so any other
+        port yields a container whose proxy env points nowhere.
+
+        squid_port must be a number in 1-65535
+    success_msg: "egress-filter on 127.0.0.1:{{ _egress_squid_port }}, allowing {{ _egress_allowed_domains }}"
 
 # Install system dependencies
-- name: Configure UBI-{{ _securedevcontainer_ubi_version }}-BaseOS repository
-  ansible.builtin.yum_repository:
-    name: ubi-{{ _securedevcontainer_ubi_version }}-baseos-rpms
-    description: Red Hat Universal Base Image {{ _securedevcontainer_ubi_version }} (RPMs) - BaseOS
-    baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi{{ _securedevcontainer_ubi_version }}/{{ _securedevcontainer_ubi_version }}/$basearch/baseos/os
-    enabled: yes
-    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    gpgcheck: true
-
-- name: Install squid and iptables-nft
-  ansible.builtin.package:
-    name:
+- name: Install system packages (squid, iptables-nft)
+  ansible.builtin.include_tasks: /opt/bootstrap/tasks/install-packages.yml
+  vars:
+    _packages:
       - squid
       - iptables-nft
-    state: present
 
 # Get the squid system user UID for iptables owner matching
 - name: Get squid user UID
@@ -206,7 +227,4 @@
     success_msg: "{{ _egress_startup_script }} is executable"
 
 # Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

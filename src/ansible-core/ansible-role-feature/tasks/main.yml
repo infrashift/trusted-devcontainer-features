@@ -6,9 +6,38 @@
     that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list."
 
-- name: Extract the UBI version number
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _ansible_core_version is defined and _ansible_core_version | length > 0
+      - _ansible_core_python_version is defined and _ansible_core_python_version | length > 0
+      - _ansible_core_version is match('^\d+\.\d+\.\d+$')
+      - _ansible_core_python_version is match('^\d+\.\d+$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _ansible_core_version        <- target_version
+        _ansible_core_python_version <- target_python_version
+
+        target_version must look like X.Y.Z
+        target_python_version must look like X.Y
+    success_msg: "ansible-core {{ _ansible_core_version }} on python {{ _ansible_core_python_version }}"
 
 # Determine which uv binary to use
 - name: Check if user uv exists
@@ -21,31 +50,41 @@
     _uv_bin: "{{ _user_uv_stat.stat.path if _user_uv_stat.stat.exists else '/usr/local/bin/uv' }}"
 
 # Verify target Python version is available
-- name: Check if Python {{ _target_python_version }} is available
+- name: Check if Python {{ _ansible_core_python_version }} is available
   ansible.builtin.command:
-    cmd: "{{ _uv_bin }} python find {{ _target_python_version }}"
+    cmd: "{{ _uv_bin }} python find {{ _ansible_core_python_version }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
   register: _python_find_result
   changed_when: false
-  ignore_errors: true
+  failed_when: false
 
 # Install ansible-core as UV tool
-- name: Install ansible-core {{ _ansible_core_version }} via uv tool install
+#
+# Gate on the installed version rather than matching uv's output: uv prints
+# "... is already installed" on a no-op, which contains the substring "installed"
+# and made the previous changed_when fire on every run.
+- name: Check the currently installed ansible-core version
   ansible.builtin.command:
-    cmd: "{{ _uv_bin }} tool install ansible-core=={{ _ansible_core_version }} --python {{ _target_python_version }}"
+    cmd: "{{ _target_user_home }}/.local/bin/ansible --version"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
+  failed_when: false
+  changed_when: false
+  register: _ansible_installed
+
+- name: Install ansible-core {{ _ansible_core_version }} via uv tool install
+  ansible.builtin.command:
+    cmd: "{{ _uv_bin }} tool install ansible-core=={{ _ansible_core_version }} --python {{ _ansible_core_python_version }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  when: _ansible_installed.rc != 0
+        or _ansible_core_version not in (_ansible_installed.stdout | default(''))
   register: _ansible_install_result
-  changed_when: "'installed' in _ansible_install_result.stderr or 'updated' in _ansible_install_result.stderr"
+  changed_when: true
 
 # Verify installation
 - name: Get ansible version
@@ -54,19 +93,12 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
   register: _ansible_version_result
   changed_when: false
 
 - name: Assert that ansible-core is installed and accessible
   ansible.builtin.assert:
-    that: "'ansible' in _ansible_version_result.stdout"
-    fail_msg: "Ansible not found. Output: {{ _ansible_version_result.stderr }}"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
+    that: "'[core ' ~ _ansible_core_version ~ ']' in _ansible_version_result.stdout"
+    fail_msg: "Expected ansible-core {{ _ansible_core_version }}; ansible reported: {{ _ansible_version_result.stdout }}"
+    success_msg: "ansible-core {{ _ansible_core_version }} installed and verified."
 ...

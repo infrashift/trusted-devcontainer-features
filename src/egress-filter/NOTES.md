@@ -22,7 +22,6 @@ This feature requires the following Linux capabilities (declared automatically v
 |--------|------|---------|-------------|
 | `allowed_domains` | string | `example.com` | Comma-separated list of allowed domains |
 | `squid_port` | string | `3128` | Localhost port for Squid proxy |
-| `allow_localhost` | boolean | `true` | Allow connections to localhost without proxy |
 
 ### Domain Syntax
 

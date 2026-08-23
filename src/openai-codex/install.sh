@@ -6,56 +6,19 @@
 #
 # Maintainer: infrashift.sh
 #
-# This is the feature activation entrypoint script; it is ALWAYS executed as the 'root' user.
-# See https://containers.dev/implementors/features/#user-env-var for devcontainer CLI variables.
-set -e
+# Thin wrapper. All installation logic lives in ansible-role-feature/.
+# The shared runner is provided by the 'bootstrap' feature (see dependsOn).
+set -euo pipefail
 
-echo "                                                                                "
-echo "********************************************************************************"
-echo "BEGIN FEATURE ACTIVATION                                                        "
-echo "Activating feature 'OpenAI Codex'...                                            "
-echo "********************************************************************************"
-echo "                                                                                "
+# Fail in the shell when a mandatory option resolves empty. This is the earliest
+# and clearest failure point: the role's assert cannot tell "unset" from "empty
+# string", and an empty value silently builds a malformed URL or command.
+#
+# Never add a `:-fallback` for a mandatory option — that reintroduces the second
+# source of truth this design removes, and shadows the default in
+# devcontainer-feature.json rather than surfacing that it went missing.
+: "${TARGET_VERSION:?feature option 'target_version' resolved empty — devcontainer-feature.json must declare a default}"
 
-echo "The effective DevContainer remoteUser is '${_REMOTE_USER}'"
-echo "The effective DevContainer remoteUser's home directory is '${_REMOTE_USER_HOME}'"
-echo "The effective DevContainer containerUser is '${_CONTAINER_USER}'"
-echo "The effective DevContainer containerUser's home directory is '${_CONTAINER_USER_HOME}'"
-
-ls -al .
-
-# Prevent root-owned caches in dev user home during feature install
-export UV_CACHE_DIR=/tmp/uv-feature-cache
-export ANSIBLE_LOCAL_TMP=/tmp/ansible-feature-tmp
-export ANSIBLE_REMOTE_TMP=/tmp/ansible-feature-remote-tmp
-
-# Verify uv is available (provided by the base Containerfile)
-if ! command -v uv &> /dev/null; then
-    echo "ERROR: uv is not installed. It should be provided by the base Containerfile."
-    exit 1
-fi
-echo "uv version: $(uv --version)"
-
-# Validate Ansible inventory
-echo "Parsing Ansible Inventory for host 'localhost'..."
-uv run --with ansible-core ansible-inventory --inventory ./hosts.yml --host localhost --yaml
-
-# Execute ansible-playbook as root
-echo "Activating DevContainer Feature..."
-uv run --with ansible-core ansible-playbook \
-    --inventory ./hosts.yml \
-    activate-feature.yml \
-    -e "remote_user=${_REMOTE_USER}" \
-    -e "remote_user_home=${_REMOTE_USER_HOME}" \
-    -e "codex_version=${TARGET_VERSION}"
-
-
-# Cleanup: fix ownership of any root-owned dirs in dev user home
-if [ -n "${_REMOTE_USER}" ] && [ -d "${_REMOTE_USER_HOME}/.ansible" ]; then
-    chown -R "${_REMOTE_USER}" "${_REMOTE_USER_HOME}/.ansible"
-fi
-echo "                                                                                "
-echo "********************************************************************************"
-echo "END FEATURE ACTIVATION                                                          "
-echo "********************************************************************************"
-echo "                                                                                "
+exec /opt/bootstrap/run-feature.sh \
+    --role ansible-role-feature \
+    -e "_codex_version=${TARGET_VERSION}"

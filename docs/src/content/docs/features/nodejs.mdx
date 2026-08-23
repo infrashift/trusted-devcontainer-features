@@ -29,7 +29,7 @@ export const feature = features.find(f => f.id === 'nodejs');
 
 ## How It Works
 
-This feature downloads the official Node.js binary distribution from nodejs.org as a tarball (`node-v<version>-linux-x64.tar.xz`). The Ansible playbook creates the `~/.local/share/nodejs` directory, downloads the tarball for the specified version, and optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option.
+This feature downloads the official Node.js binary distribution from nodejs.org as a tarball (`node-v<version>-linux-<arch>.tar.xz`). The Ansible playbook creates the `~/.local/share/nodejs` directory, downloads the tarball for the specified version, and verifies the SHA256 checksum against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided.
 
 Once verified, the tarball is extracted into `~/.local/share/nodejs`, and the Node.js `bin` directory is added to PATH. This provides both the `node` runtime and the bundled `npm` package manager immediately after installation.
 

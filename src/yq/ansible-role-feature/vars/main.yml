@@ -3,4 +3,35 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# mikefarah/yq names its assets yq_linux_amd64 / yq_linux_arm64, matching the
+# _target_arch injected by /opt/bootstrap/run-feature.sh. Never mask it with
+# `| default(...)`.
+# ---------------------------------------------------------------------------
+_yq_arch: "{{ _target_arch }}"
+# Example: yq_linux_amd64
+_yq_binary: "yq_linux_{{ _yq_arch }}"
+# Example: https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_amd64
+_yq_download_url: "https://github.com/mikefarah/yq/releases/download/v{{ _yq_version }}/{{ _yq_binary }}"
+
+# SHA256 digests pinned per version, per architecture.
+#
+# yq's published `checksums` file is a 20-column table of different hash
+# algorithms whose order is defined in a separate `checksums_hashes_order`
+# file (SHA-256 is column 18). Parsing that in-role for no benefit is why the
+# download task was previously labelled "no checksum verification" and passed
+# no checksum at all. These values were taken from that table and confirmed by
+# hashing the released binaries.
+_yq_pinned_checksums:
+  "4.45.4":
+    amd64: "b96de04645707e14a12f52c37e6266832e03c29e95b9b139cddcae7314466e69"
+    arm64: "a02cc637409db44a9f9cb55ea92c40019582ba88083c4d930a727ec4b59ed439"
+
+_yq_effective_checksum: >-
+  {{ _yq_checksum if _yq_checksum | length > 0
+     else _yq_pinned_checksums.get(_yq_version, {}).get(_yq_arch, '') }}
 ...

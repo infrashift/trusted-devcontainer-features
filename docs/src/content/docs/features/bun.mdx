@@ -29,8 +29,8 @@ export const feature = features.find(f => f.id === 'bun');
 
 ## How It Works
 
-This feature downloads the Bun binary from the official GitHub releases for the linux-x64 architecture. Bun is a fast all-in-one JavaScript runtime, bundler, test runner, and package manager designed as a drop-in replacement for Node.js.
+This feature downloads the Bun binary from the official GitHub releases for the target architecture (`x64` or `aarch64`, derived from the container platform). Bun is a fast all-in-one JavaScript runtime, bundler, test runner, and package manager designed as a drop-in replacement for Node.js.
 
-The Ansible playbook creates `~/.local/bin` if it does not already exist, downloads the Bun tarball for the specified version, and optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option. Once verified, the binary is extracted and placed on PATH so the `bun` command is immediately available.
+The Ansible playbook creates `~/.local/bin` if it does not already exist, downloads the Bun tarball for the specified version, and verifies the SHA256 checksum against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided. Once verified, the binary is extracted and placed on PATH so the `bun` command is immediately available.
 
 Bun serves as the runtime for installing Node.js-based CLI tools like Claude Code and OpenAI Codex in this feature set. Because Bun has a significantly faster package installation process than npm, it provides a better devcontainer build experience when installing global npm packages. Features that depend on Bun will automatically trigger its installation as part of the dependency chain.

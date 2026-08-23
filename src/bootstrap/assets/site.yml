@@ -1,0 +1,28 @@
+# Ansible Playbook
+# bootstrap-feature/assets/site.yml -> /opt/bootstrap/site.yml
+#
+# The single generic playbook shared by every trusted devcontainer feature.
+# It applies exactly one role, named by the 'feature_role' extra-var that
+# run-feature.sh injects. This replaces the per-feature activate-feature.yml.
+#
+# become is false throughout: run-feature.sh has already selected the identity
+# (the target user for the userland lane, root for the --privileged lane), so
+# roles never need to escalate or de-escalate themselves.
+---
+- name: Activate DevContainer Feature
+  hosts: devcontainer
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Assert that a feature role was supplied
+      ansible.builtin.assert:
+        that:
+          - feature_role is defined
+          - feature_role | length > 0
+        fail_msg: "run-feature.sh must pass -e feature_role=<role>"
+
+    - name: Apply the feature role
+      ansible.builtin.include_role:
+        name: "{{ feature_role }}"
+...
