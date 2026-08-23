@@ -6,3 +6,10 @@ node_modules/
 test-templates/*/.devcontainer/*/
 test-templates/*/.devcontainer/devcontainer-lock.json
 test-templates/*/test-lib.sh
+
+# Features staged into .devcontainer/ by scripts/prepare-devcontainer.sh so the
+# maintainer environment can build from the working tree. SKELETON-feature is
+# tracked source, not a staged copy.
+.devcontainer/*/
+!.devcontainer/SKELETON-feature/
+.devcontainer/devcontainer-lock.json

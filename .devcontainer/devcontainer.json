@@ -1,4 +1,8 @@
 {
+    // Features must live under .devcontainer/ for the CLI to resolve them, so
+    // stage them there first. initializeCommand runs on the host before feature
+    // resolution. The staged copies are gitignored.
+    "initializeCommand": "bash \"${localWorkspaceFolder}/scripts/prepare-devcontainer.sh\"",
     "build": {
         "dockerfile": "./Containerfile",
         // The Containerfile COPYs nothing, so the context only needs to be this
@@ -32,25 +36,26 @@
         }
     },
     "features": {
-        "../src/git": {},
-        "../src/git-lfs": {},
-        "../src/golang": {},
-        "../src/cuelang": {},
-        "../src/jq": {},
-        "../src/yq": {},
-        "../src/uv-ruff": {},
-        "../src/grype": {},
-        "../src/syft": {},
-        "../src/nodejs": {},
-        "../src/npm": {},
-        "../src/claude-code": {},
-        "../src/openai-codex": {},
-        "../src/pnpm": {},
-        "../src/bun": {},
-        "../src/python": {"target_version": "3.12"},
-        "../src/ansible-core": {"target_version": "2.18.2", "target_python_version": "3.12"},
-        "../src/openjdk": {},
-        "../src/dotnet": {}
+        "./bootstrap": {},
+        "./git": {},
+        "./git-lfs": {},
+        "./golang": {},
+        "./cuelang": {},
+        "./jq": {},
+        "./yq": {},
+        "./uv-ruff": {},
+        "./grype": {},
+        "./syft": {},
+        "./nodejs": {},
+        "./npm": {},
+        "./claude-code": {},
+        "./openai-codex": {},
+        "./pnpm": {},
+        "./bun": {},
+        "./python": {"target_version": "3.12"},
+        "./ansible-core": {"target_version": "2.18.2", "target_python_version": "3.12"},
+        "./openjdk": {},
+        "./dotnet": {}
     },
     "runArgs": [
         // Uncomment for rootless podman
