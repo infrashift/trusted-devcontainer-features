@@ -7,8 +7,18 @@ on:
     branches: [main]
 
 jobs:
+  contract:
+    name: "role contract"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the ADR-012 parameter contract
+        run: bash scripts/check-role-contract.sh
+
   test:
     name: "template (${{ matrix.template }})"
+    needs: contract
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -40,6 +50,10 @@ jobs:
             --workspace-folder "$(pwd)/test-templates/${{ matrix.template }}" \
             --id-label "test=${{ matrix.template }}" \
             bash tests.sh
+
+      - name: Run contract tests (idempotency + failure modes)
+        run: |
+          bash test-templates/shared/contract-tests.sh "${{ matrix.template }}"
 
       - name: Cleanup
         if: always()

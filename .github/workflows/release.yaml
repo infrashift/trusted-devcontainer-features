@@ -9,7 +9,19 @@ permissions:
   packages: write
 
 jobs:
+  # The contract gate is cheap and container-free, so the release always waits
+  # for it. Without this, a feature that violates the contract still publishes:
+  # release.yaml previously had no `needs:` at all.
+  contract:
+    name: "role contract"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the ADR-012 parameter contract
+        run: bash scripts/check-role-contract.sh
+
   release:
+    needs: contract
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
