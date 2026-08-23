@@ -91,12 +91,25 @@ declare -A ROLE_ARGS=(
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.6+7 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.10.3 -e _uv_checksum= -e _ruff_version=0.15.1'
   [ansible-core]='-e _ansible_core_version=2.18.2 -e _ansible_core_python_version=3.12'
-  # These two take the npm dist-tag "latest"; their install task is a no-op once
-  # anything is present, so a re-run must still report changed=0.
-  [claude-code]='-e _claude_code_version=latest'
-  [openai-codex]='-e _codex_version=latest'
+  # Filled in below from what is actually installed -- see the note there.
+  [claude-code]=''
+  [openai-codex]=''
   [git]='' [git-lfs]='' [sudo]=''
 )
+
+# claude-code and openai-codex take the npm dist-tag "latest", which the role now
+# resolves to a concrete version on every run. Passing "latest" here would make
+# the idempotency check race an npm publish between the image build and this
+# test, so pin each to whatever the image actually ended up with. The resolution
+# path itself is exercised by the build.
+installed_semver() {
+    docker exec -u dev "${CID}" bash -lc "$1 2>/dev/null" 2>/dev/null \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
+}
+_cc="$(installed_semver '~/.bun/bin/claude --version' || true)"
+_cx="$(installed_semver '~/.bun/bin/codex --version' || true)"
+if [ -n "${_cc}" ]; then ROLE_ARGS[claude-code]="-e _claude_code_version=${_cc}"; fi
+if [ -n "${_cx}" ]; then ROLE_ARGS[openai-codex]="-e _codex_version=${_cx}"; fi
 
 # Only the features this template actually installs.
 CONF="${HERE}/../${TEMPLATE}/.devcontainer/devcontainer.json"

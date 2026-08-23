@@ -51,14 +51,37 @@
   ansible.builtin.debug:
     msg: "Current OpenAI Codex version: {{ _codex_current_version.stdout | default('not installed') }}"
 
-- name: Install OpenAI Codex {{ _codex_version }}
+# `latest` is an npm dist-tag, not a version, so resolve it to a concrete
+# version BEFORE comparing against what is installed. Without this the
+# comparison below can never be false for `latest`: whatever is installed always
+# "satisfies" the tag, so an old build satisfies it forever and the feature
+# silently stops upgrading.
+#
+# Resolving also means the install below always pins an exact version, and the
+# final assert can check that exact version instead of accepting any semver.
+- name: Resolve the {{ _codex_version }} dist-tag to a concrete version
+  ansible.builtin.uri:
+    url: "https://registry.npmjs.org/@openai/codex/{{ _codex_version }}"
+    return_content: true
+    timeout: 30
+  register: _codex_dist_tag
+  when: _codex_version == 'latest'
+  changed_when: false
+
+- name: Record the OpenAI Codex version to install
+  ansible.builtin.set_fact:
+    _codex_target: >-
+      {{ _codex_dist_tag.json.version if _codex_version == 'latest'
+         else _codex_version }}
+
+- name: Install OpenAI Codex {{ _codex_target }}
   ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.local/bin/bun install -g @openai/codex@{{ _codex_version }}"
+    cmd: "{{ _target_user_home }}/.local/bin/bun install -g @openai/codex@{{ _codex_target }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
   when: _codex_current_version.rc != 0
-        or (_codex_version != "latest" and _codex_version not in _codex_current_version.stdout)
+        or _codex_target not in _codex_current_version.stdout
 
 - name: Get OpenAI Codex version
   ansible.builtin.command:
@@ -73,10 +96,9 @@
   ansible.builtin.assert:
     that:
       - _codex_version_result.rc == 0
-      - _codex_version_result.stdout is search('\d+\.\d+\.\d+')
-      - _codex_version == 'latest' or _codex_version in _codex_version_result.stdout
+      - _codex_target in _codex_version_result.stdout
     fail_msg: >-
-      Expected OpenAI Codex {{ _codex_version }}; codex reported:
+      Expected OpenAI Codex {{ _codex_target }}; codex reported:
       '{{ _codex_version_result.stdout }}' (rc={{ _codex_version_result.rc }})
     success_msg: "OpenAI Codex {{ _codex_version_result.stdout }} installed successfully"
 ...

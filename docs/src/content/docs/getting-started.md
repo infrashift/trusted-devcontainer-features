@@ -99,16 +99,20 @@ from — see [ADR-008](/trusted-devcontainer-features/decisions/adr-008-pinned-b
 
 ## Local testing
 
-Use the provided Makefile to test features locally:
+Features are tested by building the templates under `test-templates/` and
+exercising them, which is what CI does — there is no per-feature test tree.
 
 ```bash
-# Test a single feature
-make test-feature FEATURE=jq
+# Verify every role satisfies the parameter contract (seconds, no containers)
+make check-contract
 
-# Test scenarios for a feature with dependencies
-make test-scenarios FEATURE=claude-code
+# Build one template and run its smoke tests
+make test-template TEMPLATE=python
 
-# Run all tests
+# Idempotency and failure-mode tests against that running container
+make test-contract TEMPLATE=python
+
+# Everything: contract check, then all six templates
 make test
 ```
 

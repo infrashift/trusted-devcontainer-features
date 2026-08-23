@@ -1,7 +1,10 @@
 {
     "build": {
         "dockerfile": "./Containerfile",
-        "context": ".."
+        // The Containerfile COPYs nothing, so the context only needs to be this
+        // directory. ".." shipped the whole repo -- ~250MB of docs/node_modules
+        // -- to the daemon on every build.
+        "context": "."
     },
     // Uncomment for use with rootless podman
     //"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,Z,consistency=cached",
@@ -53,6 +56,6 @@
         // Uncomment for rootless podman
         // "--userns=keep-id"
     ],
-    "containerUser": "vscode",
-    "updateRemoteUserUID": true
+    "containerUser": "dev",
+    "updateRemoteUserUID": false
 }

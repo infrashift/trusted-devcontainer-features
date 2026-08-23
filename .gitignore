@@ -1,2 +1,8 @@
 node_modules/
 *.log
+
+# Feature trees copied into the templates by `make test-template` and by CI's
+# "Prepare test template" step. Regenerated on every run; `make clean` removes them.
+test-templates/*/.devcontainer/*/
+test-templates/*/.devcontainer/devcontainer-lock.json
+test-templates/*/test-lib.sh

@@ -115,11 +115,18 @@ Features are tested through `test-templates/`. Add your feature to an existing t
 ## Running Tests Locally
 
 ```bash
-make build-test-base
-make test-feature FEATURE=my-feature
+# Contract check first — it is seconds of CPU and catches most mistakes
+# before you spend minutes on a container build.
+make check-contract
+
+# Then build the template your feature belongs to and test it.
+make test-template TEMPLATE=<template>
+make test-contract TEMPLATE=<template>
 ```
 
-To exercise a feature the way the runtime does, build a base image with the `bootstrap` feature applied, then run your `install.sh` with `_REMOTE_USER` and `_REMOTE_USER_HOME` set and the option environment variables populated from your declared defaults. Run it **twice** — the second run must report `changed=0`.
+`make check-contract` will tell you if your feature drifts from the contract: a value left in `defaults/main.yml`, a missing assert bracket, an option without a default, a mandatory option lacking its `${VAR:?}` guard, or an `-e` in `install.sh` with no matching assertion.
+
+`make test-contract` re-runs each role and requires `changed=0`, then checks that a missing parameter, an empty mandatory option, an unpinned version and a bad digest each fail by name. Add your feature to `ROLE_ARGS` in `test-templates/shared/contract-tests.sh` so it is covered — the script prints `SKIP` for anything missing rather than silently passing.
 
 ## Code Style
 

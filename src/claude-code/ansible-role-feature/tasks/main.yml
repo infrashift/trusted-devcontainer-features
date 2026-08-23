@@ -51,14 +51,37 @@
   ansible.builtin.debug:
     msg: "Current Claude Code version: {{ _claude_code_current_version.stdout | default('not installed') }}"
 
-- name: Install Claude Code {{ _claude_code_version }}
+# `latest` is an npm dist-tag, not a version, so resolve it to a concrete
+# version BEFORE comparing against what is installed. Without this the
+# comparison below can never be false for `latest`: whatever is installed always
+# "satisfies" the tag, so an old build satisfies it forever and the feature
+# silently stops upgrading.
+#
+# Resolving also means the install below always pins an exact version, and the
+# final assert can check that exact version instead of accepting any semver.
+- name: Resolve the {{ _claude_code_version }} dist-tag to a concrete version
+  ansible.builtin.uri:
+    url: "https://registry.npmjs.org/@anthropic-ai/claude-code/{{ _claude_code_version }}"
+    return_content: true
+    timeout: 30
+  register: _claude_code_dist_tag
+  when: _claude_code_version == 'latest'
+  changed_when: false
+
+- name: Record the Claude Code version to install
+  ansible.builtin.set_fact:
+    _claude_code_target: >-
+      {{ _claude_code_dist_tag.json.version if _claude_code_version == 'latest'
+         else _claude_code_version }}
+
+- name: Install Claude Code {{ _claude_code_target }}
   ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.local/bin/bun install -g --trust @anthropic-ai/claude-code@{{ _claude_code_version }}"
+    cmd: "{{ _target_user_home }}/.local/bin/bun install -g --trust @anthropic-ai/claude-code@{{ _claude_code_target }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.bun/bin:{{ _target_user_home }}/.local/share/nodejs/bin:{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
   when: _claude_code_current_version.rc != 0
-        or (_claude_code_version != "latest" and _claude_code_version not in _claude_code_current_version.stdout)
+        or _claude_code_target not in _claude_code_current_version.stdout
 
 - name: Get Claude Code version
   ansible.builtin.command:
@@ -73,10 +96,9 @@
   ansible.builtin.assert:
     that:
       - _claude_code_version_result.rc == 0
-      - _claude_code_version_result.stdout is search('\d+\.\d+\.\d+')
-      - _claude_code_version == 'latest' or _claude_code_version in _claude_code_version_result.stdout
+      - _claude_code_target in _claude_code_version_result.stdout
     fail_msg: >-
-      Expected Claude Code {{ _claude_code_version }}; claude reported:
+      Expected Claude Code {{ _claude_code_target }}; claude reported:
       '{{ _claude_code_version_result.stdout }}' (rc={{ _claude_code_version_result.rc }})
     success_msg: "Claude Code {{ _claude_code_version_result.stdout }} installed successfully"
 ...
