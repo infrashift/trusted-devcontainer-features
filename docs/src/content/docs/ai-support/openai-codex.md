@@ -72,5 +72,4 @@ codex "convert this class component to a functional React component with hooks"
 ## Security Considerations
 
 - **API keys**: Never commit API keys to version control. Use `containerEnv` with `localEnv` references.
-- **Egress filtering**: Pair with the [Egress Filter](/trusted-devcontainer-features/ai-support/egress-filter/) feature to restrict network access to `api.openai.com` and other required domains.
 - **Container isolation**: Codex runs within the DevContainer boundary and cannot access your host filesystem beyond the mounted workspace.

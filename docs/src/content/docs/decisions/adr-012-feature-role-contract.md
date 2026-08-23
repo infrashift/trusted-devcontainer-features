@@ -39,7 +39,7 @@ Per-feature `hosts.yml` and `activate-feature.yml` are deleted. A single generic
 
 De-escalation uses **`setpriv`**, not `su` or `runuser`. Both of those authenticate through PAM, which fails during a container build with `failed to establish user credentials: Permission denied` because the build lacks the required capabilities. `setpriv` performs a plain setuid/setgid with no PAM involvement.
 
-**Privileged (`--privileged`).** Stays root, for features that genuinely mutate system state — currently `git`, `git-lfs`, `sudo` and `egress-filter`, all of which install system packages.
+**Privileged (`--privileged`).** Stays root, for features that genuinely mutate system state — currently `git` and `git-lfs`, both of which install system packages.
 
 ### Ansible scratch state
 
@@ -109,7 +109,7 @@ Bare substring tests are unsafe wherever one advertised version is a prefix of a
 
 Two roles cannot assert equality at all: `claude-code` and `openai-codex` take the npm dist-tag `latest`, and their binaries only ever report a resolved semver. They assert semver-shaped output always, and exact match only when pinned.
 
-Package-manager installs (`git`, `git-lfs`, `sudo`) have no requested version, so a name match is the strongest check available and is correct there.
+Package-manager installs (`git`, `git-lfs`) have no requested version, so a name match is the strongest check available and is correct there.
 
 ### Enforcement
 

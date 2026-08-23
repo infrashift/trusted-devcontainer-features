@@ -14,7 +14,6 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `claude-code` | Installs Claude Code (Anthropic's AI coding assistant CLI) | `ghcr.io/infrashift/trusted-devcontainer-features/claude-code:latest` |
 | `cuelang` | Installs CUElang | `ghcr.io/infrashift/trusted-devcontainer-features/cuelang:latest` |
 | `dotnet` | Installs the .NET SDK | `ghcr.io/infrashift/trusted-devcontainer-features/dotnet:latest` |
-| `egress-filter` | Installs squid proxy and iptables for egress filtering | `ghcr.io/infrashift/trusted-devcontainer-features/egress-filter:latest` |
 | `git` | Installs Git | `ghcr.io/infrashift/trusted-devcontainer-features/git:latest` |
 | `git-lfs` | Installs Git LFS | `ghcr.io/infrashift/trusted-devcontainer-features/git-lfs:latest` |
 | `golang` | Installs the Go programming language | `ghcr.io/infrashift/trusted-devcontainer-features/golang:latest` |
@@ -26,7 +25,6 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `openjdk` | Installs OpenJDK | `ghcr.io/infrashift/trusted-devcontainer-features/openjdk:latest` |
 | `pnpm` | Installs the pnpm package manager | `ghcr.io/infrashift/trusted-devcontainer-features/pnpm:latest` |
 | `python` | Installs a specific Python version via UV | `ghcr.io/infrashift/trusted-devcontainer-features/python:latest` |
-| `sudo` | Installs sudo and configures passwordless sudo for the container user | `ghcr.io/infrashift/trusted-devcontainer-features/sudo:latest` |
 | `syft` | Installs the Syft SBOM generator | `ghcr.io/infrashift/trusted-devcontainer-features/syft:latest` |
 | `uv-ruff` | Installs UV and Ruff Python tools | `ghcr.io/infrashift/trusted-devcontainer-features/uv-ruff:latest` |
 | `yq` | Installs the yq YAML processor | `ghcr.io/infrashift/trusted-devcontainer-features/yq:latest` |

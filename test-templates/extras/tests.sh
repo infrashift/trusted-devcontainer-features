@@ -4,5 +4,4 @@ check "node" node --version
 check "bun" bun --version
 check "claude" claude --version
 check "codex" codex --version
-check "sudo" sudo --version
 report_results

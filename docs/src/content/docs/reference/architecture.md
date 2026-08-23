@@ -67,7 +67,7 @@ The shared runner selects the identity, then execs `ansible-playbook` from the p
 
 De-escalation uses `setpriv`, not `su`/`runuser`: those authenticate through PAM, which fails during a container build with *"failed to establish user credentials"* because the build lacks the capabilities PAM requires.
 
-**Privileged lane (`--privileged`).** Stays root, for features whose purpose is system state — `git`, `git-lfs`, `sudo`, `egress-filter`.
+**Privileged lane (`--privileged`).** Stays root, for features whose purpose is system state — `git` and `git-lfs`.
 
 The runner also injects `_target_username`, `_target_user_home`, and `_target_arch`, and redirects `ANSIBLE_HOME`, `ANSIBLE_REMOTE_TMP`, and `ANSIBLE_LOCAL_TEMP` into `/tmp` so no Ansible scratch state lands in the developer's home.
 

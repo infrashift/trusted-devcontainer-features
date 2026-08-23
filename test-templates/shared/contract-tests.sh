@@ -94,7 +94,7 @@ declare -A ROLE_ARGS=(
   # Filled in below from what is actually installed -- see the note there.
   [claude-code]=''
   [openai-codex]=''
-  [git]='' [git-lfs]='' [sudo]=''
+  [git]='' [git-lfs]=''
 )
 
 # claude-code and openai-codex take the npm dist-tag "latest", which the role now

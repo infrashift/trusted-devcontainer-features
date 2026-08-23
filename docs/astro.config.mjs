@@ -56,7 +56,6 @@ export default defineConfig({
 							items: [
 								{ label: 'Grype', slug: 'features/grype' },
 								{ label: 'Syft', slug: 'features/syft' },
-								{ label: 'Egress Filter', slug: 'features/egress-filter' },
 							],
 						},
 						{
@@ -80,7 +79,6 @@ export default defineConfig({
 						{ label: 'Overview', slug: 'ai-support' },
 						{ label: 'Claude Code', slug: 'ai-support/claude-code' },
 						{ label: 'OpenAI Codex', slug: 'ai-support/openai-codex' },
-						{ label: 'Egress Filtering for AI', slug: 'ai-support/egress-filter' },
 					],
 				},
 				{

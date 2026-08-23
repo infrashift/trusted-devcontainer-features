@@ -6,7 +6,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "infrastructure",
-    "dependencies": ["python"],
+    "dependencies": [
+      "python"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -48,7 +50,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "ai",
-    "dependencies": ["bun"],
+    "dependencies": [
+      "bun"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -64,7 +68,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "cli",
-    "dependencies": ["golang"],
+    "dependencies": [
+      "golang"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -95,32 +101,6 @@
     }
   },
   {
-    "id": "egress-filter",
-    "name": "Egress Filter",
-    "description": "Domain-based egress filtering using Squid proxy and iptables for Red Hat UBI DevContainers.",
-    "version": "1.0.0",
-    "testStatus": "passing",
-    "category": "security",
-    "dependencies": [],
-    "options": {
-      "allowed_domains": {
-        "type": "string",
-        "default": "example.com",
-        "description": "Comma-separated list of allowed domains. Prefix with '.' for subdomain matching."
-      },
-      "squid_port": {
-        "type": "string",
-        "default": "3128",
-        "description": "Localhost port for the Squid proxy."
-      },
-      "allow_localhost": {
-        "type": "boolean",
-        "default": "true",
-        "description": "Allow connections to localhost without proxy."
-      }
-    }
-  },
-  {
     "id": "git",
     "name": "Git",
     "description": "Installs Git from source on Red Hat UBI DevContainers.",
@@ -137,7 +117,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "cli",
-    "dependencies": ["git"],
+    "dependencies": [
+      "git"
+    ],
     "options": {}
   },
   {
@@ -231,7 +213,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "package-managers",
-    "dependencies": ["nodejs"],
+    "dependencies": [
+      "nodejs"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -247,7 +231,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "ai",
-    "dependencies": ["bun"],
+    "dependencies": [
+      "bun"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -289,7 +275,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "package-managers",
-    "dependencies": ["nodejs"],
+    "dependencies": [
+      "nodejs"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -310,7 +298,9 @@
     "version": "1.0.0",
     "testStatus": "passing",
     "category": "languages",
-    "dependencies": ["uv-ruff"],
+    "dependencies": [
+      "uv-ruff"
+    ],
     "options": {
       "target_version": {
         "type": "string",

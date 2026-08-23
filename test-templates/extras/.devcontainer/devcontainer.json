@@ -7,7 +7,6 @@
         "./nodejs": {},
         "./bun": {},
         "./claude-code": {},
-        "./openai-codex": {},
-        "./sudo": {}
+        "./openai-codex": {}
     }
 }
