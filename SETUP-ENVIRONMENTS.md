@@ -130,6 +130,63 @@ gh api "repos/${SLUG}/environments/Release-Actor" --jq '[.protection_rules[]?.ty
 
 ---
 
+### Restrict which refs may deploy to Release-Actor
+
+A reviewer controls *whether* a deployment proceeds. A deployment branch policy
+controls *what may ask*. Without one, any workflow in the repo that names
+`environment: Release-Actor` can request the signing key from any ref — a
+branch, a fork's PR head, a scratch branch someone pushed. The reviewer prompt
+still appears, but it does not show you which ref it came from, so it is one
+mis-click away from signing a release built from arbitrary code.
+
+`release.yaml` runs only on a push to `main`, so the environment can say so.
+Note this differs from the sibling templates repo, which restricts to a `v*`
+**tag** because that is what its release is triggered by — match the policy to
+the trigger, not to a convention.
+
+```bash
+# Both fields must be sent together: exactly one may be true, and passing null
+# for the whole object means "any ref", which is the state being fixed.
+gh api -X PUT "repos/${SLUG}/environments/Release-Actor" --input - <<'JSON'
+{
+  "deployment_branch_policy": {
+    "protected_branches": false,
+    "custom_branch_policies": true
+  },
+  "prevent_self_review": false,
+  "reviewers": [{"type": "User", "id": REVIEWER_ID}]
+}
+JSON
+
+gh api -X POST "repos/${SLUG}/environments/Release-Actor/deployment-branch-policies" \
+  -f name=main -f type=branch
+```
+
+> **`reviewers` and `prevent_self_review` are repeated on purpose.** This
+> endpoint creates *or replaces* the environment. Sending only
+> `deployment_branch_policy` clears the reviewer you added above, and the
+> environment silently goes back to deploying unattended. Substitute the real id
+> — `gh api users/ryancraig --jq .id` — and re-run the verification below
+> afterwards, every time.
+
+Verify both halves landed:
+
+```bash
+gh api "repos/${SLUG}/environments/Release-Actor" \
+  --jq '{rules: [.protection_rules[]?.type], policy: .deployment_branch_policy}'
+gh api "repos/${SLUG}/environments/Release-Actor/deployment-branch-policies" \
+  --jq '.branch_policies[] | "\(.type)  \(.name)"'
+```
+
+Expect `required_reviewers` in `rules`, `custom_branch_policies: true`, and one
+`branch  main` policy.
+
+There is only one actor here, so there is nothing to leave open: the single
+environment is also the only one that can publish, which is exactly the actor a
+ref restriction belongs on.
+
+---
+
 ## 4. Teams — not yet, and not silently
 
 The org has **no teams**, and CODEOWNERS deliberately does not reference any:
@@ -191,6 +248,50 @@ branches to be up to date.
 **Do not enable "require review from Code Owners" yet** — see step 4. With one
 member it blocks every PR you open. Required status checks are different: they
 gate on CI rather than on a second human, so turn those on now.
+
+The sibling templates repo's ruleset is the working example to copy — same
+shape, different contexts:
+
+```bash
+gh api -X POST "repos/${SLUG}/rulesets" --input - <<'JSON'
+{
+  "name": "main",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+  "rules": [
+    {"type": "deletion"},
+    {"type": "non_fast_forward"},
+    {"type": "pull_request",
+     "parameters": {"required_approving_review_count": 0,
+                    "dismiss_stale_reviews_on_push": true,
+                    "require_code_owner_review": false,
+                    "require_last_push_approval": false,
+                    "required_review_thread_resolution": false}},
+    {"type": "required_status_checks",
+     "parameters": {"strict_required_status_checks_policy": true,
+                    "required_status_checks": [{"context": "repo-gate"},
+                                               {"context": "test/gate"}]}}
+  ]
+}
+JSON
+```
+
+`required_approving_review_count: 0` and `require_code_owner_review: false` are
+deliberate: anything above zero blocks every PR you open, since you cannot
+approve your own.
+
+Unlike the templates repo, **both contexts can be required immediately**. This
+repo's tests build the test templates from feature trees staged out of `src/`,
+so they do not resolve anything from the registry and do not depend on
+`bootstrap` being published. There is no ordering trap here.
+
+One default worth knowing about: GitHub sets
+`require_extra_approval_for_unattributed_changes: true` on a new ruleset. A
+commit whose author email is not linked to a GitHub account counts as
+unattributed and needs an extra approval — which, at one member, nothing can
+supply. If a PR ever stalls asking for an approval you cannot give, that is the
+rule to look at.
 
 ---
 
