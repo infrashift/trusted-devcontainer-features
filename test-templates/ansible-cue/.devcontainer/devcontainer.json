@@ -5,7 +5,7 @@
     "features": {
         "./bootstrap": {},
         "./ansible-core": {
-            "target_version": "2.18.2",
+            "target_version": "2.21.3",
             "target_python_version": "3.13"
         },
         "./python": {
