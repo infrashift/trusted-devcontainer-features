@@ -63,6 +63,14 @@ jobs:
       - name: Report tool version currency
         run: ./scripts/check-version-currency.sh
 
+      - name: Verify dependents are bumped alongside bootstrap
+        # dependsOn is digest-pinned, so bumping bootstrap alone publishes bytes
+        # nothing points at: every dependent keeps the previous digest while the
+        # release reports success.
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: ./scripts/check-bootstrap-fanout.sh "$BASE_SHA"
+
       - name: Validate feature dependency references
         # Catches a reference to a feature that does not exist, at review time
         # rather than mid-release. The publish-time rewrite in release.yaml turns
