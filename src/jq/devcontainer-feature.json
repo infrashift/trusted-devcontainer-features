@@ -3,7 +3,7 @@
 {
     "name": "jq-feature",
     "id": "jq",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Installs jq JSON processor on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/jqlang/jq/releases

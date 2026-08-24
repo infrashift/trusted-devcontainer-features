@@ -3,7 +3,7 @@
 {
     "name": "Git Install",
     "id": "git",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "A feature to install Git on Redhat UBI DevContainers",
     "installsAfter": [],
     "dependsOn": {

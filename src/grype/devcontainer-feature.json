@@ -3,7 +3,7 @@
 {
     "name": "grype-feature",
     "id": "grype",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Installs Anchore Grype vulnerability scanner on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/anchore/grype/releases

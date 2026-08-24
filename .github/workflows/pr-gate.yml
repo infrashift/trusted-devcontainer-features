@@ -49,6 +49,13 @@ jobs:
         # between its Makefile and its workflow and a file escaped both.
         run: ./scripts/check-role-contract.sh
 
+      - name: Validate feature dependency references
+        # Catches a reference to a feature that does not exist, at review time
+        # rather than mid-release. The publish-time rewrite in release.yaml turns
+        # these into registry references; it cannot invent a feature that is not
+        # there.
+        run: ./scripts/rewrite-feature-refs.sh --check
+
       - name: Assert a single authoritative policy
         run: ./scripts/check-no-orphan-rego.sh
 

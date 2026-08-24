@@ -3,7 +3,7 @@
 {
     "name": "openjdk-feature",
     "id": "openjdk",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Installs Eclipse Temurin OpenJDK on Red Hat UBI DevContainers.",
     "options": {
         "target_major_version": {
