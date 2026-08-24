@@ -15,7 +15,7 @@ requires the signing secrets.
 | 3c. Ref restriction | done — `custom_branch_policies`, one `branch main` policy |
 | 4. Teams | none, deliberately — see that step |
 | 5. Branch protection | done — ruleset `main`, PR + `repo-gate`; 0 approvals, no bypass |
-| 6. Review keypair + Build/Review actors | **outstanding** — required by the staged release, see step 6 |
+| 6. Review keypair + Build/Review actors | done — `review.pub` committed; `Build-Actor` (no secrets) and `Review-Actor` created |
 
 Only step 5 remains. The sibling `trusted-devcontainer-templates` is at the same
 point, with its ruleset in place but its Release-Actor ref restriction still to
