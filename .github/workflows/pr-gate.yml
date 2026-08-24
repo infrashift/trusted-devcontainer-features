@@ -56,6 +56,13 @@ jobs:
         # idempotent at whatever version you hand it.
         run: ./scripts/check-version-pins.sh
 
+      # Warns, never blocks. The templates repo's CVE gate records findings
+      # vendored inside these artifacts on the understanding that the artifacts
+      # are kept current -- this is where that understanding is visible. A
+      # release published an hour ago must not fail a build.
+      - name: Report tool version currency
+        run: ./scripts/check-version-currency.sh
+
       - name: Validate feature dependency references
         # Catches a reference to a feature that does not exist, at review time
         # rather than mid-release. The publish-time rewrite in release.yaml turns

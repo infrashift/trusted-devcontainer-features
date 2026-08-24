@@ -5,7 +5,7 @@
     "features": {
         "./bootstrap": {},
         "./python": {
-            "target_version": "3.12"
+            "target_version": "3.13"
         },
         "./uv-ruff": {},
         "./git": {},
