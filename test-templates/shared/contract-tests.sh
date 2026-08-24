@@ -98,19 +98,19 @@ echo "Idempotency — a second run must change nothing:"
 # Feature -> the extra-vars its install.sh passes, at their declared defaults.
 declare -A ROLE_ARGS=(
   [python]='-e _python_version=3.12'
-  [cuelang]='-e _cue_version=0.15.4 -e _cue_checksum='
-  [golang]='-e _go_version=1.26.0 -e _go_checksum='
+  [cuelang]='-e _cue_version=0.17.1 -e _cue_checksum='
+  [golang]='-e _go_version=1.27.0 -e _go_checksum='
   [grype]='-e _grype_version=0.117.0 -e _grype_checksum='
   [syft]='-e _syft_version=1.51.0 -e _syft_checksum='
   [jq]='-e _jq_version=1.8.2 -e _jq_checksum='
   [yq]='-e _yq_version=4.53.6 -e _yq_checksum='
-  [nodejs]='-e _nodejs_version=22.16.0 -e _nodejs_checksum='
-  [npm]='-e _npm_version=11.4.1'
+  [nodejs]='-e _nodejs_version=22.23.2 -e _nodejs_checksum='
+  [npm]='-e _npm_version=11.9.0'
   [pnpm]='-e _pnpm_version=10.12.1 -e _pnpm_checksum='
   [bun]='-e _bun_version=1.2.17 -e _bun_checksum='
-  [dotnet]='-e _dotnet_version=8.0.418 -e _dotnet_checksum='
-  [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.6+7 -e _openjdk_checksum='
-  [uv-ruff]='-e _uv_version=0.10.3 -e _uv_checksum= -e _ruff_version=0.15.1'
+  [dotnet]='-e _dotnet_version=8.0.424 -e _dotnet_checksum='
+  [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.12.1+1 -e _openjdk_checksum='
+  [uv-ruff]='-e _uv_version=0.12.5 -e _uv_checksum= -e _ruff_version=0.16.4'
   [ansible-core]='-e _ansible_core_version=2.18.2 -e _ansible_core_python_version=3.12'
   # Filled in below from what is actually installed -- see the note there.
   [claude-code]=''
@@ -148,13 +148,13 @@ echo "Failure modes — each must fail by name, before any work:"
 # One representative of each checksum shape present in this template.
 if [[ " ${FEATURES[*]} " == *" cuelang "* ]]; then
     check_fails "missing -e is named" "_cue_checksum is defined" \
-        run_role cuelang -e _cue_version=0.15.4
+        run_role cuelang -e _cue_version=0.17.1
     check_fails "empty mandatory option stops in the shell" "resolved empty" \
         run_install cuelang TARGET_VERSION= TARGET_CHECKSUM=
     check_fails "unpinned version refuses to download unverified" "No SHA256 is pinned" \
         run_role cuelang -e _cue_version=0.14.1 -e _cue_checksum=
     check_fails "malformed checksum is rejected by shape" "must be a 64-character SHA256" \
-        run_role cuelang -e _cue_version=0.15.4 -e _cue_checksum=deadbeef
+        run_role cuelang -e _cue_version=0.17.1 -e _cue_checksum=deadbeef
     check_fails "malformed version is rejected by shape" "must look like X.Y.Z" \
         run_role cuelang -e _cue_version=0.15 -e _cue_checksum=
 fi

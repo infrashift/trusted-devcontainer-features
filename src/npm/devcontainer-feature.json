@@ -3,14 +3,14 @@
 {
     "name": "npm-feature",
     "id": "npm",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/npm/cli/releases
         "target_version": {
             "type": "string",
             "proposals": ["11.4.1", "10.9.2"],
-            "default": "11.4.1",
+            "default": "11.9.0",
             "description": "Select the npm version to install"
         }
     },

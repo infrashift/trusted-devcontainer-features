@@ -74,7 +74,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "0.15.4",
+        "default": "0.17.1",
         "description": "Select a supported CUElang binary version"
       }
     }
@@ -90,7 +90,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "8.0.418",
+        "default": "8.0.424",
         "description": "Select a supported .NET SDK version"
       },
       "target_checksum": {
@@ -133,7 +133,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "1.26.0",
+        "default": "1.27.0",
         "description": "Select a supported Golang binary version"
       },
       "target_checksum": {
@@ -196,7 +196,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "22.16.0",
+        "default": "22.23.2",
         "description": "Select a supported Node.js version"
       },
       "target_checksum": {
@@ -219,7 +219,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "11.4.1",
+        "default": "11.9.0",
         "description": "Select the npm version to install"
       }
     }
@@ -258,7 +258,7 @@
       },
       "target_version": {
         "type": "string",
-        "default": "21.0.6+7",
+        "default": "21.0.12.1+1",
         "description": "Select the full OpenJDK version string"
       },
       "target_checksum": {
@@ -341,7 +341,7 @@
     "options": {
       "target_uv_version": {
         "type": "string",
-        "default": "0.10.3",
+        "default": "0.12.5",
         "description": "Select a supported UV version"
       },
       "target_uv_checksum": {
@@ -351,7 +351,7 @@
       },
       "target_ruff_version": {
         "type": "string",
-        "default": "0.15.1",
+        "default": "0.16.4",
         "description": "Select a supported Ruff version"
       }
     }
