@@ -87,12 +87,44 @@ jobs:
       # moment those bytes are published: a consumer resolves a relative path
       # against THEIR .devcontainer/ and gets ENOENT. The first release shipped
       # exactly that to all 19 dependent features.
+      # TWO PHASES, because dependsOn is pinned by digest and a digest cannot be
+      # known before the thing is published. Every feature dependsOn bootstrap and
+      # bootstrap dependsOn nothing, so the graph is exactly two levels -- no
+      # topological sort, just bootstrap and then the rest.
+      - name: Stage bootstrap for phase one
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/phase1 && mkdir -p /tmp/phase1
+          cp -r src/bootstrap /tmp/phase1/bootstrap
+
+      - name: Publish bootstrap
+        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
+        with:
+          publish-features: "true"
+          base-path-to-features: "/tmp/phase1"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve the published bootstrap digest
+        id: bootstrap
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY,,}"
+          digest=$(crane digest "ghcr.io/${repo}/bootstrap:latest")
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            || { echo "::error::malformed bootstrap digest: ${digest}"; exit 1; }
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "bootstrap@${digest}"
+
       - name: Rewrite local feature references to published ones
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          BOOTSTRAP_DIGEST: ${{ steps.bootstrap.outputs.digest }}
         run: ./scripts/rewrite-feature-refs.sh
 
-      - name: Publish features
+      - name: Publish the remaining features
         uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
         with:
           publish-features: "true"

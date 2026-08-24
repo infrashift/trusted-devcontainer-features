@@ -52,9 +52,26 @@ while IFS= read -r feature; do
         echo "::error::${feature} published with relative reference(s): ${relative}" >&2
         echo "           A consumer resolves these against their own .devcontainer/ and gets ENOENT." >&2
         fail=1
-    else
-        echo "  ok ${feature}"
+        continue
     fi
+
+    # dependsOn must carry a digest. Checking only for relative refs would pass a
+    # dependsOn that reads as an absolute registry reference and still resolves
+    # to :latest -- pinned in appearance, mutable in fact, which is the failure
+    # this check exists to make impossible.
+    unpinned=$(jq -r '
+        (.dependsOn // {}) | keys
+        | map(select(test("@sha256:[0-9a-f]{64}$") | not))
+        | join(", ")' <<<"$meta")
+
+    if [ -n "$unpinned" ]; then
+        echo "::error::${feature} published with unpinned dependsOn: ${unpinned}" >&2
+        echo "           A dependsOn without a digest resolves to :latest at build time." >&2
+        fail=1
+        continue
+    fi
+
+    echo "  ok ${feature}"
 done < <(jq -r '.[]' <<<"$FEATURES")
 
 [ "$checked" -gt 0 ] || { echo "::error::inspected 0 features; refusing to call that a pass" >&2; exit 1; }

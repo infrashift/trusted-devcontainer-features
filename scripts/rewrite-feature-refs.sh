@@ -92,6 +92,25 @@ for f in src/*/devcontainer-feature.json; do
         n=$((n + 1))
     done
 
+    # dependsOn is a FETCH -- the CLI pulls that feature and runs its install.sh.
+    # installsAfter is only an ordering hint among features the consumer already
+    # selected, and it is matched by id, so a digest there could fail to match a
+    # consumer who pinned a different digest of the same sibling. Only dependsOn
+    # gets a digest.
+    if [ "$CHECK_ONLY" -eq 0 ] && [ -n "${BOOTSTRAP_DIGEST:-}" ]; then
+        python3 - "$f" "${BASE}/bootstrap" "${BOOTSTRAP_DIGEST}" <<'PYEOF'
+import json, re, sys
+path, ref, digest = sys.argv[1], sys.argv[2], sys.argv[3]
+raw = open(path).read()
+# Only inside the dependsOn block; installsAfter must keep the bare reference.
+m = re.search(r'("dependsOn"\s*:\s*\{)([^}]*)(\})', raw, re.S)
+if m:
+    body = m.group(2).replace(f'"{ref}"', f'"{ref}@{digest}"')
+    raw = raw[:m.start(2)] + body + raw[m.end(2):]
+    open(path, "w").write(raw)
+PYEOF
+    fi
+
     if [ "$n" -gt 0 ]; then
         files=$((files + 1))
         rewritten=$((rewritten + n))
@@ -113,6 +132,19 @@ fi
 if grep -l '"\./' src/*/devcontainer-feature.json 2>/dev/null; then
     echo "::error::relative references remain in the files listed above" >&2
     exit 1
+fi
+
+if [ -n "${BOOTSTRAP_DIGEST:-}" ]; then
+    # Every dependsOn must now carry the digest. A feature that quietly kept a
+    # tag reference would pin nothing while looking pinned.
+    missing=$(grep -L "\"${BASE}/bootstrap@${BOOTSTRAP_DIGEST}\"" src/*/devcontainer-feature.json \
+              | xargs -r grep -l '"dependsOn"' || true)
+    if [ -n "$missing" ]; then
+        echo "::error::these declare dependsOn but did not receive the bootstrap digest:" >&2
+        echo "$missing" | sed 's/^/           /' >&2
+        exit 1
+    fi
+    echo "pinned dependsOn -> bootstrap@${BOOTSTRAP_DIGEST}"
 fi
 
 echo "rewrote ${rewritten} reference(s) across ${files} file(s) to ${BASE}"
