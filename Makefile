@@ -33,7 +33,43 @@ test-contract:                          ## Run contract tests against a running 
 	@test -n "$(TEMPLATE)" || { echo "usage: make test-contract TEMPLATE=<name>"; exit 1; }
 	bash test-templates/shared/contract-tests.sh $(TEMPLATE)
 
-test: check-contract                    ## Run everything: contract check, then all templates
+.PHONY: tools
+tools: ## Install the pinned CI tools locally (BIN=~/.local/bin make tools)
+	BIN=$${BIN:-$$HOME/.local/bin} ./scripts/install-tools.sh opa gitleaks
+
+.PHONY: check-policy
+check-policy: ## Check, format-check and unit-test the PDP, with a coverage floor
+	@command -v opa > /dev/null || { echo "opa not found. Run: make tools"; exit 1; }
+	./scripts/check-no-orphan-rego.sh
+	opa check --strict .github/pdp/
+	@out=$$(opa fmt --list .github/pdp/); \
+		if [ -n "$$out" ]; then echo "rego needs formatting: $$out"; exit 1; fi
+	opa test .github/pdp/
+	@cov=$$(opa test .github/pdp/ --coverage --format json | jq -r '.coverage'); \
+		printf 'coverage: %.1f%%\n' "$$cov"; \
+		awk -v c="$$cov" 'BEGIN{ if (c+0 < 85) { print "coverage below the 85% floor"; exit 1 } }'
+
+.PHONY: check-workflows
+check-workflows: ## Lint workflows for pinning and required-context drift
+	./scripts/lint-workflows.sh
+
+.PHONY: repo-gate
+repo-gate: ## Run the repository-scoped PDP against the working tree
+	@command -v gitleaks > /dev/null || { echo "gitleaks not found. Run: make tools"; exit 1; }
+	./scripts/repo-gate.sh repo-decision.json
+
+.PHONY: lint-shell
+lint-shell: ## shellcheck every script
+	shellcheck -S warning scripts/*.sh
+
+# Everything CI's repo-gate job runs, minus the container builds. Fast enough to
+# run before every push.
+.PHONY: check
+check: check-contract check-workflows lint-shell check-policy repo-gate ## Run every static check
+	@echo "── all static checks passed ──"
+
+
+test: check                             ## Run every static check, then all templates
 	@for t in $(TEMPLATES); do \
 		echo "===== $$t ====="; \
 		$(MAKE) --no-print-directory test-template TEMPLATE=$$t || exit 1; \

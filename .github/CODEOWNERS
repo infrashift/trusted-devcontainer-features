@@ -1,0 +1,46 @@
+# Ownership is the last line of defence when a change is textually innocuous but
+# semantically a policy change. Moving a tool version in tools.lock, widening a
+# role's parameter contract, or editing an install script all look like routine
+# edits and are all trust decisions.
+#
+# NOTE: two teams on one line means EITHER may approve, not both. GitHub has no
+# "one approval from each team" primitive. Genuine dual control comes from
+# Required Reviewers on the Release-Actor environment, not from this file.
+#
+# All three teams must exist and have repository access, or CODEOWNERS matches
+# nothing and "require review from Code Owners" becomes a silent no-op. Verify:
+#   gh api orgs/infrashift/teams/<slug> --jq .slug
+
+*                                   @infrashift/platform-engineers
+
+# --- Trust decisions -------------------------------------------------------
+/.github/pdp/                       @infrashift/security-admins
+/.github/pdp/policies.rego          @infrashift/security-admins
+/.github/pdp/policies_test.rego     @infrashift/security-admins
+/.github/pdp/public-keys/           @infrashift/security-admins
+
+# These binaries run in the job that holds the signing key, so a version bump
+# here is a supply-chain decision.
+/tools.lock                         @infrashift/security-admins @infrashift/devops-leads
+/scripts/install-tools.sh           @infrashift/security-admins @infrashift/devops-leads
+
+# --- Pipeline engines ------------------------------------------------------
+/.github/workflows/                 @infrashift/devops-leads @infrashift/security-admins
+/scripts/                           @infrashift/devops-leads
+
+# --- What ships inside a feature -------------------------------------------
+# install.sh and the Ansible role are what actually execute in a developer's
+# container. The bootstrap feature is the runner every other feature depends on,
+# so a change there affects all of them at once.
+/src/                               @infrashift/devops-leads @infrashift/security-admins
+/src/bootstrap/                     @infrashift/security-admins
+
+# --- Repository security posture -------------------------------------------
+/.github/CODEOWNERS                 @infrashift/security-admins
+/.gitleaks.toml                     @infrashift/security-admins
+/.gitignore                         @infrashift/security-admins
+/SETUP-ENVIRONMENTS.md              @infrashift/security-admins
+
+# --- Documentation ---------------------------------------------------------
+/docs/                              @infrashift/platform-engineers
+/README.md                          @infrashift/platform-engineers

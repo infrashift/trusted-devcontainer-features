@@ -23,7 +23,7 @@
 #
 set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 # Drop previously staged features first, so a feature deleted from src/ does not
 # linger here and keep resolving.

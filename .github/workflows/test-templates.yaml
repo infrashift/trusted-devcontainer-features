@@ -1,25 +1,41 @@
 name: Test Features in Templates
 
+# Builds each test template against the features in the working tree and runs
+# its smoke and contract tests. The contract check itself lives in pr-gate.yml,
+# which runs on every PR; this workflow is path-filtered because building six
+# containers for a docs-only change is waste.
+
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'test-templates/**'
+      - 'scripts/**'
+      - 'tools.lock'
+      - '.github/workflows/test-templates.yaml'
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'test-templates/**'
+      - 'scripts/**'
+      - 'tools.lock'
+      - '.github/workflows/test-templates.yaml'
+
+permissions: {}
+
+concurrency:
+  group: test-templates-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  contract:
-    name: "role contract"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify the ADR-012 parameter contract
-        run: bash scripts/check-role-contract.sh
-
   test:
-    name: "template (${{ matrix.template }})"
-    needs: contract
+    name: template (${{ matrix.template }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -31,31 +47,67 @@ jobs:
           - ansible-cue
           - extras
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Install pinned tools
+        run: sudo BIN=/usr/local/bin ./scripts/install-tools.sh devcontainer-cli
 
       - name: Prepare test template
+        env:
+          # Matrix values reach the shell through env, never through `${{ }}`
+          # interpolation inside the run: block.
+          TEMPLATE: ${{ matrix.template }}
         run: |
-          cp -r src/* "test-templates/${{ matrix.template }}/.devcontainer/"
-          cp test-templates/shared/test-lib.sh "test-templates/${{ matrix.template }}/"
+          set -euo pipefail
+          cp -r src/* "test-templates/${TEMPLATE}/.devcontainer/"
+          cp test-templates/shared/test-lib.sh "test-templates/${TEMPLATE}/"
 
       - name: Build and start devcontainer
+        env:
+          TEMPLATE: ${{ matrix.template }}
         run: |
-          npx @devcontainers/cli up \
-            --workspace-folder "$(pwd)/test-templates/${{ matrix.template }}" \
-            --id-label "test=${{ matrix.template }}"
+          set -euo pipefail
+          devcontainer up \
+            --workspace-folder "$(pwd)/test-templates/${TEMPLATE}" \
+            --id-label "test=${TEMPLATE}"
 
       - name: Run tests
+        env:
+          TEMPLATE: ${{ matrix.template }}
         run: |
-          npx @devcontainers/cli exec \
-            --workspace-folder "$(pwd)/test-templates/${{ matrix.template }}" \
-            --id-label "test=${{ matrix.template }}" \
+          set -euo pipefail
+          devcontainer exec \
+            --workspace-folder "$(pwd)/test-templates/${TEMPLATE}" \
+            --id-label "test=${TEMPLATE}" \
             bash tests.sh
 
       - name: Run contract tests (idempotency + failure modes)
-        run: |
-          bash test-templates/shared/contract-tests.sh "${{ matrix.template }}"
+        env:
+          TEMPLATE: ${{ matrix.template }}
+        run: bash test-templates/shared/contract-tests.sh "${TEMPLATE}"
 
       - name: Cleanup
         if: always()
+        env:
+          TEMPLATE: ${{ matrix.template }}
+        run: docker ps -q --filter "label=test=${TEMPLATE}" | xargs -r docker rm -f
+
+  # A single aggregate context. NEVER make individual matrix legs required
+  # checks: job names change with the matrix, and a required context that stops
+  # reporting blocks every PR forever.
+  gate:
+    name: test/gate
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate
+        env:
+          TEST: ${{ needs.test.result }}
         run: |
-          docker ps -q --filter "label=test=${{ matrix.template }}" | xargs -r docker rm -f
+          set -euo pipefail
+          echo "test=$TEST"
+          case "$TEST" in
+            success|skipped) echo "all template legs succeeded or were skipped" ;;
+            *) echo "::error::a template leg did not succeed (${TEST})"; exit 1 ;;
+          esac
