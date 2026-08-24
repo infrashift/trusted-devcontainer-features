@@ -14,7 +14,7 @@ requires the signing secrets.
 | 3b. Reviewer | done — `ryancraig`, `prevent_self_review: false` |
 | 3c. Ref restriction | done — `custom_branch_policies`, one `branch main` policy |
 | 4. Teams | none, deliberately — see that step |
-| 5. Branch protection | **outstanding** — no ruleset yet |
+| 5. Branch protection | done — ruleset `main`, PR + `repo-gate`; 0 approvals, no bypass |
 
 Only step 5 remains. The sibling `trusted-devcontainer-templates` is at the same
 point, with its ruleset in place but its Release-Actor ref restriction still to
@@ -293,21 +293,59 @@ gh api -X POST "repos/${SLUG}/rulesets" --input - <<'JSON'
 JSON
 ```
 
-`required_approving_review_count: 0` and `require_code_owner_review: false` are
-deliberate: anything above zero blocks every PR you open, since you cannot
-approve your own.
+**What was actually applied differs from the payload above in one way**: the
+`required_status_checks` list contains `repo-gate` only, for the reason below.
+`required_approving_review_count` is 0 and `bypass_actors` is empty, exactly as
+the payload shows.
 
-Unlike the templates repo, **both contexts can be required immediately**. This
-repo's tests build the test templates from feature trees staged out of `src/`,
-so they do not resolve anything from the registry and do not depend on
-`bootstrap` being published. There is no ordering trap here.
+That is worth stating because it was briefly otherwise. On 2026-08-24 the count
+was set to 1 with a `RepositoryRole` 5 (admin) bypass, on the theory that it
+would enforce nothing at one member while already being correct for a second.
+Every PR afterwards reported `REVIEW_REQUIRED` and `BLOCKED`: you cannot approve
+your own pull request, so no approval can exist, and a bypass does not clear
+that state — it only offers an override on top of it. It was reverted the same
+day, and the PRs turned `CLEAN` immediately.
+
+The bypass was removed with it. `bypass_mode: always` applies to the whole
+ruleset, so leaving it would have let an admin merge past `repo-gate` — the
+check that actually works here, because it gates on CI rather than on headcount.
+
+`require_code_owner_review: false` stays as written, and for the stated reason:
+it has no bypass of its own, so it would block outright rather than degrade.
+Raise the approval count on the day a second maintainer joins, with
+`bypass_actors` left empty.
+
+**Only `repo-gate` is required.** An earlier version of this section claimed
+both contexts could be required immediately. The reasoning it gave was sound but
+answered the wrong question: it is true that there is no *ordering* trap here —
+the tests build from feature trees staged out of `src/`, resolve nothing from the
+registry, and do not wait on `bootstrap` being published.
+
+The trap is the **path filter**. `test-templates.yaml` runs only for changes
+under `src/`, `test-templates/`, `scripts/`, `tools.lock`, or its own file. A PR
+touching none of those never starts the workflow, so `test/gate` never reports,
+so a required `test/gate` waits forever — the precise failure this section warns
+about two paragraphs up, arrived at from the other direction.
+
+This is not hypothetical. The sibling templates repo required `build/gate`,
+whose workflow is path-filtered the same way, and its first documentation-only PR
+afterwards (#6) sat `BLOCKED` with `repo-gate` and `review/cve-policy` green and
+`build/gate` never reporting.
+
+`repo-gate` is safe precisely because `pr-gate.yml` is **not** path-filtered,
+which is the property step 6 tells you to verify. Requiring `test/gate` needs a
+seeding step first — `pr-gate.yml` publishing a `success` status for it when a PR
+touches no test-affecting path, the way the templates repo seeds
+`review/cve-policy`.
 
 One default worth knowing about: GitHub sets
 `require_extra_approval_for_unattributed_changes: true` on a new ruleset. A
 commit whose author email is not linked to a GitHub account counts as
 unattributed and needs an extra approval — which, at one member, nothing can
 supply. If a PR ever stalls asking for an approval you cannot give, that is the
-rule to look at.
+rule to look at. At `required_approving_review_count: 0` it cannot bite — there
+is no approval requirement for it to add to — but it becomes live the moment the
+count is raised for a second maintainer.
 
 ---
 
