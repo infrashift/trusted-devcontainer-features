@@ -154,7 +154,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "0.108.0",
+        "default": "0.117.0",
         "description": "Select a supported Grype binary version"
       },
       "target_checksum": {
@@ -175,7 +175,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "1.7.1",
+        "default": "1.8.2",
         "description": "Select a supported jq version"
       },
       "target_checksum": {
@@ -320,7 +320,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "1.42.0",
+        "default": "1.51.0",
         "description": "Select a supported Syft binary version"
       },
       "target_checksum": {
@@ -367,7 +367,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "4.45.4",
+        "default": "4.53.6",
         "description": "Select a supported yq version"
       },
       "target_checksum": {

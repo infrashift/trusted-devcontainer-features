@@ -27,6 +27,9 @@ _yq_download_url: "https://github.com/mikefarah/yq/releases/download/v{{ _yq_ver
 # no checksum at all. These values were taken from that table and confirmed by
 # hashing the released binaries.
 _yq_pinned_checksums:
+  "4.53.6":
+    amd64: "c5f056448f973ae7d39b5401949648a78f2dc1947d6a8eb65be60d5c504b9385"
+    arm64: "88a1016bc1d657375a35864e4f44b6f333df8ff97b559f51bba0adcb2169df09"
   "4.45.4":
     amd64: "b96de04645707e14a12f52c37e6266832e03c29e95b9b139cddcae7314466e69"
     arm64: "a02cc637409db44a9f9cb55ea92c40019582ba88083c4d930a727ec4b59ed439"
