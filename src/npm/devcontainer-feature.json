@@ -3,7 +3,7 @@
 {
     "name": "npm-feature",
     "id": "npm",
-    "version": "1.5.0",
+    "version": "1.6.0",
     "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/npm/cli/releases

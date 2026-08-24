@@ -3,7 +3,7 @@
 {
     "name": "nodejs-feature",
     "id": "nodejs",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Installs Node.js on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://nodejs.org/en/download/

@@ -3,7 +3,7 @@
 {
     "name": "git-lfs-feature",
     "id": "git-lfs",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "description": "A feature to install Git LFS on Redhat UBI DevContainers",
     "installsAfter": ["./git"],
     "dependsOn": {

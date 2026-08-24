@@ -3,7 +3,7 @@
 {
     "name": "syft-feature",
     "id": "syft",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Installs Anchore Syft SBOM generator on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/anchore/syft/releases
