@@ -49,6 +49,13 @@ jobs:
         # between its Makefile and its workflow and a file escaped both.
         run: ./scripts/check-role-contract.sh
 
+      - name: Verify contract-test version pins match declared defaults
+        # ROLE_ARGS is a second copy of every default. Nothing kept the two in
+        # step, so a version bump left the contract tests asserting idempotency
+        # against the previous version -- which still passes, because a role is
+        # idempotent at whatever version you hand it.
+        run: ./scripts/check-version-pins.sh
+
       - name: Validate feature dependency references
         # Catches a reference to a feature that does not exist, at review time
         # rather than mid-release. The publish-time rewrite in release.yaml turns

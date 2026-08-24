@@ -100,10 +100,10 @@ declare -A ROLE_ARGS=(
   [python]='-e _python_version=3.12'
   [cuelang]='-e _cue_version=0.15.4 -e _cue_checksum='
   [golang]='-e _go_version=1.26.0 -e _go_checksum='
-  [grype]='-e _grype_version=0.108.0 -e _grype_checksum='
-  [syft]='-e _syft_version=1.42.0 -e _syft_checksum='
-  [jq]='-e _jq_version=1.7.1 -e _jq_checksum='
-  [yq]='-e _yq_version=4.45.4 -e _yq_checksum='
+  [grype]='-e _grype_version=0.117.0 -e _grype_checksum='
+  [syft]='-e _syft_version=1.51.0 -e _syft_checksum='
+  [jq]='-e _jq_version=1.8.2 -e _jq_checksum='
+  [yq]='-e _yq_version=4.53.6 -e _yq_checksum='
   [nodejs]='-e _nodejs_version=22.16.0 -e _nodejs_checksum='
   [npm]='-e _npm_version=11.4.1'
   [pnpm]='-e _pnpm_version=10.12.1 -e _pnpm_checksum='
@@ -161,7 +161,7 @@ fi
 
 if [[ " ${FEATURES[*]} " == *" grype "* ]]; then
     check_fails "checksums-file role names its missing param" "_grype_checksum is defined" \
-        run_role grype -e _grype_version=0.108.0
+        run_role grype -e _grype_version=0.117.0
 fi
 
 if [[ " ${FEATURES[*]} " == *" python "* ]]; then
