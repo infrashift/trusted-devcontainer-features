@@ -29,6 +29,28 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 MAX_BEHIND=""
 [ "${1:-}" = "--max-behind" ] && MAX_BEHIND="${2:?--max-behind needs a number}"
 
+# Every upstream query goes through this. Seven different hosts are consulted
+# on each run -- go.dev, pypi, nodejs.org, an Azure blob, adoptium, the GitHub
+# API and the npm registry -- so the chance that at least one has a bad second
+# is not small, and api.github.com rate-limits unauthenticated callers hard.
+#
+#   --retry 3 --retry-delay 2   timeouts, 5xx and 429
+#   --retry-connrefused         a refused connection, which curl does not treat
+#                               as transient on its own
+#
+# Deliberately NOT --retry-all-errors: a 404 means the upstream renamed or
+# retired the endpoint this script asks for, which is a real finding about the
+# check itself and should surface promptly rather than after three retries.
+#
+# --max-time bounds ONE attempt, so the worst case per query is roughly
+# 3 x 20s plus the delays. This runs as a warning-only step, and the header
+# above is explicit that a network failure must report "unknown" rather than
+# "current" -- retries shrink how often that happens without changing what it
+# means when it does.
+fetch() {
+    curl -sSfL --retry 3 --retry-delay 2 --retry-connrefused --max-time 20 "$@"
+}
+
 # feature -> how to resolve the newest upstream version.
 # Deliberately explicit: every upstream names releases differently, and guessing
 # is how you end up comparing a tag to a version and calling it drift.
@@ -39,21 +61,21 @@ latest_for() {
         jq)           gh_tag jqlang/jq               'sed s/^jq-//' ;;
         yq)           gh_tag mikefarah/yq            'sed s/^v//' ;;
         cuelang)      gh_tag cue-lang/cue            'sed s/^v//' ;;
-        golang)       curl -sSfL --max-time 20 'https://go.dev/dl/?mode=json' | jq -r '.[0].version' | sed 's/^go//' ;;
+        golang)       fetch 'https://go.dev/dl/?mode=json' | jq -r '.[0].version' | sed 's/^go//' ;;
         bun)          gh_tag oven-sh/bun             'sed s/^bun-v//' ;;
         uv-ruff)      gh_tag astral-sh/uv            'cat' ;;
         npm)          npm_dist npm ;;
         pnpm)         npm_dist pnpm ;;
-        ansible-core) curl -sSfL --max-time 20 https://pypi.org/pypi/ansible-core/json | jq -r '.info.version' ;;
+        ansible-core) fetch https://pypi.org/pypi/ansible-core/json | jq -r '.info.version' ;;
 
         # Resolved WITHIN the declared major line. Comparing node 22.23.2 against
         # 24.19.0 would report drift for a deliberate decision -- a major bump is
         # a behaviour change, and these templates advertise particular stacks.
         # Currency here means "newest patch on the line we chose".
-        nodejs)  curl -sSfL --max-time 20 https://nodejs.org/dist/index.json \
+        nodejs)  fetch https://nodejs.org/dist/index.json \
                    | jq -r --arg m "v${2%%.*}." '[.[] | select(.version | startswith($m))][0].version' | sed 's/^v//' ;;
-        dotnet)  curl -sSfL --max-time 20 "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/${2%.*}/latest.version" | tail -1 ;;
-        openjdk) curl -sSfL --max-time 20 \
+        dotnet)  fetch "https://dotnetcli.blob.core.windows.net/dotnet/Sdk/${2%.*}/latest.version" | tail -1 ;;
+        openjdk) fetch \
                    "https://api.adoptium.net/v3/info/release_names?release_type=ga&version=%5B${2%%.*}%2C$(( ${2%%.*} + 1 ))%29&page_size=1&sort_order=DESC&vendor=eclipse" \
                    | jq -r '.releases[0]' | sed 's/^jdk-//' ;;
 
@@ -73,8 +95,8 @@ not_comparable() {
     esac
 }
 
-gh_tag()  { curl -sSfL --max-time 20 "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name' | eval "$2"; }
-npm_dist() { curl -sSfL --max-time 20 "https://registry.npmjs.org/$1" | jq -r '."dist-tags".latest'; }
+gh_tag()  { fetch "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name' | eval "$2"; }
+npm_dist() { fetch "https://registry.npmjs.org/$1" | jq -r '."dist-tags".latest'; }
 
 # devcontainer-feature.json is JSONC, and the option blocks span several lines --
 # grep -P is line-based, so a pattern spanning `{ ... "default": ... }` matches
