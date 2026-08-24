@@ -49,6 +49,10 @@ check-policy: ## Check, format-check and unit-test the PDP, with a coverage floo
 		printf 'coverage: %.1f%%\n' "$$cov"; \
 		awk -v c="$$cov" 'BEGIN{ if (c+0 < 85) { print "coverage below the 85% floor"; exit 1 } }'
 
+.PHONY: check-feature-refs
+check-feature-refs: ## Validate that every relative feature reference resolves
+	./scripts/rewrite-feature-refs.sh --check
+
 .PHONY: check-workflows
 check-workflows: ## Lint workflows for pinning and required-context drift
 	./scripts/lint-workflows.sh
@@ -65,7 +69,7 @@ lint-shell: ## shellcheck every script
 # Everything CI's repo-gate job runs, minus the container builds. Fast enough to
 # run before every push.
 .PHONY: check
-check: check-contract check-workflows lint-shell check-policy repo-gate ## Run every static check
+check: check-contract check-feature-refs check-workflows lint-shell check-policy repo-gate ## Run every static check
 	@echo "── all static checks passed ──"
 
 

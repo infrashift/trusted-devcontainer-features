@@ -81,6 +81,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Features declare dependencies relatively ("./bootstrap"), which is correct
+      # in this repo -- the test templates stage src/* locally, so `make test`
+      # exercises the working tree rather than the last release. It is wrong the
+      # moment those bytes are published: a consumer resolves a relative path
+      # against THEIR .devcontainer/ and gets ENOENT. The first release shipped
+      # exactly that to all 19 dependent features.
+      - name: Rewrite local feature references to published ones
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/rewrite-feature-refs.sh
+
       - name: Publish features
         uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
         with:
@@ -88,6 +99,16 @@ jobs:
           base-path-to-features: "./src"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Reads the metadata back OUT of the registry. The rewrite script asserts
+      # its own output, but that only proves the script ran -- it cannot prove
+      # what reached the registry is what the script produced. This inspects the
+      # artifact a consumer would pull, which is the check that was missing.
+      - name: Verify no relative references reached the registry
+        env:
+          FEATURES: ${{ needs.contract.outputs.features }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/verify-published-refs.sh
 
       - name: Sign every published feature
         env:
