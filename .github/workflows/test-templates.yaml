@@ -60,17 +60,21 @@ jobs:
           echo "selected: $t"
 
   test:
-    name: template (${{ matrix.template }})
+    name: template (${{ matrix.template }}, ${{ matrix.arch }})
     needs: matrix-setup
     if: needs.matrix-setup.outputs.templates != '[]'
-    runs-on: ubuntu-latest
+    # Native runners, not qemu. These roles execute the binaries they install to
+    # assert versions, so under emulation a failure is ambiguous between the tool
+    # and the emulator -- and a per-arch checksum verified under emulation proves
+    # less than one verified on the metal.
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: read
     strategy:
       fail-fast: false
       matrix:
-        template: ${{ fromJSON(needs.matrix-setup.outputs.templates) }}
+        include: ${{ fromJSON(needs.matrix-setup.outputs.templates) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
@@ -82,6 +86,7 @@ jobs:
           # Matrix values reach the shell through env, never through `${{ }}`
           # interpolation inside the run: block.
           TEMPLATE: ${{ matrix.template }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
           cp -r src/* "test-templates/${TEMPLATE}/.devcontainer/"
@@ -90,32 +95,36 @@ jobs:
       - name: Build and start devcontainer
         env:
           TEMPLATE: ${{ matrix.template }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
           devcontainer up \
             --workspace-folder "$(pwd)/test-templates/${TEMPLATE}" \
-            --id-label "test=${TEMPLATE}"
+            --id-label "test=${TEMPLATE}-${ARCH}"
 
       - name: Run tests
         env:
           TEMPLATE: ${{ matrix.template }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
           devcontainer exec \
             --workspace-folder "$(pwd)/test-templates/${TEMPLATE}" \
-            --id-label "test=${TEMPLATE}" \
+            --id-label "test=${TEMPLATE}-${ARCH}" \
             bash tests.sh
 
       - name: Run contract tests (idempotency + failure modes)
         env:
           TEMPLATE: ${{ matrix.template }}
-        run: bash test-templates/shared/contract-tests.sh "${TEMPLATE}"
+          ARCH: ${{ matrix.arch }}
+        run: bash test-templates/shared/contract-tests.sh "${TEMPLATE}" "${TEMPLATE}-${ARCH}"
 
       - name: Cleanup
         if: always()
         env:
           TEMPLATE: ${{ matrix.template }}
-        run: docker ps -q --filter "label=test=${TEMPLATE}" | xargs -r docker rm -f
+          ARCH: ${{ matrix.arch }}
+        run: docker ps -q --filter "label=test=${TEMPLATE}-${ARCH}" | xargs -r docker rm -f
 
   # A single aggregate context. NEVER make individual matrix legs required
   # checks: job names change with the matrix, and a required context that stops
@@ -142,12 +151,12 @@ jobs:
           # reported either way so the reason is visible in the log rather than
           # inferred from a green check.
           case "$TEST" in
-            success) echo "all selected template legs succeeded" ;;
+            success) echo "all selected template/arch legs succeeded" ;;
             skipped)
               if [ "$SELECTED" = "[]" ]; then
                 echo "no template installs any changed feature; nothing to build"
               else
-                echo "::error::templates were selected (${SELECTED}) but the test job did not run"
+                echo "::error::entries were selected (${SELECTED}) but the test job did not run"
                 exit 1
               fi
               ;;
