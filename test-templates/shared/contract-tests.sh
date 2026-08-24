@@ -105,7 +105,7 @@ declare -A ROLE_ARGS=(
   [jq]='-e _jq_version=1.8.2 -e _jq_checksum='
   [yq]='-e _yq_version=4.53.6 -e _yq_checksum='
   [nodejs]='-e _nodejs_version=22.23.2 -e _nodejs_checksum='
-  [npm]='-e _npm_version=11.9.0'
+  [npm]='-e _npm_version=12.0.2'
   [pnpm]='-e _pnpm_version=10.12.1 -e _pnpm_checksum='
   [bun]='-e _bun_version=1.2.17 -e _bun_checksum='
   [dotnet]='-e _dotnet_version=8.0.424 -e _dotnet_checksum='
