@@ -31,15 +31,36 @@ if [ -z "${CID}" ]; then
     exit 1
 fi
 
-# The repo is bind-mounted here by the CLI's workspace-git-root mount, which is
-# how the roles are reachable at all. Assert it rather than skipping silently --
-# a contract test that quietly does nothing is worse than no contract test.
-REPO_IN_CTR=/workspaces/devcontainer-features
+# The repo is bind-mounted by the CLI's workspace-git-root mount, which is how
+# the roles are reachable at all. Assert it rather than skipping silently -- a
+# contract test that quietly does nothing is worse than no contract test.
+#
+# The mount lands at /workspaces/<basename of the git root>, and that basename is
+# the CLONE DIRECTORY name, not the repository name. This checkout is usually
+# `devcontainer-features`, while Actions checks out into
+# `trusted-devcontainer-features`. Hardcoding either one is green in exactly one
+# of those places, which is why this passed locally and failed on the first CI
+# run. Derive it instead.
+REPO_IN_CTR="/workspaces/$(basename "$(git -C "${HERE}" rev-parse --show-toplevel)")"
+
 if ! docker exec "${CID}" test -d "${REPO_IN_CTR}/src"; then
-    echo "ERROR: ${REPO_IN_CTR}/src is not present inside the container." >&2
+    # Fall back to discovery, so a change in how the CLI names the mount costs a
+    # slower lookup rather than a red build. Matches on both src/ and
+    # test-templates/ so it cannot latch onto an unrelated workspace.
+    REPO_IN_CTR="$(docker exec "${CID}" sh -c \
+        'for d in /workspaces/*/; do
+             if [ -d "${d}src" ] && [ -d "${d}test-templates" ]; then printf "%s" "${d%/}"; break; fi
+         done')"
+fi
+
+if [ -z "${REPO_IN_CTR}" ] || ! docker exec "${CID}" test -d "${REPO_IN_CTR}/src"; then
+    echo "ERROR: could not find this repository's mount inside the container." >&2
+    echo "Looked for a /workspaces/* directory containing both src/ and test-templates/." >&2
     echo "The workspace bind-mount changed; contract tests cannot reach the roles." >&2
+    docker exec "${CID}" ls -la /workspaces/ >&2 || true
     exit 1
 fi
+echo "contract tests using ${REPO_IN_CTR}"
 
 # _REMOTE_USER/_REMOTE_USER_HOME are injected by the devcontainer CLI only during
 # feature installation, never into an exec environment, so pass them explicitly.

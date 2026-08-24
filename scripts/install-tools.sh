@@ -24,6 +24,12 @@ esac
 # Checksums are keyed by version AND arch. An unpinned pair fails by name rather
 # than silently skipping verification -- the same rule the feature roles follow
 # for their downloads.
+# Every post-install check below runs "$BIN/<tool>", never the bare name. A bare
+# name resolves through PATH, so on a machine that already has the tool the
+# script happily reports a DIFFERENT binary than the one it just wrote -- which
+# is how a wrong version, or a failed install, reads as success. Observed:
+# BIN=/tmp/... installed grype 0.117.0 while `grype version` printed the
+# 0.115.0 already on PATH.
 sha_for() {
   local key="$1"
   case "$key" in
@@ -55,7 +61,7 @@ install_opa() {
   verify "$tmp/opa" "opa:${OPA_VERSION}:${GOARCH}"
   install -m 0755 "$tmp/opa" "$BIN/opa"
   rm -rf "$tmp"
-  opa version
+  "$BIN/opa" version
 }
 
 install_gitleaks() {
@@ -68,22 +74,27 @@ install_gitleaks() {
   tar -xzf "$tmp/g.tar.gz" -C "$tmp" gitleaks
   install -m 0755 "$tmp/gitleaks" "$BIN/gitleaks"
   rm -rf "$tmp"
-  gitleaks version
+  "$BIN/gitleaks" version
 }
 
 # syft and grype ship an installer that verifies the release checksum itself,
 # fetched at the pinned tag rather than from main. This replaces
 # anchore/sbom-action@v0 and anchore/scan-action@v6, both floating major refs.
+#
+# The version is passed WITH its leading v. Both installers resolve the argument
+# as a git tag, and the tags are v1.51.0 / v0.117.0 -- stripping the v yields
+# `received HTTP status=404 for .../releases/1.51.0`, then `unable to find
+# tag=''`, which reads like a bad pin rather than a malformed one.
 install_syft() {
   curl -sSfL "https://raw.githubusercontent.com/anchore/syft/${SYFT_VERSION}/install.sh" \
-    | sh -s -- -b "$BIN" "${SYFT_VERSION#v}"
-  syft version
+    | sh -s -- -b "$BIN" "${SYFT_VERSION}"
+  "$BIN/syft" version
 }
 
 install_grype() {
   curl -sSfL "https://raw.githubusercontent.com/anchore/grype/${GRYPE_VERSION}/install.sh" \
-    | sh -s -- -b "$BIN" "${GRYPE_VERSION#v}"
-  grype version
+    | sh -s -- -b "$BIN" "${GRYPE_VERSION}"
+  "$BIN/grype" version
 }
 
 install_devcontainer_cli() {
