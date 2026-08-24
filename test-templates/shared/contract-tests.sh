@@ -19,15 +19,20 @@
 #
 set -uo pipefail
 
-TEMPLATE="${1:?usage: contract-tests.sh <template>}"
+TEMPLATE="${1:?usage: contract-tests.sh <template> [container-label]}"
+# The container label is separate from the template name because one template is
+# now built once per architecture, and both containers exist at the same time on
+# different runners. Overloading the template name with the arch would break the
+# devcontainer.json lookup below, which resolves a real directory.
+LABEL="${2:-$TEMPLATE}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${HERE}/test-lib.sh"
 
-CID="$(docker ps -q --filter "label=test=${TEMPLATE}" | head -1)"
+CID="$(docker ps -q --filter "label=test=${LABEL}" | head -1)"
 if [ -z "${CID}" ]; then
-    echo "ERROR: no running container labelled test=${TEMPLATE}." >&2
-    echo "Run: devcontainer up --workspace-folder test-templates/${TEMPLATE} --id-label test=${TEMPLATE}" >&2
+    echo "ERROR: no running container labelled test=${LABEL}." >&2
+    echo "Run: devcontainer up --workspace-folder test-templates/${TEMPLATE} --id-label test=${LABEL}" >&2
     exit 1
 fi
 
@@ -91,7 +96,7 @@ assert_idempotent() {
     return 0
 }
 
-echo "Contract tests: ${TEMPLATE} (container ${CID})"
+echo "Contract tests: ${TEMPLATE} [${LABEL}] (container ${CID})"
 echo ""
 echo "Idempotency — a second run must change nothing:"
 

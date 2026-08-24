@@ -9,8 +9,16 @@
 # copy of a contract that drifts, and this repository has spent a lot of effort
 # discovering copies exactly like it.
 #
-# Usage: compute-test-matrix.sh <base-ref>   JSON array of template names
-#        compute-test-matrix.sh --all        every template (push to main)
+# Usage: compute-test-matrix.sh <base-ref>   JSON array of {template, arch, runner}
+#        compute-test-matrix.sh --all        every template, both architectures
+#
+# ARCHITECTURE. Every role derives its download from the _target_arch the runner
+# injects, and every checksum table is keyed by version AND arch -- but no arm64
+# image had ever been built, so every arm64 digest in those tables was a value
+# nothing had ever checked. Each selected template is built on both, on native
+# runners: amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm. Native rather than
+# qemu because these roles EXECUTE the binaries they install to assert versions,
+# and emulation makes a failure ambiguous between the tool and the emulator.
 #
 # FULL MATRIX whenever a shared input changes, because the blast radius is
 # everything:
@@ -31,7 +39,16 @@ all_templates() {
       | grep -v '^shared$' | sort
 }
 
-emit_all() { all_templates | jq -R . | jq -s -c .; }
+# One entry per template per architecture. The runner label travels with the
+# entry so the workflow never has to map arch -> runner itself, which would be a
+# second copy of this decision.
+expand() {
+    jq -R . | jq -s -c '[ .[] as $t | ("amd64","arm64") as $a |
+        {template: $t, arch: $a,
+         runner: (if $a == "arm64" then "ubuntu-24.04-arm" else "ubuntu-latest" end)} ]'
+}
+
+emit_all() { all_templates | expand; }
 
 if [ "${1:-}" = "--all" ]; then emit_all; exit 0; fi
 
@@ -89,4 +106,4 @@ if [ "${#selected[@]}" -eq 0 ]; then
     exit 0
 fi
 
-printf '%s\n' "${selected[@]}" | sort -u | jq -R . | jq -s -c .
+printf '%s\n' "${selected[@]}" | sort -u | expand
