@@ -30,7 +30,12 @@
       - _openjdk_version is match('^' ~ _openjdk_major_version ~ '[.+]')
       - _openjdk_checksum is defined
       - _openjdk_major_version is match('^\d+$')
-      - _openjdk_version is match('^\d+\.\d+\.\d+\+\d+$')
+      # Adoptium publishes BOTH X.Y.Z+B (jdk-21.0.12+8) and X.Y.Z.P+B
+      # (jdk-21.0.12.1+1, an emergency patch on top of it). The optional fourth
+      # component is not cosmetic: 21.0.12.1+1 is the newest Temurin 21 GA, and
+      # requiring three components rejected it by name. Both forms appear in the
+      # download URL via _openjdk_version_underscore and both resolve.
+      - _openjdk_version is match('^\d+\.\d+\.\d+(\.\d+)?\+\d+$')
       - _openjdk_checksum | length == 0 or _openjdk_checksum is match('^[0-9a-fA-F]{64}$')
     fail_msg: >-
       A required role parameter was not supplied. This role has NO defaults by
@@ -45,7 +50,7 @@
         a wrong JDK.
 
         target_major_version must be digits only
-        target_version must look like X.Y.Z+B (Adoptium build suffix)
+        target_version must look like X.Y.Z+B or X.Y.Z.P+B (Adoptium build suffix)
         target_checksum, when not empty, must be a 64-character SHA256 hex digest
     success_msg: "openjdk {{ _openjdk_version }} ({{ _openjdk_arch }})"
 
