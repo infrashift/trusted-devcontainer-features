@@ -12,7 +12,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "2.18.2",
+        "default": "2.21.3",
         "description": "Select the ansible-core version to install"
       },
       "target_python_version": {

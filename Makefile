@@ -53,6 +53,10 @@ check-policy: ## Check, format-check and unit-test the PDP, with a coverage floo
 check-version-pins: ## Verify contract-test pins match the declared defaults
 	./scripts/check-version-pins.sh
 
+.PHONY: check-currency
+check-currency: ## Report how far each pinned tool is behind upstream (warns only)
+	./scripts/check-version-currency.sh
+
 .PHONY: check-feature-refs
 check-feature-refs: ## Validate that every relative feature reference resolves
 	./scripts/rewrite-feature-refs.sh --check

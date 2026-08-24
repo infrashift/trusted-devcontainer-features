@@ -97,7 +97,7 @@ echo "Idempotency — a second run must change nothing:"
 
 # Feature -> the extra-vars its install.sh passes, at their declared defaults.
 declare -A ROLE_ARGS=(
-  [python]='-e _python_version=3.12'
+  [python]='-e _python_version=3.13'
   [cuelang]='-e _cue_version=0.17.1 -e _cue_checksum='
   [golang]='-e _go_version=1.27.0 -e _go_checksum='
   [grype]='-e _grype_version=0.117.0 -e _grype_checksum='
@@ -111,7 +111,7 @@ declare -A ROLE_ARGS=(
   [dotnet]='-e _dotnet_version=8.0.424 -e _dotnet_checksum='
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.12.1+1 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.12.5 -e _uv_checksum= -e _ruff_version=0.16.4'
-  [ansible-core]='-e _ansible_core_version=2.18.2 -e _ansible_core_python_version=3.12'
+  [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.13'
   # Filled in below from what is actually installed -- see the note there.
   [claude-code]=''
   [openai-codex]=''

@@ -131,9 +131,15 @@
   changed_when: false
   register: _ruff_installed
 
+# No --python pin. Ruff is a self-contained binary, so the interpreter uv builds
+# its tool environment against is incidental -- but naming a version here forces
+# uv to fetch THAT interpreter whether or not the container already has one.
+# With the python feature on 3.13 and bootstrap on 3.13, a hardcoded 3.12 meant
+# a third interpreter downloaded solely for ruff, carrying its own CVEs. Letting
+# uv resolve reuses what is already present.
 - name: Install Ruff {{ _ruff_version }} via uv tool install
   ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.local/bin/uv tool install --python 3.12 ruff=={{ _ruff_version }}"
+    cmd: "{{ _target_user_home }}/.local/bin/uv tool install ruff=={{ _ruff_version }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
