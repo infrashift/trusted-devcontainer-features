@@ -30,8 +30,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  matrix-setup:
+    name: Compute Matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      templates: ${{ steps.compute.outputs.templates }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0   # need history to diff against the PR base
+
+      - name: Select the templates this change can affect
+        id: compute
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          # A push to main has no PR base to diff against, and main is what the
+          # release publishes from -- build everything.
+          if [ "$EVENT" = "push" ]; then
+            t=$(./scripts/compute-test-matrix.sh --all)
+          else
+            t=$(./scripts/compute-test-matrix.sh "$BASE_SHA")
+          fi
+          echo "templates=$t" >> "$GITHUB_OUTPUT"
+          echo "selected: $t"
+
   test:
     name: template (${{ matrix.template }})
+    needs: matrix-setup
+    if: needs.matrix-setup.outputs.templates != '[]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,13 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template:
-          - go-cue
-          - dotnet-node
-          - java
-          - python
-          - ansible-cue
-          - extras
+        template: ${{ fromJSON(needs.matrix-setup.outputs.templates) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
@@ -97,17 +122,34 @@ jobs:
   # reporting blocks every PR forever.
   gate:
     name: test/gate
-    needs: test
+    needs: [matrix-setup, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Aggregate
         env:
           TEST: ${{ needs.test.result }}
+          SETUP: ${{ needs.matrix-setup.result }}
+          SELECTED: ${{ needs.matrix-setup.outputs.templates }}
         run: |
           set -euo pipefail
-          echo "test=$TEST"
+          echo "matrix-setup=$SETUP  test=$TEST  selected=$SELECTED"
+
+          # If the matrix could not be computed we know nothing about coverage.
+          [ "$SETUP" = "success" ] || { echo "::error::matrix-setup did not succeed (${SETUP})"; exit 1; }
+
+          # `skipped` is legitimate ONLY because nothing needed building. It is
+          # reported either way so the reason is visible in the log rather than
+          # inferred from a green check.
           case "$TEST" in
-            success|skipped) echo "all template legs succeeded or were skipped" ;;
+            success) echo "all selected template legs succeeded" ;;
+            skipped)
+              if [ "$SELECTED" = "[]" ]; then
+                echo "no template installs any changed feature; nothing to build"
+              else
+                echo "::error::templates were selected (${SELECTED}) but the test job did not run"
+                exit 1
+              fi
+              ;;
             *) echo "::error::a template leg did not succeed (${TEST})"; exit 1 ;;
           esac
