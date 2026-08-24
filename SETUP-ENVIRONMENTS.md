@@ -1,9 +1,13 @@
 # Setup runbook
 
 Everything here must be done once, by a human, before the release pipeline can
-run. Until steps 1–3 are complete, `release.yaml` fails closed by design:
-`scripts/sign-features.sh` requires the signing secrets, and the `Release-Actor`
-environment does not exist yet.
+run. `release.yaml` fails closed by design until it is: `scripts/sign-features.sh`
+requires the signing secrets.
+
+**Current state** (verified 2026-08-23): none of it is done. The repo has only a
+`github-pages` environment, no `Release-Actor`, and no committed public key. The
+sibling `trusted-devcontainer-templates` is further along — its three keypairs
+and environments exist, though its protection rules do not.
 
 ```bash
 export ORG=infrashift
@@ -87,27 +91,78 @@ gh secret set COSIGN_PASSWORD    --repo "$SLUG" --env Release-Actor < release.pa
 cd / && rm -rf "$WORK"
 ```
 
-Then, in the GitHub UI: Settings → Environments → **Release-Actor** →
-**Required reviewers** → add `@infrashift/security-admins`, and tick **Prevent
-self-review**.
+Then add yourself as an environment reviewer:
 
-**This is the human gate.** The signing key is unreachable until a named person
-approves the deployment, which is what makes a Release-Actor signature proof
-that a human approved. Without *Prevent self-review*, the person who merged can
-approve their own release and the gate buys nothing.
+```bash
+gh api -X PUT "repos/${SLUG}/environments/Release-Actor" \
+  -F 'reviewers[][type]=User' \
+  -F "reviewers[][id]=$(gh api users/ryancraig --jq .id)"
+```
+
+**What this buys you, and what it does not.** `infrashift` has one member, so be
+precise about the claim.
+
+The signing key living in an environment is real protection regardless of
+headcount: the `contract` job — and anything that runs in it — has no access to
+it, so a compromised action or dependency in that job cannot sign or publish.
+That is defence against supply-chain compromise, which is the actual threat to a
+solo project.
+
+The reviewer is *not* separation of duties. With one member, approving is
+approving yourself: a deliberate stop-and-look before a release ships, and a
+useful one, but call it a speed bump rather than dual control.
+
+**Do NOT tick "Prevent self-review" while the org has one member.** It would
+deadlock every release — the only person who could approve is excluded, and no
+one else exists.
+
+Verify it took. An empty array means the environment holds a key but enforces
+nothing:
+
+```bash
+gh api "repos/${SLUG}/environments/Release-Actor" --jq '[.protection_rules[]?.type]'
+```
+
+> This repo is **public**, which is what makes environment protection rules
+> available on a Free org at all. On a Free plan they are a public-repo feature;
+> a private repo needs Team or Enterprise. Worth knowing before making it
+> private.
 
 ---
 
-## 4. Teams
+## 4. Teams — not yet, and not silently
 
-CODEOWNERS references three teams. If any does not exist, CODEOWNERS matches
-nothing for those paths and "require review from Code Owners" is a silent no-op.
+The org has **no teams**, and CODEOWNERS deliberately does not reference any:
 
 ```bash
+gh api orgs/infrashift/teams --jq 'length'    # 0
+```
+
+Three single-member teams would be structure without the property it is meant to
+express. Worse, **"Require review from Code Owners" must stay OFF while the org
+has one member** — GitHub does not let you approve your own pull request, so
+turning it on would block every PR you open and force an admin bypass on every
+merge. A protection everyone routinely bypasses is worse than none, because it
+reads as enforced.
+
+`.github/CODEOWNERS` therefore lists `@ryancraig` and functions as reviewer
+auto-assignment and as a map of which changes are trust decisions. It gates
+nothing today, and says so at the top of the file.
+
+**When a second maintainer joins**, do all of this in one change:
+
+```bash
+gh auth refresh -s admin:org,write:org        # current token has read:org only
+
 for t in platform-engineers security-admins devops-leads; do
-  gh api "orgs/${ORG}/teams/${t}" --jq .slug || echo "MISSING: $t"
+  gh api -X POST "orgs/${ORG}/teams" -f name="$t" -f privacy=closed
+  gh api -X PUT "orgs/${ORG}/teams/${t}/repos/${ORG}/${REPO}" -f permission=push
 done
 ```
+
+Then swap the owners in `.github/CODEOWNERS`, enable "Require review from Code
+Owners", and tick *Prevent self-review* on `Release-Actor`. Together, so the
+file never names teams that do not exist.
 
 ---
 
@@ -130,8 +185,12 @@ matrix, and a required context that stops reporting blocks every PR forever.
 > them: the contract check now runs inside `repo-gate`, and the template legs
 > are covered by `test/gate`.
 
-Also enable: require a PR before merging, require review from Code Owners,
-dismiss stale approvals, and require branches to be up to date.
+Also enable: require a PR before merging, dismiss stale approvals, and require
+branches to be up to date.
+
+**Do not enable "require review from Code Owners" yet** — see step 4. With one
+member it blocks every PR you open. Required status checks are different: they
+gate on CI rather than on a second human, so turn those on now.
 
 ---
 
