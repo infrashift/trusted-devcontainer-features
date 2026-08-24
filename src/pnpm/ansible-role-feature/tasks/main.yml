@@ -1,47 +1,88 @@
 # pnpm-feature/ansible-role-feature/tasks/main.yml
 ---
-- name: Extract the UBI version number
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# _securedevcontainer_variant is detected once from /etc/os-release by the bootstrap
+# feature and published as a group var in /opt/bootstrap/inventory.yml.
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _pnpm_version is defined and _pnpm_version | length > 0
+      - _pnpm_checksum is defined
+      - _pnpm_version is match('^\d+\.\d+\.\d+$')
+      - _pnpm_checksum | length == 0 or _pnpm_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _pnpm_version  <- target_version   (mandatory, non-empty)
+        _pnpm_checksum <- target_checksum  (may be empty; uses the pinned map)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "pnpm {{ _pnpm_version }} ({{ _pnpm_arch }})"
 
 # pnpm installation tasks
-- name: Check if pnpm is already installed
+- name: Check the currently installed pnpm version
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/pnpm --version"
-  ignore_errors: true
-  register: _pnpm_version_result
+  failed_when: false
   changed_when: false
+  register: _pnpm_version_result
 
-- name: Ensure ~/.local/bin directory exists
+- name: Determine whether pnpm {{ _pnpm_version }} needs installing
+  ansible.builtin.set_fact:
+    _pnpm_install_required: >-
+      {{ _pnpm_version_result.rc != 0 or _pnpm_version not in (_pnpm_version_result.stdout | default('')) }}
+
+- name: Ensure ~/.local/bin exists
   ansible.builtin.file:
     path: "{{ _target_user_home }}/.local/bin"
     state: directory
     mode: '0755'
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
 
-- name: Download pnpm standalone binary
-  ansible.builtin.get_url:
-    # This uses the official pnpm redirector for the latest standalone binary
-    url: "https://github.com/pnpm/pnpm/releases/latest/download/pnpm-linux-x64"
-    dest: "{{ _target_user_home }}/.local/bin/pnpm"
-    owner: "{{ _target_username }}"
-    group: "{{ _target_username }}"
-    mode: '0755'
-  when: _pnpm_version_result is failed
-
-- name: Get pnpm version
-  ansible.builtin.command:
-    cmd: "{{ _target_user_home }}/.local/bin/pnpm --version"
-  register: _pnpm_check
-  changed_when: false
-
-- name: Assert that pnpm is installed
+- name: Assert that a checksum is available for pnpm {{ _pnpm_version }} ({{ _pnpm_arch }})
   ansible.builtin.assert:
-    that: _pnpm_check.rc == 0
-    fail_msg: "pnpm failed to install."
+    that: _pnpm_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for pnpm {{ _pnpm_version }} on {{ _pnpm_arch }}.
+      Pass target_checksum to install a version other than the default.
+  when: _pnpm_install_required | bool
 
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
+- name: Download the pnpm standalone binary
+  ansible.builtin.get_url:
+    url: "{{ _pnpm_download_url }}"
+    dest: "{{ _target_user_home }}/.local/bin/pnpm"
+    mode: '0755'
+    checksum: "sha256:{{ _pnpm_effective_checksum }}"
+    timeout: 60
+  when: _pnpm_install_required | bool
+
+- name: Verify the installed pnpm version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/pnpm --version"
+  changed_when: false
+  register: _pnpm_check
+
+- name: Assert that pnpm {{ _pnpm_version }} is installed and accessible
+  ansible.builtin.assert:
+    that: _pnpm_version in _pnpm_check.stdout
+    fail_msg: "Expected pnpm {{ _pnpm_version }}; got: {{ _pnpm_check.stdout }}"
+    success_msg: "pnpm {{ _pnpm_version }} installed and verified."
 ...

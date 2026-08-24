@@ -3,7 +3,7 @@ title: "ADR-003: Non-Root vscode User Convention"
 description: Decision to standardize on a non-root vscode user for DevContainers.
 ---
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-011](/trusted-devcontainer-features/decisions/adr-011-dev-user-alignment/)
 
 ## Context
 

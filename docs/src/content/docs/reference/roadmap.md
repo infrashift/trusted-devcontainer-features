@@ -40,7 +40,7 @@ Many features currently only support x86_64. We plan to add ARM64 binary downloa
 A browser-based playground for testing feature combinations without local Docker setup.
 
 ### Video Tutorials
-Step-by-step video guides for common workflows: setting up AI assistants, configuring egress filtering, and creating custom features.
+Step-by-step video guides for common workflows: setting up AI assistants and creating custom features.
 
 ## Contributing
 

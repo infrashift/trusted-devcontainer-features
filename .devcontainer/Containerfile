@@ -1,36 +1,59 @@
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM ghcr.io/infrashift/trusted-base-images/trusted/fedora43-minimal@sha256:1ed67eb14da57087e206e45bba67a84264e213e8c545d64a9683fbc38bca3a65
 
 USER root
 
-# Silence subscription messages and update base packages
-RUN echo "enabled=0" >> /etc/yum/pluginconf.d/subscription-manager.conf \
- && dnf update --disablerepo=* --enablerepo=ubi-9-appstream-rpms --enablerepo=ubi-9-baseos-rpms -y && rm -rf /var/cache/yum
+# Base package baseline.
+#
+# Feature prerequisites — the devcontainer feature mechanism cannot work without these:
+#   tar, gzip        ansible.builtin.unarchive and every tool-tarball download
+#   curl             binary downloads (--allowerasing swaps curl-minimal for full curl)
+#   util-linux       runuser, used to drop from root to the target user
+#                    (util-linux-core does NOT ship su/runuser on Fedora)
+#
+# Interactive-use baseline — fedora43-minimal ships none of these:
+#   procps-ng, diffutils, findutils, less, which, fzf
+#
+# Shared runtime libraries. These are linked against by userland tools installed
+# by features (bun needs unzip; the .NET SDK and OpenJDK need libicu and
+# openssl-libs). Keeping them here rather than in each feature means those
+# features stay entirely userland and never need the privileged lane.
+RUN dnf5 -y install --allowerasing --setopt=install_weak_deps=False \
+        tar \
+        gzip \
+        curl \
+        util-linux \
+        unzip \
+        libicu \
+        openssl-libs \
+        procps-ng \
+        diffutils \
+        findutils \
+        less \
+        which \
+        fzf \
+    && dnf5 clean all \
+    && rm -rf /var/cache/dnf
 
-# Create the DevContainer user; default to 'vscode 1000:1000'
-ENV DEVCONTAINER_USERNAME=${DEVCONTAINER_USERNAME:-vscode}
-ENV DEVCONTAINER_USER_UID=${DEVCONTAINER_USER_UID:-1000}
-ENV DEVCONTAINER_USER_GID=${DEVCONTAINER_USER_GID:-$DEVCONTAINER_USER_UID}
+# Create the devcontainer user
+ARG USERNAME=dev
+ARG USER_UID=1001
+ARG USER_GID=1001
 
-RUN groupadd --gid $DEVCONTAINER_USER_GID $DEVCONTAINER_USERNAME \
-    && useradd -m -s /bin/bash --uid $DEVCONTAINER_USER_UID --gid $DEVCONTAINER_USER_GID $DEVCONTAINER_USERNAME
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd -m -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} ${USERNAME}
 
-USER $DEVCONTAINER_USERNAME
+# uv and the pinned Ansible bootstrap environment (/opt/bootstrap) are provided
+# by the 'bootstrap' devcontainer feature, which every other feature dependsOn.
+# They are deliberately not baked in here: pinning and checksum verification
+# live with the feature that owns them.
 
-ENV DEVCONTAINER_USER_HOME=${DEVCONTAINER_USER_HOME:-/home/$DEVCONTAINER_USERNAME}
-ENV DEVCONTAINER_USER_LOCAL_BIN_PATH=${DEVCONTAINER_USER_HOME}/.local/bin
+USER ${USERNAME}
 
-# Add ~/.local/bin to PATH for the devcontainer user
-RUN export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH" \
- && echo 'export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${DEVCONTAINER_USER_HOME}/.bashrc > /dev/null \
- && echo 'export PATH="${DEVCONTAINER_USER_LOCAL_BIN_PATH}:$PATH"' | tee -a ${DEVCONTAINER_USER_HOME}/.bash_profile > /dev/null
+ENV HOME=/home/${USERNAME}
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
 
-USER root
+RUN mkdir -p ${HOME}/.local/bin \
+    && echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ${HOME}/.bashrc \
+    && echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ${HOME}/.bash_profile
 
-# Install uv for feature bootstrap (ansible-playbook execution via 'uv run --with ansible-core')
-RUN curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_DIR=/usr/local/bin sh \
- && uv --version
-
-USER $DEVCONTAINER_USERNAME
-
-ENTRYPOINT ["$@"]
 CMD ["sleep", "infinity"]

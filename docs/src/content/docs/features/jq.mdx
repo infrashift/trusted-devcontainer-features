@@ -29,8 +29,8 @@ export const feature = features.find(f => f.id === 'jq');
 
 ## How It Works
 
-This feature downloads the jq binary directly from the official GitHub releases, specifically the `jq-linux-amd64` artifact for the requested version. jq is a lightweight command-line JSON processor used extensively in CI/CD pipelines and shell scripts for parsing, filtering, and transforming JSON data.
+This feature downloads the jq binary directly from the official GitHub releases, specifically the `jq-linux-<arch>` artifact for the requested version. jq is a lightweight command-line JSON processor used extensively in CI/CD pipelines and shell scripts for parsing, filtering, and transforming JSON data.
 
-The Ansible playbook downloads the binary to `~/.local/bin/jq`, optionally verifies the SHA256 checksum if one is provided via the `target_checksum` option, and sets the executable bit. After installation, the playbook verifies that jq is working correctly by running it to confirm the installed version.
+The Ansible playbook downloads the binary to `~/.local/bin/jq`, verifies the SHA256 checksum against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided, and sets the executable bit. After installation, the playbook verifies that jq is working correctly by running it to confirm the installed version.
 
 Because jq is a standalone static binary with no external dependencies, this feature has no dependency chain and installs quickly. It is one of the simplest features in the collection, making it a good reference for understanding the general pattern of binary-download features.

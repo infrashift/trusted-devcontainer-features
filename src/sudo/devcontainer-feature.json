@@ -1,9 +1,0 @@
-// sudo-feature/devcontainer-feature.json
-// Find Development Container Feature Specification at https://containers.dev/implementors/features/
-{
-    "name": "sudo-feature",
-    "id": "sudo",
-    "version": "1.0.1",
-    "description": "A feature to install sudo and configure passwordless sudo for the devcontainer user on Redhat UBI DevContainers",
-    "installsAfter": []
-}

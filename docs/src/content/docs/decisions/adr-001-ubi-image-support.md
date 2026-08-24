@@ -3,7 +3,7 @@ title: "ADR-001: UBI Image Support"
 description: Decision to target Red Hat UBI 9 as the exclusive base image.
 ---
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-010](/trusted-devcontainer-features/decisions/adr-010-fedora-target/)
 
 ## Context
 

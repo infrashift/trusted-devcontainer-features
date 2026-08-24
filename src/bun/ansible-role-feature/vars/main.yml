@@ -3,4 +3,32 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# oven-sh/bun names its Linux assets bun-linux-x64.zip / bun-linux-aarch64.zip
+# — note aarch64, not arm64 — so _target_arch (amd64 | arm64) is translated
+# rather than used directly. Never mask it with `| default(...)`.
+# ---------------------------------------------------------------------------
+_bun_platform: linux
+_bun_arch: "{{ 'aarch64' if _target_arch == 'arm64' else 'x64' }}"
+# Example: bun-linux-x64.zip
+_bun_zipfile: "bun-{{ _bun_platform }}-{{ _bun_arch }}.zip"
+# Example: https://github.com/oven-sh/bun/releases/download/bun-v1.2.17/bun-linux-x64.zip
+_bun_download_url: "https://github.com/oven-sh/bun/releases/download/bun-v{{ _bun_version }}/{{ _bun_zipfile }}"
+
+# SHA256 digests pinned per version, per architecture, from the SHASUMS256.txt
+# published with each bun release. The role previously passed `else omit` to
+# get_url, which skipped verification entirely whenever target_checksum was
+# empty — that is, always, by default.
+_bun_pinned_checksums:
+  "1.2.17":
+    x64: "6054207074653b4dbc2320d5a61e664e4b6f42379efc18d6181bffcc07a43193"
+    aarch64: "a0b996f48c977beb4e87b09a471ded7e63ee5c2fb4b72790c7ab4badbc147d6b"
+
+_bun_effective_checksum: >-
+  {{ _bun_checksum if _bun_checksum | length > 0
+     else _bun_pinned_checksums.get(_bun_version, {}).get(_bun_arch, '') }}
 ...

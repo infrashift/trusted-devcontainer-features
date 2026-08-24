@@ -29,7 +29,7 @@ export const feature = features.find(f => f.id === 'cuelang');
 
 ## How It Works
 
-CUElang is a data validation and configuration language that builds on JSON and adds types, constraints, and logic. This feature downloads the CUE binary from the official GitHub releases as a tarball (`cue_v<version>_linux_amd64.tar.gz`) and installs it into your devcontainer.
+CUElang is a data validation and configuration language that builds on JSON and adds types, constraints, and logic. This feature downloads the CUE binary from the official GitHub releases as a tarball (`cue_v<version>_linux_<arch>.tar.gz`) and installs it into your devcontainer.
 
 The Ansible playbook downloads the release tarball for the specified version, extracts the `cue` binary, and places it in `~/.local/bin` where it is available on PATH. The installation is straightforward since CUE ships as a single static binary with no additional runtime dependencies.
 

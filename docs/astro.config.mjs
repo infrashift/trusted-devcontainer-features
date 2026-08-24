@@ -56,7 +56,6 @@ export default defineConfig({
 							items: [
 								{ label: 'Grype', slug: 'features/grype' },
 								{ label: 'Syft', slug: 'features/syft' },
-								{ label: 'Egress Filter', slug: 'features/egress-filter' },
 							],
 						},
 						{
@@ -80,7 +79,6 @@ export default defineConfig({
 						{ label: 'Overview', slug: 'ai-support' },
 						{ label: 'Claude Code', slug: 'ai-support/claude-code' },
 						{ label: 'OpenAI Codex', slug: 'ai-support/openai-codex' },
-						{ label: 'Egress Filtering for AI', slug: 'ai-support/egress-filter' },
 					],
 				},
 				{
@@ -94,6 +92,11 @@ export default defineConfig({
 						{ label: 'ADR-005: Bun as Package Manager', slug: 'decisions/adr-005-bun-as-package-manager' },
 						{ label: 'ADR-006: Checksum Verification', slug: 'decisions/adr-006-checksum-verification' },
 						{ label: 'ADR-007: Feature Dependency Model', slug: 'decisions/adr-007-feature-dependency-model' },
+						{ label: 'ADR-008: Pinned .bootstrap Environment', slug: 'decisions/adr-008-pinned-bootstrap-environment' },
+						{ label: 'ADR-009: Mandatory Dependencies', slug: 'decisions/adr-009-mandatory-dependencies' },
+						{ label: 'ADR-010: Fedora 43 Target', slug: 'decisions/adr-010-fedora-target' },
+						{ label: 'ADR-011: dev User Alignment', slug: 'decisions/adr-011-dev-user-alignment' },
+						{ label: 'ADR-012: Feature Role Contract', slug: 'decisions/adr-012-feature-role-contract' },
 					],
 				},
 				{

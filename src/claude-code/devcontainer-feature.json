@@ -3,7 +3,7 @@
 {
     "name": "claude-code-feature",
     "id": "claude-code",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs Claude Code (Anthropic's AI coding assistant CLI) on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://www.npmjs.com/package/@anthropic-ai/claude-code?activeTab=versions
@@ -25,6 +25,10 @@
         "PATH": "/home/dev/.bun/bin:${PATH}"
     },
     "installsAfter": [
-        "./bun"
-    ]
+        "./bun",
+        "./nodejs"
+    ],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

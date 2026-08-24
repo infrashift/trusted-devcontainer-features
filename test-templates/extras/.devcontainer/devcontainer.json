@@ -3,10 +3,10 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
+        "./bootstrap": {},
         "./nodejs": {},
         "./bun": {},
         "./claude-code": {},
-        "./openai-codex": {},
-        "./sudo": {}
+        "./openai-codex": {}
     }
 }

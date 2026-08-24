@@ -29,10 +29,12 @@ export const feature = features.find(f => f.id === 'uv-ruff');
 
 ## How It Works
 
-This feature installs two tools from Astral: UV, a fast Python package manager and project tool, and Ruff, a fast Python linter and formatter. The Ansible playbook first downloads the UV tarball from the official GitHub releases for the specified version, optionally verifies the SHA256 checksum if one is provided via the `target_uv_checksum` option, and extracts it to `~/.local/bin`.
+This feature installs two tools from Astral: UV, a fast Python package manager and project tool, and Ruff, a fast Python linter and formatter. The Ansible playbook first downloads the UV tarball from the official GitHub releases for the specified version, verifies the SHA256 checksum against the pinned per-architecture digest, or against an explicit `target_uv_checksum` if one is provided, and extracts it to `~/.local/bin`.
 
 Once UV is installed, the playbook uses it to install Ruff via `uv tool install ruff@<version>`. This approach leverages UV's tool management capability to install Ruff in an isolated environment while making the `ruff` binary available on PATH. The VS Code Ruff extension is recommended for integrated linting and formatting feedback in the editor.
 
-UV serves double duty in this feature collection. It is both an end-user tool for managing Python packages and projects, and the mechanism used by other features to bootstrap their installations. The Python feature uses `uv python install` to set up managed Python versions, and the ansible-core feature uses `uv run` to create isolated virtual environments. Because of this foundational role, uv-ruff has no dependencies of its own and sits at the base of the dependency chain for all Python-related features.
+UV serves double duty in this feature collection. It is an end-user tool for managing Python packages and projects, and it is also what the `bootstrap` feature uses to build the pinned Ansible environment that installs every other feature. The Python feature uses `uv python install` to set up managed Python versions, and the ansible-core feature uses `uv tool install`. Because of this foundational role, uv-ruff has no dependencies of its own and sits at the base of the dependency chain for all Python-related features.
+
+The `uv` this feature places on your PATH is distinct from the one at `/usr/local/bin/uv` that the bootstrap feature installs and pins for its own use.
 
 Both UV and Ruff are written in Rust and are known for their exceptional speed compared to traditional Python tooling. UV is a drop-in replacement for pip, pip-tools, and virtualenv, while Ruff replaces Flake8, isort, pyupgrade, and dozens of other Python linters with a single tool that runs orders of magnitude faster.

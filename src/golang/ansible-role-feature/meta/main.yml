@@ -5,16 +5,20 @@ galaxy_info:
   description: Go (Golang) installation for RHEL UBI containers
   company: infrashift.sh
   license: MIT
-  min_ansible_version: 2.9
+  min_ansible_version: "2.18"
   platforms:
   - name: EL
     versions:
     - 9
     - 10
+  - name: Fedora
+    versions:
+    - 43
   galaxy_tags:
     - golang
     - go
     - rhel
+    - fedora
     - ubi
 
 dependencies: []

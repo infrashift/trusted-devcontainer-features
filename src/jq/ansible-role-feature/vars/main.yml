@@ -3,4 +3,31 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# jqlang/jq names its assets jq-linux-amd64 / jq-linux-arm64, matching the
+# _target_arch injected by /opt/bootstrap/run-feature.sh. Never mask it with
+# `| default(...)`.
+# ---------------------------------------------------------------------------
+_jq_arch: "{{ _target_arch }}"
+# Example: jq-linux-amd64
+_jq_binary: "jq-linux-{{ _jq_arch }}"
+# Example: https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+_jq_download_url: "https://github.com/jqlang/jq/releases/download/jq-{{ _jq_version }}/{{ _jq_binary }}"
+
+# SHA256 digests pinned per version, per architecture. jqlang/jq publishes no
+# checksums file, so these were computed from the released binaries. The role
+# previously passed `else omit` to get_url, which skipped verification entirely
+# whenever target_checksum was empty — that is, always, by default.
+_jq_pinned_checksums:
+  "1.7.1":
+    amd64: "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5"
+    arm64: "4dd2d8a0661df0b22f1bb9a1f9830f06b6f3b8f7d91211a1ef5d7c4f06a8b4a5"
+
+_jq_effective_checksum: >-
+  {{ _jq_checksum if _jq_checksum | length > 0
+     else _jq_pinned_checksums.get(_jq_version, {}).get(_jq_arch, '') }}
 ...

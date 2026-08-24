@@ -3,4 +3,32 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# pnpm names its assets x64 / arm64; _target_arch is injected as amd64 / arm64
+# by /opt/bootstrap/run-feature.sh. Never mask it with `| default(...)`.
+# ---------------------------------------------------------------------------
+_pnpm_platform: linux
+_pnpm_arch: "{{ 'arm64' if _target_arch == 'arm64' else 'x64' }}"
+# Example: pnpm-linux-x64
+_pnpm_binary: "pnpm-{{ _pnpm_platform }}-{{ _pnpm_arch }}"
+# Example: https://github.com/pnpm/pnpm/releases/download/v10.12.1/pnpm-linux-x64
+#
+# Note the pinned version in the path. The role previously downloaded from
+# releases/latest/download/, which 404s: the pnpm monorepo publishes releases for
+# several packages, so its "latest release" is frequently not a pnpm CLI release.
+_pnpm_download_url: "https://github.com/pnpm/pnpm/releases/download/v{{ _pnpm_version }}/{{ _pnpm_binary }}"
+
+# SHA256 digests pinned for the DEFAULT version, per architecture.
+_pnpm_pinned_checksums:
+  "10.12.1":
+    x64: "eb2dc1f109bca046ce734d062c8dd8f34db2b58a115992f9b086456efd7b2305"
+    arm64: "c2f9e9d42d81f9f40a0f895513d014a08d5ecb0abc9e15c426ecfde6f492706b"
+
+_pnpm_effective_checksum: >-
+  {{ _pnpm_checksum if _pnpm_checksum | length > 0
+     else _pnpm_pinned_checksums.get(_pnpm_version, {}).get(_pnpm_arch, '') }}
 ...

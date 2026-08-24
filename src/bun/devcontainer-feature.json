@@ -3,7 +3,7 @@
 {
     "name": "bun-feature",
     "id": "bun",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs Bun JavaScript runtime on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/oven-sh/bun/releases
@@ -23,5 +23,8 @@
     "containerEnv": {
         "PATH": "/home/dev/.local/bin:${PATH}"
     },
-    "installsAfter": []
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

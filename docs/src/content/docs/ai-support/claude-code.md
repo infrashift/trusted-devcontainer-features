@@ -81,5 +81,4 @@ claude "the /api/users endpoint returns 500 — investigate and fix"
 ## Security Considerations
 
 - **API keys**: Never commit API keys to version control. Use `containerEnv` with `localEnv` references or secrets management.
-- **Egress filtering**: Pair with the [Egress Filter](/trusted-devcontainer-features/ai-support/egress-filter/) feature to restrict network access to only `api.anthropic.com` and other required domains.
 - **Container isolation**: Claude Code runs within the DevContainer boundary and cannot access your host filesystem beyond the mounted workspace.

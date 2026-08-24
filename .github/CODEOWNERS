@@ -1,0 +1,55 @@
+# Ownership is the last line of defence when a change is textually innocuous but
+# semantically a policy change. Moving a tool version in tools.lock, widening a
+# role's parameter contract, or editing an install script all look like routine
+# edits and are all trust decisions.
+#
+# ---------------------------------------------------------------------------
+# THIS FILE AUTO-ASSIGNS REVIEWERS. IT IS NOT A MERGE REQUIREMENT.
+#
+# `infrashift` has one member. Enabling "Require review from Code Owners" while
+# that is true would block every pull request: GitHub does not let you approve
+# your own PR, so the only way to merge would be an admin bypass on every
+# change -- which trains the habit of bypassing the gate and leaves a repo whose
+# protection is nominal.
+#
+# So the paths below exist to surface *what kind of change this is* on the PR,
+# and to be correct the day the org grows. They do not gate anything today.
+#
+# When a second maintainer joins: create the teams, swap the owners below, and
+# turn on "Require review from Code Owners" in the same change -- see
+# SETUP-ENVIRONMENTS.md. Until then, do not enable it.
+# ---------------------------------------------------------------------------
+
+*                                   @ryancraig
+
+# --- Trust decisions -------------------------------------------------------
+/.github/pdp/                       @ryancraig
+/.github/pdp/policies.rego          @ryancraig
+/.github/pdp/policies_test.rego     @ryancraig
+/.github/pdp/public-keys/           @ryancraig
+
+# These binaries run in the job that holds the signing key, so a version bump
+# here is a supply-chain decision.
+/tools.lock                         @ryancraig
+/scripts/install-tools.sh           @ryancraig
+
+# --- Pipeline engines ------------------------------------------------------
+/.github/workflows/                 @ryancraig
+/scripts/                           @ryancraig
+
+# --- What ships inside a feature -------------------------------------------
+# install.sh and the Ansible role are what actually execute in a developer's
+# container. bootstrap is the runner every other feature depends on, so a change
+# there affects all of them at once.
+/src/                               @ryancraig
+/src/bootstrap/                     @ryancraig
+
+# --- Repository security posture -------------------------------------------
+/.github/CODEOWNERS                 @ryancraig
+/.gitleaks.toml                     @ryancraig
+/.gitignore                         @ryancraig
+/SETUP-ENVIRONMENTS.md              @ryancraig
+
+# --- Documentation ---------------------------------------------------------
+/docs/                              @ryancraig
+/README.md                          @ryancraig

@@ -7,18 +7,44 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _grype_version is defined and _grype_version | length > 0
+      - _grype_checksum is defined
+      - _grype_version is match('^\d+\.\d+\.\d+$')
+      - _grype_checksum | length == 0 or _grype_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _grype_version  <- target_version   (mandatory, non-empty)
+        _grype_checksum <- target_checksum  (may be empty; resolved from the
+                                           upstream checksums file)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "grype {{ _grype_version }} ({{ _grype_arch }})"
 
 # Grype installation tasks
 - name: Check if Grype is already installed
   ansible.builtin.command: "{{ _target_user_home }}/.local/bin/grype version"
-  ignore_errors: true
+  failed_when: false
   register: _grype_version_result
   changed_when: false
 
@@ -27,41 +53,58 @@
     path: /tmp/grype-feature-install
     state: directory
     mode: '0755'
-  when: _grype_version_result is failed
+  when: _grype_version_result.rc != 0
         or _grype_version not in _grype_version_result.stdout
 
 - name: Download Grype checksums file
   ansible.builtin.get_url:
     url: "{{ _grype_checksums_download_url }}"
     dest: "/tmp/grype-feature-install/{{ _grype_checksums_file }}"
+    timeout: 60
   when:
-    - _grype_version_result is failed or _grype_version not in _grype_version_result.stdout
+    - _grype_version_result.rc != 0 or _grype_version not in _grype_version_result.stdout
     - _grype_checksum | default('', true) | length == 0
 
 - name: Read checksums file
   ansible.builtin.slurp:
     src: "/tmp/grype-feature-install/{{ _grype_checksums_file }}"
   register: _grype_checksums_file_content
-  when: _grype_checksum | default('', true) | length == 0
+  when:
+    - _grype_version_result.rc != 0 or _grype_version not in _grype_version_result.stdout
+    - _grype_checksum | default('', true) | length == 0
 
 - name: Find the checksum for {{ _grype_tarball }}
   ansible.builtin.set_fact:
-    _grype_checksum: "{{ item.split()[0] }}"
+    _grype_effective_checksum: "{{ item.split()[0] }}"
   when:
+    - _grype_version_result.rc != 0 or _grype_version not in _grype_version_result.stdout
     - _grype_checksum | default('', true) | length == 0
     - _grype_tarball in item
   loop: "{{ _grype_checksums_file_content.content | b64decode | split('\n') | reject('eq', '') | list }}"
 
 - name: Display the checksum
   ansible.builtin.debug:
-    msg: "Checksum for {{ _grype_tarball }} is: {{ _grype_checksum }}"
+    msg: "Checksum for {{ _grype_tarball }} is: {{ _grype_effective_checksum }}"
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unparseable or missing upstream
+# checksums entry is a named error, not a silently unverified binary (ADR-006).
+- name: Assert that a checksum is available for Grype {{ _grype_version }} ({{ _grype_arch }})
+  ansible.builtin.assert:
+    that: _grype_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 resolved for {{ _grype_tarball }}. It was not found in
+      {{ _grype_checksums_file }}, and no target_checksum was supplied.
+  when: _grype_version_result.rc != 0
+        or _grype_version not in _grype_version_result.stdout
 
 - name: Download Grype binary
   ansible.builtin.get_url:
     url: "{{ _grype_download_url }}"
     dest: "/tmp/grype-feature-install/{{ _grype_tarball }}"
-    checksum: "sha256:{{ _grype_checksum }}"
-  when: _grype_version_result is failed
+    checksum: "sha256:{{ _grype_effective_checksum }}"
+    timeout: 60
+  when: _grype_version_result.rc != 0
         or _grype_version not in _grype_version_result.stdout
 
 - name: Ensure ~/.local/bin directory exists
@@ -80,7 +123,7 @@
     extra_opts:
       - --wildcards
       - grype
-  when: _grype_version_result is failed
+  when: _grype_version_result.rc != 0
         or _grype_version not in _grype_version_result.stdout
 
 - name: Set ownership of grype binary
@@ -98,16 +141,12 @@
 - name: Get Grype version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/bin/grype version"
+  changed_when: false
   register: _grype_version_result
 
 - name: Assert that Grype is installed and accessible
   ansible.builtin.assert:
-    that: "'Application' in _grype_version_result.stdout or 'grype' in _grype_version_result.stdout"
-    fail_msg: "{{ _grype_version_result.stdout }}"
+    that: "_grype_version in _grype_version_result.stdout"
+    fail_msg: "Expected grype {{ _grype_version }}; grype reported: {{ _grype_version_result.stdout }}"
     success_msg: "{{ _grype_version_result.stdout }}"
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

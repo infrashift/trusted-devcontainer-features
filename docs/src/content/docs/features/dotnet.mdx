@@ -29,8 +29,8 @@ export const feature = features.find(f => f.id === 'dotnet');
 
 ## How It Works
 
-This feature downloads the .NET SDK tarball from Microsoft's official CDN for the linux-x64 architecture and installs it into a user-local directory. The .NET SDK includes the runtime, libraries, and CLI tools needed to build and run .NET applications including ASP.NET Core, Blazor, and console apps.
+This feature downloads the .NET SDK tarball from Microsoft's official CDN for the target architecture (`x64` or `aarch64`, derived from the container platform) and installs it into a user-local directory. The .NET SDK includes the runtime, libraries, and CLI tools needed to build and run .NET applications including ASP.NET Core, Blazor, and console apps.
 
-The Ansible playbook creates the `~/.local/share/dotnet` directory, downloads the SDK tarball for the specified version, and optionally verifies the SHA256 checksum if one is provided. After extraction, the playbook configures the necessary environment variables: `DOTNET_ROOT` is set to point at the installation directory, and `~/.local/share/dotnet` is added to PATH so that the `dotnet` CLI is available globally.
+The Ansible playbook creates the `~/.local/share/dotnet` directory, downloads the SDK tarball for the specified version, and verifies the SHA512 checksum (Microsoft publishes SHA512, not SHA256, beside each SDK tarball) against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided. After extraction, the playbook configures the necessary environment variables: `DOTNET_ROOT` is set to point at the installation directory, and `~/.local/share/dotnet` is added to PATH so that the `dotnet` CLI is available globally.
 
 CLI telemetry is disabled by default via the `DOTNET_CLI_TELEMETRY_OPTOUT=1` environment variable, which prevents Microsoft from collecting usage data inside your devcontainer. The VS Code C# Dev Kit extension is recommended for full IntelliSense, debugging, and project management support. This feature has no dependencies on other features and can be installed standalone.

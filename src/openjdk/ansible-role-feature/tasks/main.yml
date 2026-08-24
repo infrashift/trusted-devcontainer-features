@@ -7,35 +7,56 @@
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
     success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _openjdk_major_version is defined and _openjdk_major_version | length > 0
+      - _openjdk_version is defined and _openjdk_version | length > 0
+      - _openjdk_version is match('^' ~ _openjdk_major_version ~ '[.+]')
+      - _openjdk_checksum is defined
+      - _openjdk_major_version is match('^\d+$')
+      - _openjdk_version is match('^\d+\.\d+\.\d+\+\d+$')
+      - _openjdk_checksum | length == 0 or _openjdk_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _openjdk_major_version <- target_major_version  (mandatory, non-empty)
+        _openjdk_version       <- target_version        (mandatory, non-empty)
+        _openjdk_checksum      <- target_checksum       (may be empty)
 
-# Install system dependencies
-- name: Configure UBI-{{ _securedevcontainer_ubi_version }}-BaseOS repository
-  ansible.builtin.yum_repository:
-    name: ubi-{{ _securedevcontainer_ubi_version }}-baseos-rpms
-    description: Red Hat Universal Base Image {{ _securedevcontainer_ubi_version }} (RPMs) - BaseOS
-    baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi{{ _securedevcontainer_ubi_version }}/{{ _securedevcontainer_ubi_version }}/$basearch/baseos/os
-    enabled: yes
-    gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-    gpgcheck: true
+        target_version must start with target_major_version: both appear in the
+        download URL independently, so a mismatched pair yields a 404 rather than
+        a wrong JDK.
 
-- name: Install system dependencies (libicu, openssl-libs)
-  ansible.builtin.package:
-    name:
-      - libicu
-      - openssl-libs
-    state: present
+        target_major_version must be digits only
+        target_version must look like X.Y.Z+B (Adoptium build suffix)
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "openjdk {{ _openjdk_version }} ({{ _openjdk_arch }})"
+
+# libicu and openssl-libs now come from the template base image rather than being installed
+# here. This keeps the feature entirely userland, so it runs as the target
+# user and needs no privileged lane.
 
 # OpenJDK installation tasks
 - name: Check if OpenJDK is already installed
   ansible.builtin.command: "{{ _target_user_home }}/.local/share/java/bin/java -version"
-  ignore_errors: true
+  failed_when: false
   register: _java_version_result
   changed_when: false
 
@@ -44,14 +65,27 @@
     path: /tmp/openjdk-feature-install
     state: directory
     mode: '0755'
-  when: _java_version_result is failed
+  when: _java_version_result.rc != 0
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unpinned version/arch pair is a
+# named error, not a silently unverified download (ADR-006).
+- name: Assert that a checksum is available for OpenJDK {{ _openjdk_version }} ({{ _openjdk_arch }})
+  ansible.builtin.assert:
+    that: _openjdk_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for {{ _openjdk_tarball }} on {{ _openjdk_arch }}. Pass
+      target_checksum to install a version or architecture that is not in the
+      role's pinned map.
+  when: _java_version_result.rc != 0
 
 - name: Download OpenJDK tarball
   ansible.builtin.get_url:
     url: "{{ _openjdk_download_url }}"
     dest: "/tmp/openjdk-feature-install/{{ _openjdk_tarball }}"
-    checksum: "{{ 'sha256:' + _openjdk_checksum if _openjdk_checksum | default('', true) | length > 0 else omit }}"
-  when: _java_version_result is failed
+    checksum: "sha256:{{ _openjdk_effective_checksum }}"
+    timeout: 60
+  when: _java_version_result.rc != 0
 
 - name: Ensure ~/.local/share/java directory exists
   ansible.builtin.file:
@@ -64,7 +98,7 @@
 - name: Extract OpenJDK tarball (strip nested directory)
   ansible.builtin.command:
     cmd: "tar xzf /tmp/openjdk-feature-install/{{ _openjdk_tarball }} --strip-components=1 -C {{ _target_user_home }}/.local/share/java/"
-  when: _java_version_result is failed
+  when: _java_version_result.rc != 0
 
 - name: Recursively change ownership of OpenJDK installation
   ansible.builtin.file:
@@ -81,16 +115,14 @@
 - name: Get Java version
   ansible.builtin.command:
     cmd: "{{ _target_user_home }}/.local/share/java/bin/java -version"
+  changed_when: false
   register: _java_version_result
 
 - name: Assert that Java is installed and accessible
   ansible.builtin.assert:
-    that: "'openjdk version' in _java_version_result.stderr or 'openjdk version' in _java_version_result.stdout"
-    fail_msg: "stdout: {{ _java_version_result.stdout }} stderr: {{ _java_version_result.stderr }}"
+    that: "_openjdk_version in _java_version_result.stderr or _openjdk_version in _java_version_result.stdout"
+    fail_msg: "Expected OpenJDK {{ _openjdk_version }}; java reported: {{ _java_version_result.stderr }}"
     success_msg: "{{ _java_version_result.stderr }}"
 
 # Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...

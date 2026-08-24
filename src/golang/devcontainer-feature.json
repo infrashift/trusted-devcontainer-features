@@ -3,7 +3,7 @@
 {
     "name": "golang-feature",
     "id": "golang",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs Go (Golang) on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://go.dev/dl/
@@ -17,9 +17,8 @@
         // See checksums at https://go.dev/dl/
         "target_checksum": {
             "type": "string",
-            "proposals": ["aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235"],
-            "default": "aac1b08a0fb0c4e0a7c1555beb7b59180b05dfc5a3d62e40e9de90cd42f88235",
-            "description": "Select the corresponding Golang binary checksum"
+            "default": "",
+            "description": "SHA256 of the release tarball. Required only when target_version is not pinned in the role's _go_pinned_checksums map."
         }
     },
     "containerEnv": {
@@ -33,5 +32,8 @@
             ]
         }
     },
-    "installsAfter": []
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

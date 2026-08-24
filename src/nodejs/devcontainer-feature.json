@@ -3,7 +3,7 @@
 {
     "name": "nodejs-feature",
     "id": "nodejs",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs Node.js on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://nodejs.org/en/download/
@@ -23,5 +23,8 @@
     "containerEnv": {
         "PATH": "/home/dev/.local/share/nodejs/bin:/home/dev/.local/bin:${PATH}"
     },
-    "installsAfter": []
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

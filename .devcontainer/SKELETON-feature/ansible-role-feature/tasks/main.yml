@@ -1,41 +1,128 @@
 # SKELETON-feature/ansible-role-feature/tasks/main.yml
 ---
-# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
-# Shortcircuit execution if the Secure DevContainer is incompatible with this role
-# Find _securedevcontainer_variant in hosts.yml inventory file; this variable is set in each 'ubi*' group for the host and passed in by the calling playbook
-# Find _securedevcontainer_compatibility_list definition in ./vars/main.yml
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET — keep this assert at the top of every feature role.
+# ---------------------------------------------------------------------------
 - name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
   ansible.builtin.assert:
     that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
-    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — keep these two asserts directly below the bootstrap
+# bracket in every feature role.
+#
+# This role has NO defaults. Every value below must arrive as an extra-var, so
+# a missing one is a wiring bug that must fail here, by name, before any work
+# happens — not three tasks later as a 404 on a malformed URL.
+#
+# Two classes of parameter:
+#   * mandatory  — must be defined AND non-empty (versions, names, paths).
+#   * pass-through — must be DEFINED, may legitimately be empty. Checksums are
+#     the case: empty means "resolve from the pinned map or the upstream
+#     checksums file", so emptiness is meaningful and only absence is a bug.
+#
+# Booleans arrive as the STRING "true"/"false", because `-e key=value` is
+# always parsed as a string. Assert membership, and use `| bool` at the point
+# of use — never test a bare boolean var for truthiness.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch. Running the
+      playbook directly, or against an older bootstrap feature, will land here.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _skeleton_version is defined and _skeleton_version | length > 0
+      - _skeleton_checksum is defined
+      - _color is defined and _color in ['blue', 'green', 'red']
+      - _is_favorite_color is defined and (_is_favorite_color | string | lower) in ['true', 'false']
+      # SHAPE VALIDATION — assert the value's form, not just its presence. A
+      # malformed version otherwise passes here and fails later as a 404 on a
+      # URL built from it, which is far harder to trace back to the option.
+      - _skeleton_version is match('^\d+\.\d+\.\d+$')
+      - _skeleton_checksum | length == 0 or _skeleton_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _skeleton_version  <- target_version        (mandatory, non-empty)
+        _skeleton_checksum <- target_checksum       (may be empty)
+        _color             <- color_choice          (blue | green | red)
+        _is_favorite_color <- is_my_favorite_color  (true | false)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "SKELETON {{ _skeleton_version }} ({{ _skeleton_arch }})"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS
+#
+# Idempotency contract — re-running a feature MUST report changed=0:
+#   * Detect the installed version first; gate install work on a needs-install fact.
+#   * Download with ansible.builtin.get_url + a checksum: argument. Never
+#     download without verification.
+#   * Guard ansible.builtin.unarchive behind that same fact (or creates:).
+#   * Never use ansible.builtin.command without creates: or an accurate changed_when:.
+#   * Use failed_when: false + changed_when: false for probes, not ignore_errors.
+#   * Install userland: ~/.local/share/<tool> with a symlink into ~/.local/bin.
+#   * Do NOT set owner/group and do NOT chown. The playbook already runs as the
+#     target user, so files are created correctly owned.
+#   * Derive architecture from _target_arch (amd64 | arm64). Never hardcode.
+# ---------------------------------------------------------------------------
+- name: Check the currently installed SKELETON version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/skeleton --version"
+  register: _skeleton_installed
+  failed_when: false
+  changed_when: false
+
+- name: Determine whether SKELETON {{ _skeleton_version }} needs installing
   ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+    _skeleton_install_required: >-
+      {{ _skeleton_installed.rc != 0 or _skeleton_version not in (_skeleton_installed.stdout | default('')) }}
 
-- name: Display _securedevcontainer_ubi_version
-  ansible.builtin.debug:
-    msg: "UBI version number: {{ _securedevcontainer_ubi_version }}"
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
 
-# TARGET FEATURE TASKS
-# If this is a DNF Package Manager installation, uncomment this task
-# - name: Configure UBI-{{ _securedevcontainer_ubi_version }}-BaseOS repository
-#   ansible.builtin.yum_repository:
-#     name: ubi-{{ _securedevcontainer_ubi_version }}-baseos-rpms
-#     description: Red Hat Universal Base Image {{ _securedevcontainer_ubi_version }} (RPMs) - BaseOS
-#     baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi{{ _securedevcontainer_ubi_version }}/{{ _securedevcontainer_ubi_version }}/$basearch/baseos/os
-#     enabled: yes
-#     gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-#     gpgcheck: true
+# A resolved-empty checksum means verification would be SKIPPED, not failed.
+# Assert it before the download, so an unpinned version/arch combination is a
+# named error rather than a silently unverified binary. See ADR-006.
+- name: Assert that a checksum is available for SKELETON {{ _skeleton_version }} ({{ _skeleton_arch }})
+  ansible.builtin.assert:
+    that: _skeleton_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for SKELETON {{ _skeleton_version }} on
+      {{ _skeleton_arch }}. Pass target_checksum to install a version or
+      architecture other than the pinned default.
+  when: _skeleton_install_required | bool
 
-- name: Print color and favorite color status
-  ansible.builtin.debug:
-    msg: "{{ _color | title }} is{% if not _is_favorite_color %} not{% endif %} my favorite color."
+- name: Verify the installed SKELETON version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/skeleton --version"
+  register: _skeleton_verify
+  changed_when: false
 
-
-# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
+# Assert the REQUESTED version installed, not merely that a binary runs. An
+# assert that matches the tool's own name passes for any version, so it cannot
+# catch the failure it exists to catch.
+#
+# Match the upstream's real output format — capture it, do not assume it. Many
+# tools need an anchor: `go version go1.26.0` has no space, `jq-1.7.1` uses a
+# hyphen, yq and cue are v-prefixed, and java writes to stderr. A bare substring
+# test is also unsafe wherever one advertised version is a prefix of another
+# (jq offers both "1.7" and "1.7.1").
+- name: Assert that SKELETON is installed and accessible
+  ansible.builtin.assert:
+    that: _skeleton_version in _skeleton_verify.stdout
+    fail_msg: "Expected SKELETON {{ _skeleton_version }}; got: {{ _skeleton_verify.stdout }}"
+    success_msg: "SKELETON {{ _skeleton_version }} installed and verified."
 ...

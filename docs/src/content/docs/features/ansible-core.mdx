@@ -31,6 +31,8 @@ export const feature = features.find(f => f.id === 'ansible-core');
 
 Ansible Core is installed into a dedicated virtual environment managed by UV, the fast Python package manager from Astral. Rather than installing ansible-core globally or cluttering the system Python, this feature creates a fully isolated environment that keeps your devcontainer clean and reproducible.
 
-The install script delegates to an Ansible playbook via `uv run --with ansible-core ansible-playbook`, which bootstraps the installation process. It creates an isolated Python venv at the specified version, installs ansible-core into it, and symlinks the `ansible`, `ansible-playbook`, and related binaries into `~/.local/bin` so they are available on PATH.
+The install script delegates to the shared runner at `/opt/bootstrap/run-feature.sh`, which executes the role from the pinned Ansible environment provisioned by the `bootstrap` feature. The role installs ansible-core as a `uv tool` at the requested version and symlinks `ansible`, `ansible-playbook`, and the related binaries into `~/.local/bin` so they are on PATH.
+
+Note the distinction: the ansible-core installed by this feature is **yours**, for your own playbooks. It is separate from the pinned ansible-core inside `/opt/bootstrap/.bootstrap` that installs the features themselves, which is root-owned and not on your PATH.
 
 This feature depends on the Python feature, which itself depends on UV & Ruff. When you include ansible-core in your devcontainer configuration, the dependency chain ensures that UV is installed first, then Python is set up at the requested version, and finally ansible-core is installed into its own venv. This layered approach means you can pin both the Python version and the ansible-core version independently.

@@ -29,7 +29,7 @@ export const feature = features.find(f => f.id === 'golang');
 
 ## How It Works
 
-This feature downloads the official Go binary distribution from `go.dev` as a tarball (`go<version>.linux-amd64.tar.gz`) and installs it into a user-local directory. Go is a statically typed, compiled language designed for simplicity and performance, widely used for cloud infrastructure tooling, container runtimes, and CLI applications.
+This feature downloads the official Go binary distribution from `go.dev` as a tarball (`go<version>.linux-<arch>.tar.gz`) and installs it into a user-local directory. Go is a statically typed, compiled language designed for simplicity and performance, widely used for cloud infrastructure tooling, container runtimes, and CLI applications.
 
 The Ansible playbook creates `~/.local/share/go` as the Go installation root, downloads the tarball for the specified version, and verifies the SHA256 checksum to ensure the download has not been tampered with. A default checksum is provided for the bundled version, but you can override it when pinning to a different version. After verification, the tarball is extracted into the installation directory.
 

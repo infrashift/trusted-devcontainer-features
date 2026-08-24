@@ -1,6 +1,44 @@
 # SKELETON-feature/ansible-role-feature/vars/main.yml
 ---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns. None of it is caller-settable, which is why it
+# lives here and not in defaults/main.yml — defaults/ is reserved for inputs,
+# and this role has none.
+#
+# Derive architecture from _target_arch (amd64 | arm64), which
+# /opt/bootstrap/run-feature.sh injects unconditionally. Never hardcode it,
+# and never mask it with `| default(...)`: the mask only hides a broken runner
+# and yields a silently wrong binary on the arch it guessed.
+# ---------------------------------------------------------------------------
+_skeleton_platform: linux
+_skeleton_arch: "{{ _target_arch }}"
+# Example: skeleton_1.0.0_linux_amd64.tar.gz
+_skeleton_tarball: "skeleton_{{ _skeleton_version }}_{{ _skeleton_platform }}_{{ _skeleton_arch }}.tar.gz"
+_skeleton_download_url: "https://example.com/skeleton/releases/download/v{{ _skeleton_version }}/{{ _skeleton_tarball }}"
+
+# SHA256 digests pinned per version, per architecture. A version/arch pair that
+# is absent here resolves to '' and is caught by the checksum assert in
+# tasks/main.yml, rather than silently skipping verification.
+_skeleton_pinned_checksums:
+  "1.0.0":
+    amd64: "0000000000000000000000000000000000000000000000000000000000000000"
+    arm64: "1111111111111111111111111111111111111111111111111111111111111111"
+
+# Resolved checksum: an explicit _skeleton_checksum wins, otherwise the pinned
+# value for this version and arch. The input and the resolved value must be
+# separate names — set_fact cannot override an extra-var.
+_skeleton_effective_checksum: >-
+  {{ _skeleton_checksum if _skeleton_checksum | length > 0
+     else _skeleton_pinned_checksums.get(_skeleton_version, {}).get(_skeleton_arch, '') }}
 ...

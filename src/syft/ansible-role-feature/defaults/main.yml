@@ -1,15 +1,12 @@
 # syft-feature/ansible-role-feature/defaults/main.yml
 ---
-_syft_version: "1.42.0"
-_syft_platform: linux
-_syft_arch: amd64
-# Example: syft_1.42.0_linux_amd64.tar.gz
-_syft_tarball: syft_{{ _syft_version }}_{{ _syft_platform }}_{{ _syft_arch }}.tar.gz
-_syft_checksums_file: syft_{{ _syft_version }}_checksums.txt
-# Example: https://github.com/anchore/syft/releases/download/v1.42.0/syft_1.42.0_linux_amd64.tar.gz
-_syft_download_url: https://github.com/anchore/syft/releases/download/v{{ _syft_version }}/{{ _syft_tarball }}
-# Example: https://github.com/anchore/syft/releases/download/v1.42.0/syft_1.42.0_checksums.txt
-_syft_checksums_download_url: https://github.com/anchore/syft/releases/download/v{{ _syft_version }}/{{ _syft_checksums_file }}
-_syft_checksum:
-
+# Intentionally empty. This role has NO defaults.
+#
+# Every input is supplied as an extra-var by install.sh, sourced from the
+# option default in devcontainer-feature.json. A default here would be dead
+# code -- extra-vars outrank role defaults -- and a second source of truth
+# that silently wins whenever the wiring is broken.
+#
+# Derived values and role constants belong in vars/main.yml.
+# Required inputs are asserted in the PARAMETER BRACKET in tasks/main.yml.
 ...

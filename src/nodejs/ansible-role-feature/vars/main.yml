@@ -3,4 +3,30 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Computed from the inputs install.sh passes. Not caller-settable, so they live
+# here rather than in defaults/main.yml — defaults/ is reserved for inputs, and
+# this role has none.
+#
+# nodejs.org names its assets x64/arm64; _target_arch is injected as
+# amd64/arm64 by /opt/bootstrap/run-feature.sh. Never mask it with
+# `| default(...)`: that would install an x64 build on arm64 and then verify it
+# against the x64 digest from SHASUMS256.txt, passing while being wrong.
+# ---------------------------------------------------------------------------
+_nodejs_platform: linux
+_nodejs_arch: "{{ 'arm64' if _target_arch == 'arm64' else 'x64' }}"
+# Example: node-v22.16.0-linux-x64.tar.gz
+_nodejs_tarball: "node-v{{ _nodejs_version }}-{{ _nodejs_platform }}-{{ _nodejs_arch }}.tar.gz"
+# Example: https://nodejs.org/dist/v22.16.0/node-v22.16.0-linux-x64.tar.gz
+_nodejs_download_url: "https://nodejs.org/dist/v{{ _nodejs_version }}/{{ _nodejs_tarball }}"
+# Example: https://nodejs.org/dist/v22.16.0/SHASUMS256.txt
+_nodejs_checksums_download_url: "https://nodejs.org/dist/v{{ _nodejs_version }}/SHASUMS256.txt"
+# Resolved checksum: an explicit _nodejs_checksum wins, otherwise the value
+# parsed from the upstream checksums file (set_fact cannot override an
+# extra-var, so the input and the resolved value must be separate names).
+_nodejs_effective_checksum: "{{ _nodejs_checksum }}"
 ...

@@ -1,23 +1,129 @@
 name: Release Dev Container Features
 
+# Publishing stays on push to main -- that is the devcontainers convention, and
+# it matches how the reference repo promotes on merge. What was missing is who
+# approves and what proves it: this workflow previously published on every push
+# with workflow-level contents/packages write, no human gate, and no signature
+# on anything it pushed.
+
 on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  packages: write
+permissions: {}
+
+concurrency:
+  # Never cancel a release in flight. A half-published feature set is worse than
+  # a queued one.
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
+  contract:
+    name: role contract
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Verify the ADR-012 parameter contract
+        # The contract gate is cheap and container-free, so the release always
+        # waits for it. Before this existed, release.yaml had no `needs:` at all
+        # and a feature violating the contract still published.
+        run: ./scripts/check-role-contract.sh
+
+      - name: Compute the feature matrix
+        id: matrix
+        run: |
+          set -euo pipefail
+          find src -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort \
+            | grep -v '^SKELETON-feature$' \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))' > features.json
+          # Injection guard: these names reach `run:` blocks and OCI references.
+          if ! jq -e '
+            type == "array" and length > 0 and length <= 64 and
+            all(.[]; type == "string" and test("^[a-z0-9][a-z0-9-]{0,63}$"))
+          ' features.json > /dev/null; then
+            echo "::error::feature list failed schema validation"; cat features.json; exit 1
+          fi
+          jq -r '.[] | "  \(.)"' features.json
+          echo "features=$(jq -c '.' features.json)" >> "$GITHUB_OUTPUT"
+    outputs:
+      features: ${{ steps.matrix.outputs.features }}
+
+  publish:
+    name: Publish & sign
+    needs: contract
+    runs-on: ubuntu-latest
+    # The signing key lives here, so the contract job -- and anything that runs
+    # in it -- cannot sign or publish. That holds regardless of headcount and is
+    # the point of the environment. With a reviewer configured it also pauses
+    # for a person: a stop-and-look while the org has one member, separation of
+    # duties once it has two. See SETUP-ENVIRONMENTS.md step 3.
+    environment: Release-Actor
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # required for the keyless Rekor pass
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1   # keep in lockstep with tools.lock
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e # v0.4
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish features
-        uses: devcontainers/action@v1
+        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
         with:
           publish-features: "true"
           base-path-to-features: "./src"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign every published feature
+        env:
+          FEATURES: ${{ needs.contract.outputs.features }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: ./scripts/sign-features.sh
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-manifest
+          path: release-manifest.json
+          if-no-files-found: warn
+
+  summary:
+    name: Release Summary
+    needs: [contract, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report
+        env:
+          CONTRACT: ${{ needs.contract.result }}
+          PUBLISH: ${{ needs.publish.result }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Feature release"
+            echo
+            echo "| Stage | Result |"
+            echo "|---|---|"
+            echo "| Role contract | ${CONTRACT} |"
+            echo "| Publish & sign | ${PUBLISH} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for r in "$CONTRACT" "$PUBLISH"; do
+            case "$r" in success|skipped) : ;; *) echo "::error::release stage did not succeed (${r})"; exit 1 ;; esac
+          done

@@ -1,0 +1,25 @@
+# Pinned tool versions for the CI pipeline.
+#
+# Nothing here may be installed from a mutable ref. The sibling templates repo
+# installed the devcontainer CLI, syft, grype and OPA from unpinned URLs into
+# the same job that held its cosign signing key; this file exists so that
+# cannot happen here.
+#
+# Checksums live in scripts/install-tools.sh next to the download that uses
+# them, so a version bump that forgets its checksum fails loudly instead of
+# silently skipping verification.
+#
+# cosign: v2, not v3, deliberately. cosign v3 defaults to
+# --new-bundle-format=true and writes attestations as OCI referrers; v2 writes
+# the legacy sha256-<digest>.att layout, which the sibling repos read. Migrate
+# the org together, never one repo at a time.
+#
+# This file is kept byte-compatible with the templates repo's tools.lock so a
+# version bump can be applied to both without re-deriving checksums.
+
+COSIGN_VERSION=v2.6.1
+SYFT_VERSION=v1.51.0
+GRYPE_VERSION=v0.117.0
+OPA_VERSION=v1.19.1
+GITLEAKS_VERSION=v8.30.1
+DEVCONTAINER_CLI_VERSION=0.88.0

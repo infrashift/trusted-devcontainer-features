@@ -3,7 +3,7 @@ title: "ADR-006: Checksum Verification"
 description: Decision to support optional SHA256 checksum verification for downloaded binaries.
 ---
 
-**Status:** Accepted
+**Status:** Accepted — implementation amended by [ADR-012](/trusted-devcontainer-features/decisions/adr-012-feature-role-contract/)
 
 ## Context
 
@@ -28,3 +28,21 @@ For some tools (Grype, Syft, yq), the Ansible playbook downloads the official ch
 - **Mandatory checksums**: Rejected. Too burdensome for users who just want the latest version.
 - **GPG signature verification**: Considered for future implementation. More robust but requires managing public keys and not all upstream projects sign releases.
 - **cosign/sigstore verification**: Considered for future implementation. Requires additional tooling in the base image.
+
+## Amendment (ADR-012)
+
+This ADR was Accepted, but the implementation did not exist. `_cue_checksum`, `_uv_checksum`, and the
+`target_checksum` options were declared and defaulted to empty, and **no `get_url` task ever passed a
+`checksum:` argument** — one task was literally named *"Download CUElang binary (No checksum verification)"*.
+The `_cue_checksums_download_url` default pointed at a `checksums.txt` release asset that `cue-lang/cue`
+does not publish, so it would have 404'd had anything used it.
+
+Under [ADR-012](/trusted-devcontainer-features/decisions/adr-012-feature-role-contract/) verification is now structural:
+
+- Every `get_url` passes a `checksum:` argument.
+- Each role pins per-architecture SHA256 digests for the version it ships by default.
+- `target_checksum` overrides the pin, and is **required** when installing a non-default version — the
+  role asserts a checksum is available and fails with an actionable message rather than downloading blind.
+
+This changes the "optional by default" posture recorded above: verification is now mandatory, and the
+option exists to supply a digest rather than to skip one.

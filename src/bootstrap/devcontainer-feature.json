@@ -1,0 +1,29 @@
+// bootstrap-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "bootstrap-feature",
+    "id": "bootstrap",
+    "version": "1.1.0",
+    "description": "Provisions the pinned Ansible bootstrap environment (/opt/bootstrap) that every other trusted feature uses to install itself.",
+    "options": {
+        "uv_version": {
+            "type": "string",
+            "proposals": ["0.12.5"],
+            "default": "0.12.5",
+            "description": "uv release to install to /usr/local/bin"
+        },
+        "python_version": {
+            "type": "string",
+            "proposals": ["3.14", "3.13", "3.12"],
+            "default": "3.12",
+            "description": "uv-managed Python version backing the .bootstrap virtual environment"
+        },
+        "ansible_core_version": {
+            "type": "string",
+            "proposals": ["2.18.2"],
+            "default": "2.18.2",
+            "description": "ansible-core version pinned into the .bootstrap virtual environment"
+        }
+    },
+    "installsAfter": []
+}

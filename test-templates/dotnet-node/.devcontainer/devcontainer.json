@@ -3,6 +3,7 @@
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
+        "./bootstrap": {},
         "./dotnet": {},
         "./nodejs": {},
         "./npm": {},

@@ -3,7 +3,7 @@
 {
     "name": "python-feature",
     "id": "python",
-    "version": "1.0.1",
+    "version": "1.2.0",
     "description": "Installs a specific Python version via UV on Red Hat UBI DevContainers.",
     "options": {
         "target_version": {
@@ -22,5 +22,8 @@
     },
     "installsAfter": [
         "./uv-ruff"
-    ]
+    ],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
 }

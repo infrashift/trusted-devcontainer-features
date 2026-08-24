@@ -3,4 +3,5 @@
 _securedevcontainer_compatibility_list:
   - ubi9
   - ubi10
+  - fedora43
 ...

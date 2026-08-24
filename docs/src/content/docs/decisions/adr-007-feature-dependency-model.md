@@ -3,7 +3,7 @@ title: "ADR-007: Feature Dependency Model"
 description: Decision to use installsAfter for declarative feature dependency ordering.
 ---
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-009](/trusted-devcontainer-features/decisions/adr-009-mandatory-dependencies/)
 
 ## Context
 

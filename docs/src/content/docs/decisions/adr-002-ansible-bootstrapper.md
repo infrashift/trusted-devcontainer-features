@@ -5,6 +5,10 @@ description: Decision to use Ansible playbooks as the installation mechanism for
 
 **Status:** Accepted
 
+:::note
+This decision was re-examined during the Fedora migration and stands. [ADR-012](/trusted-devcontainer-features/decisions/adr-012-feature-role-contract/) tightens *how* the wrapper invokes Ansible; the choice of Ansible as the installation mechanism is unchanged.
+:::
+
 ## Context
 
 Each Dev Container Feature requires an `install.sh` script that runs as root during container build. These scripts typically contain imperative shell commands for downloading, verifying, extracting, and configuring tools. As the feature count grew, shell scripts became difficult to maintain, test, and keep consistent.

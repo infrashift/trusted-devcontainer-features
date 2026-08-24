@@ -6,9 +6,34 @@
     that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
     fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
 
-- name: Extract the UBI version number from _securedevcontainer_variant
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: "{{ _securedevcontainer_variant | regex_replace('^.*?(\\d+)$', '\\1') }}"
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _python_version is defined and _python_version | length > 0
+      - _python_version is match('^\d+\.\d+$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass it via -e, sourced from the matching option
+      default in devcontainer-feature.json:
+        _python_version <- target_version
+
+        target_version must look like X.Y (no patch component)
+    success_msg: "python {{ _python_version }} ({{ _target_arch }})"
 
 # Python installation tasks
 - name: Determine which uv binary to use
@@ -34,10 +59,7 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
-  ignore_errors: true
+  failed_when: false
   register: _python_find_result
   changed_when: false
 
@@ -47,11 +69,8 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
   register: _python_install_log
-  when: _python_find_result is failed
+  when: _python_find_result.rc != 0
 
 - name: Verify Python {{ _python_version }} is installed
   ansible.builtin.command:
@@ -59,20 +78,14 @@
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  become: true
-  become_user: "{{ _target_username }}"
-  become_method: su
   register: _python_verify_result
   changed_when: false
 
 - name: Assert that Python is installed and accessible
   ansible.builtin.assert:
-    that: "_python_verify_result.rc == 0"
+    that:
+      - _python_verify_result.rc == 0
+      - _python_verify_result.stdout is search('cpython-' ~ _python_version ~ '[.-]')
     fail_msg: "Python {{ _python_version }} could not be found after installation. Error: {{ _python_verify_result.stderr }}"
     success_msg: "Python {{ _python_version }} installed and verified."
-
-# Cleanup
-- name: Unset _securedevcontainer_ubi_version
-  ansible.builtin.set_fact:
-    _securedevcontainer_ubi_version: null
 ...
