@@ -1,0 +1,59 @@
+# envbuilder-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns. None of it is caller-settable, which is why it lives
+# here and not in defaults/main.yml.
+#
+# Derive architecture from _target_arch (amd64 | arm64), which
+# /opt/bootstrap/run-feature.sh injects unconditionally. Never hardcode it, and
+# never mask it with `| default(...)`: the mask only hides a broken runner and
+# yields a silently wrong binary on the arch it guessed.
+# ---------------------------------------------------------------------------
+_envbuilder_arch: "{{ _target_arch }}"
+
+_envbuilder_registry: ghcr.io
+_envbuilder_oci_repo: coder/envbuilder
+_envbuilder_token_url: "https://{{ _envbuilder_registry }}/token?scope=repository:{{ _envbuilder_oci_repo }}:pull&service={{ _envbuilder_registry }}"
+
+# Version-scoped install prefix, with a symlink into ~/.local/bin. The prefix is
+# what makes the installed version legible: envbuilder has no version subcommand
+# to ask (see tasks/main.yml), so the path is the only thing a probe can read.
+_envbuilder_prefix: "{{ _target_user_home }}/.local/share/envbuilder/{{ _envbuilder_version }}"
+_envbuilder_tmpdir: /tmp/envbuilder-feature-install
+_envbuilder_member: .envbuilder/bin/envbuilder
+
+# envbuilder publishes no release binaries -- its container image is the only
+# distribution channel, and the image is a single layer holding just the binary.
+#
+# An OCI blob is addressed by the sha256 of its own bytes, so the digest below is
+# simultaneously the download URL and the checksum that verifies it. That is what
+# keeps this feature inside ADR-006 without any new trust machinery.
+#
+# To re-derive after a version bump: read the image index for the tag (note the
+# tag carries NO v prefix, unlike kaniko's), take the per-arch manifest, and find
+# the layer whose tar contains .envbuilder/bin/envbuilder.
+_envbuilder_pinned_layers:
+  "1.3.0":
+    amd64: "257c506530406e3dbf5dd215862010b0818ae3b35fb0e0ef797ae48f5ea57ca5"
+    arm64: "aece3cc683a9a79976fe8346cd777220c7a7a4274a4aa71c29dfa2035e55b7f5"
+
+# Resolved digest: an explicit _envbuilder_checksum wins, otherwise the pinned
+# value for this version and arch. The input and the resolved value must be
+# separate names -- set_fact cannot override an extra-var. A version/arch pair
+# absent from the map resolves to '' and is caught by the assert in
+# tasks/main.yml, rather than silently skipping verification.
+_envbuilder_effective_checksum: >-
+  {{ _envbuilder_checksum if _envbuilder_checksum | length > 0
+     else _envbuilder_pinned_layers.get(_envbuilder_version, {}).get(_envbuilder_arch, '') }}
+...

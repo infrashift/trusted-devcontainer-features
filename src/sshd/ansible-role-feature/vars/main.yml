@@ -1,0 +1,37 @@
+# sshd-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns. None of it is caller-settable, which is why it lives
+# here and not in defaults/main.yml.
+# ---------------------------------------------------------------------------
+_sshd_packages:
+  - openssh-server
+
+# Written as a drop-in rather than by replacing sshd_config. Fedora's stock
+# config carries `Include /etc/ssh/sshd_config.d/*.conf` near the top, and sshd
+# keeps the FIRST value it obtains for a keyword -- so a 10- prefix wins over
+# the distribution's own 40- and 50- drop-ins, without editing either.
+_sshd_dropin_path: /etc/ssh/sshd_config.d/10-trusted-devcontainer.conf
+_sshd_sftp_server: /usr/libexec/openssh/sftp-server
+_sshd_entrypoint_path: /usr/local/share/ssh-init.sh
+
+# The rootless lane's private state. These templates set containerUser: dev, so
+# the entrypoint runs unprivileged and sshd cannot use /etc/ssh's root-owned
+# host keys or PAM. It gets its own host key and standalone config here instead,
+# which keeps /etc/ssh permissions untouched. Both lanes are exercised; see
+# tasks/main.yml and the entrypoint script.
+_sshd_user_dir: "{{ _target_user_home }}/.ssh/sshd"
+_sshd_user_config: "{{ _target_user_home }}/.ssh/sshd/sshd_config"
+_sshd_user_host_key: "{{ _target_user_home }}/.ssh/sshd/ssh_host_ed25519_key"
+...

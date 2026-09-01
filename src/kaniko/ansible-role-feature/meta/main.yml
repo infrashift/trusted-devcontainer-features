@@ -1,0 +1,24 @@
+# kaniko-feature/ansible-role-feature/meta/main.yml
+---
+galaxy_info:
+  author: ryancraig
+  description: kaniko executor and cache warmer installation for RHEL UBI and Fedora containers
+  company: infrashift.sh
+  min_ansible_version: "2.18"
+  platforms:
+  - name: EL
+    versions:
+    - 9
+    - 10
+  - name: Fedora
+    versions:
+    - 43
+  galaxy_tags:
+    - kaniko
+    - containers
+    - rhel
+    - fedora
+    - ubi
+
+dependencies: []
+...

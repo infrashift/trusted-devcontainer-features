@@ -1,0 +1,35 @@
+// sshd-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+//
+// THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR EVERY OPTION DEFAULT.
+//
+// This is the only feature in the collection that declares an "entrypoint".
+// Every other feature finishes its work at install time; sshd has to be started
+// again on each container start, which is exactly what the entrypoint chain is
+// for. The script always ends by exec-ing the command it was handed, so it adds
+// a daemon to the container without replacing whatever the image already ran.
+{
+    "name": "sshd-feature",
+    "id": "sshd",
+    "version": "1.0.0",
+    "description": "Installs and hardens an OpenSSH server for remote access to Red Hat UBI DevContainers.",
+    "options": {
+        "sshd_port": {
+            "type": "string",
+            "proposals": ["2222", "2200"],
+            "default": "2222",
+            "description": "TCP port the container's sshd listens on"
+        },
+        "authorized_keys_path": {
+            "type": "string",
+            "proposals": ["/run/secrets/authorized_keys"],
+            "default": "/run/secrets/authorized_keys",
+            "description": "Path checked at container start for the public keys to authorize. Mounted at runtime; never baked into the image."
+        }
+    },
+    "entrypoint": "/usr/local/share/ssh-init.sh",
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
+}

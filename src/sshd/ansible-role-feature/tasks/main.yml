@@ -1,0 +1,207 @@
+# sshd-feature/ansible-role-feature/tasks/main.yml
+---
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET
+# ---------------------------------------------------------------------------
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _sshd_port is defined and _sshd_port | length > 0
+      - _sshd_authorized_keys_path is defined and _sshd_authorized_keys_path | length > 0
+      # SHAPE VALIDATION — assert the value's form, not just its presence. A
+      # malformed port otherwise passes here and fails later as a config sshd
+      # refuses to load, which is far harder to trace back to the option.
+      - _sshd_port is match('^\d+$')
+      - _sshd_port | int > 0 and _sshd_port | int < 65536
+      - _sshd_authorized_keys_path is match('^/')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _sshd_port                 <- sshd_port             (mandatory, non-empty)
+        _sshd_authorized_keys_path <- authorized_keys_path  (mandatory, non-empty)
+
+        sshd_port must be digits only, and a valid TCP port (1-65535)
+        authorized_keys_path must be an absolute path
+    success_msg: "sshd on port {{ _sshd_port }}, keys from {{ _sshd_authorized_keys_path }}"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS — the privileged lane. This is one of only three features that
+# mutates system state; everything below runs as root by design.
+# ---------------------------------------------------------------------------
+- name: Install system packages ({{ _sshd_packages | join(', ') }})
+  ansible.builtin.include_tasks: /opt/bootstrap/tasks/install-packages.yml
+  vars:
+    _packages: "{{ _sshd_packages }}"
+
+# The base image creates its user with `useradd` and no password, which leaves
+# '!' in /etc/shadow. OpenSSH reads that as a LOCKED ACCOUNT and refuses public
+# key authentication before it ever opens authorized_keys -- the failure looks
+# like a rejected key, and nothing in the logs says "locked". '*' means "no
+# password login" without meaning "locked", which is what is actually wanted.
+#
+# Read /etc/shadow directly rather than using ansible.builtin.user: the module
+# reaches for Python's spwd, which was removed in 3.13 -- the very interpreter
+# the pinned bootstrap venv runs.
+- name: Check whether {{ _target_username }}'s account is locked in /etc/shadow
+  ansible.builtin.command:
+    argv:
+      - awk
+      - "-F:"
+      - "-v"
+      - "u={{ _target_username }}"
+      - "$1==u{print $2}"
+      - /etc/shadow
+  register: _sshd_shadow
+  changed_when: false
+
+- name: Unlock {{ _target_username }} for public-key authentication
+  ansible.builtin.command:
+    argv:
+      - usermod
+      - "-p"
+      - "*"
+      - "{{ _target_username }}"
+  when: _sshd_shadow.stdout is match('^!')
+  changed_when: true
+
+# Host keys are generated once, at install time, and baked into the image. They
+# therefore rotate on every rebuild -- the established convention here, and the
+# reason the matching SSH client config disables strict host key checking for
+# these workspaces. The entrypoint regenerates them if /etc/ssh turns up empty.
+- name: Generate the system host keys
+  ansible.builtin.command:
+    cmd: ssh-keygen -A
+    creates: /etc/ssh/ssh_host_ed25519_key
+
+- name: Write the sshd hardening drop-in
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: "{{ _sshd_dropin_path }}"
+    owner: root
+    group: root
+    mode: '0600'
+    validate: /usr/sbin/sshd -t -f %s
+  vars:
+    _sshd_standalone: false
+
+# ---------------------------------------------------------------------------
+# The rootless lane's private state.
+#
+# These templates set containerUser: dev, so the entrypoint runs unprivileged.
+# An unprivileged sshd cannot read /etc/ssh's root-owned host keys and cannot
+# use PAM, but it runs perfectly well from a config and host key the user owns
+# -- and it can only ever admit that same user, which is the AllowUsers policy
+# the config already states. Prepared here, at install time, so the first
+# container start does not pay for it.
+# ---------------------------------------------------------------------------
+- name: Create the rootless sshd state directory
+  ansible.builtin.file:
+    path: "{{ _sshd_user_dir }}"
+    state: directory
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    mode: '0700'
+
+- name: Generate the rootless lane's host key
+  ansible.builtin.command:
+    argv:
+      - ssh-keygen
+      - "-q"
+      - "-t"
+      - ed25519
+      - "-N"
+      - ""
+      - "-f"
+      - "{{ _sshd_user_host_key }}"
+    creates: "{{ _sshd_user_host_key }}"
+
+- name: Set ownership of the rootless lane's host key
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    mode: '0600'
+  loop:
+    - "{{ _sshd_user_host_key }}"
+    - "{{ _sshd_user_host_key }}.pub"
+
+- name: Write the rootless sshd configuration
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: "{{ _sshd_user_config }}"
+    owner: "{{ _target_username }}"
+    group: "{{ _target_username }}"
+    mode: '0600'
+    validate: /usr/sbin/sshd -t -f %s
+  vars:
+    _sshd_standalone: true
+
+- name: Install the ssh-init entrypoint
+  ansible.builtin.template:
+    src: ssh-init.sh.j2
+    dest: "{{ _sshd_entrypoint_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+
+# ---------------------------------------------------------------------------
+# Verification. sshd is not running at image build time, so what can be checked
+# is that it is installed and that both configurations it will be started from
+# actually load.
+# ---------------------------------------------------------------------------
+- name: Get the installed OpenSSH version
+  ansible.builtin.command:
+    cmd: /usr/sbin/sshd -V
+  changed_when: false
+  failed_when: false
+  register: _sshd_version_result
+
+- name: Validate the system sshd configuration
+  ansible.builtin.command:
+    cmd: /usr/sbin/sshd -t
+  changed_when: false
+  register: _sshd_system_validate
+
+- name: Validate the rootless sshd configuration
+  ansible.builtin.command:
+    cmd: "/usr/sbin/sshd -t -f {{ _sshd_user_config }}"
+  changed_when: false
+  register: _sshd_rootless_validate
+
+- name: Assert that sshd is installed and both configurations load
+  ansible.builtin.assert:
+    that:
+      - "'OpenSSH' in (_sshd_version_result.stdout ~ _sshd_version_result.stderr)"
+      - _sshd_system_validate.rc == 0
+      - _sshd_rootless_validate.rc == 0
+    fail_msg: >-
+      sshd is not usable. Version probe said
+      '{{ _sshd_version_result.stdout }}{{ _sshd_version_result.stderr }}';
+      system config rc={{ _sshd_system_validate.rc }},
+      rootless config rc={{ _sshd_rootless_validate.rc }}.
+    success_msg: >-
+      {{ (_sshd_version_result.stdout ~ _sshd_version_result.stderr) | trim }}
+      configured on port {{ _sshd_port }} (both lanes validated).
+...

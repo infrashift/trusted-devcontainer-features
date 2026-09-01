@@ -62,6 +62,9 @@ export default defineConfig({
 							label: 'Infrastructure',
 							items: [
 								{ label: 'Ansible Core', slug: 'features/ansible-core' },
+								{ label: 'envbuilder', slug: 'features/envbuilder', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'kaniko', slug: 'features/kaniko', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'sshd', slug: 'features/sshd', badge: { text: 'New', variant: 'tip' } },
 							],
 						},
 						{

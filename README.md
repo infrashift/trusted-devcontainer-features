@@ -14,17 +14,20 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `claude-code` | Installs Claude Code (Anthropic's AI coding assistant CLI) | `ghcr.io/infrashift/trusted-devcontainer-features/claude-code:latest` |
 | `cuelang` | Installs CUElang | `ghcr.io/infrashift/trusted-devcontainer-features/cuelang:latest` |
 | `dotnet` | Installs the .NET SDK | `ghcr.io/infrashift/trusted-devcontainer-features/dotnet:latest` |
+| `envbuilder` | Installs Coder envbuilder for building dev environments from repositories | `ghcr.io/infrashift/trusted-devcontainer-features/envbuilder:latest` |
 | `git` | Installs Git | `ghcr.io/infrashift/trusted-devcontainer-features/git:latest` |
 | `git-lfs` | Installs Git LFS | `ghcr.io/infrashift/trusted-devcontainer-features/git-lfs:latest` |
 | `golang` | Installs the Go programming language | `ghcr.io/infrashift/trusted-devcontainer-features/golang:latest` |
 | `grype` | Installs the Grype vulnerability scanner | `ghcr.io/infrashift/trusted-devcontainer-features/grype:latest` |
 | `jq` | Installs the jq JSON processor | `ghcr.io/infrashift/trusted-devcontainer-features/jq:latest` |
+| `kaniko` | Installs the kaniko executor and cache warmer for daemonless image builds | `ghcr.io/infrashift/trusted-devcontainer-features/kaniko:latest` |
 | `nodejs` | Installs Node.js | `ghcr.io/infrashift/trusted-devcontainer-features/nodejs:latest` |
 | `npm` | Updates npm to a specific version | `ghcr.io/infrashift/trusted-devcontainer-features/npm:latest` |
 | `openai-codex` | Installs OpenAI Codex CLI | `ghcr.io/infrashift/trusted-devcontainer-features/openai-codex:latest` |
 | `openjdk` | Installs OpenJDK | `ghcr.io/infrashift/trusted-devcontainer-features/openjdk:latest` |
 | `pnpm` | Installs the pnpm package manager | `ghcr.io/infrashift/trusted-devcontainer-features/pnpm:latest` |
 | `python` | Installs a specific Python version via UV | `ghcr.io/infrashift/trusted-devcontainer-features/python:latest` |
+| `sshd` | Installs and hardens an OpenSSH server for remote access to the container | `ghcr.io/infrashift/trusted-devcontainer-features/sshd:latest` |
 | `syft` | Installs the Syft SBOM generator | `ghcr.io/infrashift/trusted-devcontainer-features/syft:latest` |
 | `uv-ruff` | Installs UV and Ruff Python tools | `ghcr.io/infrashift/trusted-devcontainer-features/uv-ruff:latest` |
 | `yq` | Installs the yq YAML processor | `ghcr.io/infrashift/trusted-devcontainer-features/yq:latest` |

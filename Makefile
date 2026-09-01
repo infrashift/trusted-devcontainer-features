@@ -1,4 +1,4 @@
-TEMPLATES := go-cue dotnet-node java python ansible-cue extras
+TEMPLATES := go-cue dotnet-node java python ansible-cue extras infra
 
 .PHONY: help check-contract test test-template test-contract clean docs-dev
 

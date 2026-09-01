@@ -1,0 +1,38 @@
+---
+title: envbuilder
+description: Installs Coder envbuilder, which builds development environments from repositories in a container, on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'envbuilder');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature installs [envbuilder](https://github.com/coder/envbuilder), which builds a development environment from a repository's `devcontainer.json` or Dockerfile inside a running container, with no Docker daemon involved.
+
+Like kaniko, envbuilder publishes no release binaries — its container image is the only distribution channel, and that image is a single layer containing just the binary. The Ansible role therefore downloads one blob directly from the registry. An OCI blob is addressed by the sha256 of its own bytes, so the pinned digest is simultaneously the download URL and the checksum that verifies it. Digests are pinned per version and per architecture, and an unpinned combination fails by name rather than downloading something unverified. Note that envbuilder's image tags carry no `v` prefix, unlike kaniko's.
+
+The binary installs under `~/.local/share/envbuilder/<version>/` with a symlink into `~/.local/bin`. The role never executes it, deliberately. envbuilder has no version subcommand: `envbuilder version` prints its startup banner and then goes on to attempt a build, and a bogus subcommand produces byte-identical output. A probe that starts a build engine is not a probe, so the version-scoped path answers "which version is installed" and the pinned layer digest is what proves it.
+
+In normal use envbuilder is configured through `ENVBUILDER_*` environment variables rather than flags, and it is designed to run as a container's entrypoint rather than as an interactive command. Running it bare in a shell will start a build against the current workspace, so treat it as a build engine you invoke deliberately, not a utility you can safely poke at.

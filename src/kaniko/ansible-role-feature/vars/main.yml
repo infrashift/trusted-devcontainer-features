@@ -1,0 +1,88 @@
+# kaniko-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns. None of it is caller-settable, which is why it lives
+# here and not in defaults/main.yml.
+#
+# Derive architecture from _target_arch (amd64 | arm64), which
+# /opt/bootstrap/run-feature.sh injects unconditionally. Never hardcode it, and
+# never mask it with `| default(...)`: the mask only hides a broken runner and
+# yields a silently wrong binary on the arch it guessed.
+# ---------------------------------------------------------------------------
+_kaniko_arch: "{{ _target_arch }}"
+
+# The community fork that succeeded the archived GoogleContainerTools/kaniko.
+# This is the same upstream the infrashift Guix channel packages
+# (infrashift/packages/kaniko.scm) and that SSHadowForge builds from.
+_kaniko_registry: ghcr.io
+_kaniko_oci_repo: osscontainertools/kaniko
+_kaniko_token_url: "https://{{ _kaniko_registry }}/token?scope=repository:{{ _kaniko_oci_repo }}:pull&service={{ _kaniko_registry }}"
+
+# Version-scoped install prefix, with symlinks into ~/.local/bin. The prefix is
+# what makes the installed version legible: kaniko's warmer reports no version
+# at all (no `version` subcommand, no --version flag, nothing in --help), so the
+# path is the only thing a probe can read. It is also the idempotency probe --
+# see tasks/main.yml.
+_kaniko_prefix: "{{ _target_user_home }}/.local/share/kaniko/{{ _kaniko_version }}"
+_kaniko_tmpdir: /tmp/kaniko-feature-install
+
+# kaniko ships NO release binaries -- container images are its only distribution
+# channel ("kaniko is meant to be run as an image"). Each binary lives in its own
+# dedicated image layer, so a build is fetched as one blob rather than by
+# unpacking an image.
+#
+# An OCI blob is addressed by the sha256 of its own bytes, so the digest below is
+# simultaneously the download URL and the checksum that verifies it. That is what
+# keeps this feature inside ADR-006 without any new trust machinery.
+#
+# To re-derive after a version bump: read the image index for the tag, take the
+# per-arch manifest, and find the layer whose tar contains kaniko/executor
+# (tag `vX.Y.Z`) or kaniko/warmer (tag `vX.Y.Z-warmer`).
+_kaniko_pinned_layers:
+  "1.28.4":
+    amd64:
+      executor: "178745d29b29dc7eabe1112cddd1938ed36162d2903f65fd078ae17f982192ad"
+      warmer: "a7b033b96caaedce5ce559a612282051a1084f04839db7316ac347da3d90e2ba"
+    arm64:
+      executor: "4f06402af14b6367d8414579e78d218882eb8d4c3ab557471ef5ef35bdf820ed"
+      warmer: "f25076e9151e68c4476f7f4b5e9056ef42ea52bc717a71a4432644fe38c98f2f"
+
+# Resolved digests: an explicit input wins, otherwise the pinned value for this
+# version and arch. The input and the resolved value must be separate names --
+# set_fact cannot override an extra-var. A version/arch pair absent from the map
+# resolves to '' and is caught by the assert in tasks/main.yml, rather than
+# silently skipping verification.
+_kaniko_executor_effective_checksum: >-
+  {{ _kaniko_executor_checksum if _kaniko_executor_checksum | length > 0
+     else _kaniko_pinned_layers.get(_kaniko_version, {}).get(_kaniko_arch, {}).get('executor', '') }}
+_kaniko_warmer_effective_checksum: >-
+  {{ _kaniko_warmer_checksum if _kaniko_warmer_checksum | length > 0
+     else _kaniko_pinned_layers.get(_kaniko_version, {}).get(_kaniko_arch, {}).get('warmer', '') }}
+
+# The two binaries, as one table the install tasks loop over. Their installed
+# names carry the kaniko- prefix to match the Guix channel packages
+# (kaniko-executor / kaniko-warmer) and SSHadowForge, rather than the bare
+# executor/warmer the image uses -- `executor` on PATH is far too generic.
+_kaniko_binaries:
+  - name: executor
+    member: kaniko/executor
+    link: kaniko-executor
+    tag: "v{{ _kaniko_version }}"
+    checksum: "{{ _kaniko_executor_effective_checksum | trim }}"
+  - name: warmer
+    member: kaniko/warmer
+    link: kaniko-warmer
+    tag: "v{{ _kaniko_version }}-warmer"
+    checksum: "{{ _kaniko_warmer_effective_checksum | trim }}"
+...

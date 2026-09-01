@@ -101,6 +101,27 @@
     }
   },
   {
+    "id": "envbuilder",
+    "name": "envbuilder",
+    "description": "Installs Coder envbuilder, which builds development environments from repositories in a container, on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "infrastructure",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.3.0",
+        "description": "Select a supported envbuilder version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 of the OCI layer holding .envbuilder/bin/envbuilder"
+      }
+    }
+  },
+  {
     "id": "git",
     "name": "Git",
     "description": "Installs Git from source on Red Hat UBI DevContainers.",
@@ -182,6 +203,32 @@
         "type": "string",
         "default": "",
         "description": "SHA256 checksum for the jq binary"
+      }
+    }
+  },
+  {
+    "id": "kaniko",
+    "name": "kaniko",
+    "description": "Installs the kaniko executor and cache warmer on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "infrastructure",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.28.4",
+        "description": "Select a supported kaniko version"
+      },
+      "target_executor_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 of the OCI layer holding kaniko/executor"
+      },
+      "target_warmer_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 of the OCI layer holding kaniko/warmer"
       }
     }
   },
@@ -306,6 +353,27 @@
         "type": "string",
         "default": "3.12",
         "description": "Select a Python version to install"
+      }
+    }
+  },
+  {
+    "id": "sshd",
+    "name": "sshd",
+    "description": "Installs and hardens an OpenSSH server for remote access to Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "infrastructure",
+    "dependencies": [],
+    "options": {
+      "sshd_port": {
+        "type": "string",
+        "default": "2222",
+        "description": "TCP port the container's sshd listens on"
+      },
+      "authorized_keys_path": {
+        "type": "string",
+        "default": "/run/secrets/authorized_keys",
+        "description": "Path checked at container start for the public keys to authorize"
       }
     }
   },
