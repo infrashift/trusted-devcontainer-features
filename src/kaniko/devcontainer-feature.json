@@ -1,0 +1,40 @@
+// kaniko-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+//
+// THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR EVERY OPTION DEFAULT.
+//
+// The two checksums are OCI layer blob digests, not release-tarball hashes.
+// kaniko publishes no release binaries -- images are its only distribution
+// channel -- so each binary is fetched as the single layer that contains it.
+// A blob is addressed by the sha256 of its own bytes, which is why the digest
+// serves as both the URL and the checksum.
+{
+    "name": "kaniko-feature",
+    "id": "kaniko",
+    "version": "1.0.0",
+    "description": "Installs the kaniko executor and cache warmer on Red Hat UBI DevContainers.",
+    "options": {
+        "target_version": {
+            "type": "string",
+            "proposals": ["1.28.4", "1.28.3"],
+            "default": "1.28.4",
+            "description": "Select a supported kaniko version"
+        },
+        "target_executor_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA256 of the OCI layer holding kaniko/executor. Required when target_version is not pinned in the role's _kaniko_pinned_layers map."
+        },
+        "target_warmer_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA256 of the OCI layer holding kaniko/warmer. Required when target_version is not pinned in the role's _kaniko_pinned_layers map."
+        }
+    },
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "build": { "dockerfile": "../../shared/Containerfile" },
+    "containerUser": "dev",
+    "updateRemoteUserUID": false,
+    "features": {
+        "./bootstrap": {},
+        "./kaniko": {},
+        "./envbuilder": {},
+        "./sshd": {}
+    }
+}

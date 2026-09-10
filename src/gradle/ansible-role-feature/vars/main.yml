@@ -1,0 +1,52 @@
+# gradle-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns. None of it is caller-settable, which is why it lives
+# here and not in defaults/main.yml.
+#
+# Gradle is pure Java: one distribution serves every architecture, so
+# _target_arch does not enter the URL and the pinned map is keyed by version
+# alone. The runner still injects it, and the runner-contract assert still
+# checks it, so a broken runner is caught rather than tolerated.
+# ---------------------------------------------------------------------------
+# Example: gradle-9.7.1-bin.zip
+_gradle_archive: "gradle-{{ _gradle_version }}-bin.zip"
+_gradle_download_url: "https://services.gradle.org/distributions/{{ _gradle_archive }}"
+
+# Version-scoped install prefix, with a symlink into ~/.local/bin. The zip
+# unpacks to gradle-<version>/, so the upstream directory name is the prefix
+# (unzip cannot strip a leading component the way tar can). It is also the
+# idempotency probe -- see tasks/main.yml.
+_gradle_prefix: "{{ _target_user_home }}/.local/share/gradle/gradle-{{ _gradle_version }}"
+_gradle_tmpdir: /tmp/gradle-feature-install
+
+# Where the openjdk feature installs its JDK. gradle cannot run without one,
+# and the userland lane does not carry openjdk's containerEnv, so the
+# verification task points JAVA_HOME here when this path exists.
+_gradle_java_home: "{{ _target_user_home }}/.local/share/java"
+
+# SHA256 digests pinned per version, from the .sha256 file Gradle publishes
+# next to each distribution at services.gradle.org.
+_gradle_pinned_checksums:
+  "9.7.1": "acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a"
+  "8.14.5": "6f74b601422d6d6fc4e1f9a1ab6522f642c2fdcbc15ae33ebd30ba3d7198e854"
+
+# Resolved checksum: an explicit _gradle_checksum wins, otherwise the pinned
+# value for this version. A version absent from the map resolves to '' and is
+# caught by the assert in tasks/main.yml. The two names must differ: an
+# extra-var has the highest precedence in Ansible and cannot be overridden.
+_gradle_effective_checksum: >-
+  {{ _gradle_checksum if _gradle_checksum | length > 0
+     else _gradle_pinned_checksums.get(_gradle_version, '') }}
+...

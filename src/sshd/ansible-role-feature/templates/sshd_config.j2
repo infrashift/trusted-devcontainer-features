@@ -1,0 +1,31 @@
+# {{ 'Standalone sshd configuration for the rootless lane' if _sshd_standalone else 'Drop-in for the system sshd' }}.
+# Managed by the infrashift 'sshd' devcontainer feature. Edits are overwritten.
+#
+# Both lanes render from one template so the hardening cannot drift between the
+# privileged and unprivileged paths.
+{% if _sshd_standalone %}
+
+# Only meaningful standalone: the drop-in inherits these from the stock config.
+HostKey {{ _sshd_user_host_key }}
+PidFile {{ _sshd_user_dir }}/sshd.pid
+Subsystem sftp {{ _sshd_sftp_server }}
+{% endif %}
+
+Port {{ _sshd_port }}
+
+# Public keys only. AuthenticationMethods makes that structural rather than a
+# consequence of the other two lines happening to be set.
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+AllowUsers {{ _target_username }}
+AuthorizedKeysFile .ssh/authorized_keys
+
+# PAM needs root, which the rootless lane does not have. Setting it off in both
+# lanes keeps their behaviour identical, and costs nothing here: this server
+# only ever accepts a public key, so there is no PAM auth stack worth running.
+UsePAM no
+
+X11Forwarding no

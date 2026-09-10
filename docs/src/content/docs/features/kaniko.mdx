@@ -1,0 +1,38 @@
+---
+title: kaniko
+description: Installs the kaniko executor and cache warmer on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'kaniko');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature installs the [kaniko](https://github.com/osscontainertools/kaniko) executor and cache warmer as `kaniko-executor` and `kaniko-warmer`. Upstream is the `osscontainertools/kaniko` community fork that succeeded the archived `GoogleContainerTools/kaniko`, and it is the same upstream the infrashift Guix channel packages.
+
+kaniko publishes no release binaries — container images are its only distribution channel. Each binary happens to occupy its own dedicated image layer, so the Ansible role downloads exactly one blob per binary straight from the registry rather than unpacking an image, and needs no container runtime to do it. Because an OCI blob is addressed by the sha256 of its own bytes, the pinned digest serves as both the download URL and the checksum that verifies it, which keeps the feature inside ADR-006 with no new verification machinery. Digests are pinned per version and per architecture; an unpinned combination is a named failure rather than a silent skip of verification.
+
+Both binaries install under a version-scoped prefix, `~/.local/share/kaniko/<version>/`, with symlinks into `~/.local/bin`. The prefix is not decoration: `kaniko-warmer` has no `version` subcommand, no `--version` flag and nothing in its help output, so the path is the only place the installed version is legible. The role verifies the executor by running `kaniko-executor version` and matching the requested version, and verifies the warmer by confirming its symlink resolves to an executable inside that prefix.
+
+One caveat matters more than the rest: kaniko is not a normal CLI. The executor unpacks the base image into its own `/` and sweeps the root filesystem, so running it unwrapped inside a dev container will try to modify the container's own root. This feature installs the binaries; making that safe requires running the executor chrooted into a synthetic root, which needs only `CAP_SYS_CHROOT`. See the feature's `NOTES.md` for the details and a pointer to a working implementation.

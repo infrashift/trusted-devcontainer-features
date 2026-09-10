@@ -36,6 +36,8 @@ export default defineConfig({
 						{
 							label: 'Package Managers',
 							items: [
+								{ label: 'Gradle', slug: 'features/gradle', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'Maven', slug: 'features/maven', badge: { text: 'New', variant: 'tip' } },
 								{ label: 'npm', slug: 'features/npm' },
 								{ label: 'pnpm', slug: 'features/pnpm' },
 								{ label: 'UV & Ruff', slug: 'features/uv-ruff' },
@@ -62,6 +64,9 @@ export default defineConfig({
 							label: 'Infrastructure',
 							items: [
 								{ label: 'Ansible Core', slug: 'features/ansible-core' },
+								{ label: 'envbuilder', slug: 'features/envbuilder', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'kaniko', slug: 'features/kaniko', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'sshd', slug: 'features/sshd', badge: { text: 'New', variant: 'tip' } },
 							],
 						},
 						{

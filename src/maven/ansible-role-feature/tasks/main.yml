@@ -1,0 +1,157 @@
+# maven-feature/ansible-role-feature/tasks/main.yml
+---
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET
+# ---------------------------------------------------------------------------
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _maven_version is defined and _maven_version | length > 0
+      - _maven_checksum is defined
+      # SHAPE VALIDATION — assert the value's form, not just its presence. A
+      # malformed version otherwise passes here and fails later as a miss
+      # against the pinned map, which is far harder to trace back to the option.
+      - _maven_version is match('^\d+\.\d+\.\d+$')
+      # Apache publishes SHA512, so the override is 128 hex characters, not 64.
+      - _maven_checksum | length == 0 or _maven_checksum is match('^[0-9a-fA-F]{128}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _maven_version  <- target_version   (mandatory, non-empty)
+        _maven_checksum <- target_checksum  (may be empty; resolved from the pinned map.
+                                             NOTE: a SHA512, not a SHA256)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 128-character SHA512 hex digest
+    success_msg: "maven {{ _maven_version }}"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS
+#
+# Probe by path, not by execution. mvn cannot run without a JDK, and the
+# userland lane carries no JAVA_HOME, so "is 3.9.16 already here" is answered
+# by the version-scoped prefix rather than by asking mvn.
+# ---------------------------------------------------------------------------
+- name: Check whether Maven {{ _maven_version }} is already installed
+  ansible.builtin.stat:
+    path: "{{ _maven_prefix }}/bin/mvn"
+  register: _maven_installed
+
+- name: Determine whether Maven {{ _maven_version }} needs installing
+  ansible.builtin.set_fact:
+    _maven_install_required: "{{ not _maven_installed.stat.exists }}"
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download, so an unpinned version is a named
+# error rather than a silently unverified tarball. See ADR-006.
+- name: Assert that a checksum is available for Maven {{ _maven_version }}
+  ansible.builtin.assert:
+    that: _maven_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA512 is pinned for {{ _maven_tarball }}. Pass target_checksum to
+      install a version that is not in the role's pinned map. Apache publishes
+      it at {{ _maven_download_url }}.sha512
+  when: _maven_install_required | bool
+
+- name: Ensure ~/.local/share/maven exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/share/maven"
+    state: directory
+    mode: '0755'
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Create the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _maven_tmpdir }}"
+    state: directory
+    mode: '0755'
+  when: _maven_install_required | bool
+
+- name: Download the Maven {{ _maven_version }} distribution
+  ansible.builtin.get_url:
+    url: "{{ _maven_download_url }}"
+    dest: "{{ _maven_tmpdir }}/{{ _maven_tarball }}"
+    checksum: "sha512:{{ _maven_effective_checksum }}"
+    mode: '0644'
+    timeout: 60
+  when: _maven_install_required | bool
+
+# The tarball's top-level directory is apache-maven-<version>/, which is
+# exactly the version-scoped prefix, so no rename is needed.
+- name: Extract Maven into {{ _maven_prefix }}
+  ansible.builtin.unarchive:
+    src: "{{ _maven_tmpdir }}/{{ _maven_tarball }}"
+    dest: "{{ _target_user_home }}/.local/share/maven"
+    copy: false
+  when: _maven_install_required | bool
+
+# The mvn launcher resolves $0 through symlinks to find its own home, so a
+# link is enough; no MAVEN_HOME or containerEnv is required.
+- name: Link mvn into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _maven_prefix }}/bin/mvn"
+    dest: "{{ _target_user_home }}/.local/bin/mvn"
+    state: link
+
+- name: Remove the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _maven_tmpdir }}"
+    state: absent
+
+# mvn needs a JDK to print its version. The openjdk feature installs one under
+# ~/.local/share/java but exposes it only through containerEnv, which is not
+# in effect here, so JAVA_HOME is pointed there explicitly when it exists.
+# Without it, mvn falls back to whatever java is on PATH -- a system JDK.
+- name: Check whether the openjdk feature's JDK is present
+  ansible.builtin.stat:
+    path: "{{ _maven_java_home }}/bin/java"
+  register: _maven_feature_jdk
+
+- name: Get the Maven version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/mvn --version"
+  environment: "{{ {'JAVA_HOME': _maven_java_home} if _maven_feature_jdk.stat.exists else {} }}"
+  changed_when: false
+  failed_when: false
+  register: _maven_verify
+
+# mvn prints "Apache Maven 3.9.16 (<sha>)". The trailing space anchors the
+# match so 3.9.160 could never pass for 3.9.16.
+- name: Assert that Maven is installed and accessible
+  ansible.builtin.assert:
+    that:
+      - _maven_verify.rc == 0
+      - "('Apache Maven ' ~ _maven_version ~ ' ') in _maven_verify.stdout"
+    fail_msg: >-
+      Expected Apache Maven {{ _maven_version }}; mvn exited {{ _maven_verify.rc }}
+      and reported: {{ _maven_verify.stdout }} {{ _maven_verify.stderr }}.
+      Maven requires a JDK: add the openjdk feature, or provide java on PATH.
+    success_msg: "{{ _maven_verify.stdout_lines[0] }}"
+...

@@ -1,0 +1,42 @@
+// maven-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+//
+// THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR EVERY OPTION DEFAULT.
+//
+// target_checksum is a SHA512, not a SHA256: Apache publishes only a .sha512
+// next to each Maven distribution, so that is the digest a user can copy for
+// a version the role does not pin. The role verifies it as sha512 directly.
+{
+    "name": "maven-feature",
+    "id": "maven",
+    "version": "1.0.0",
+    "description": "Installs Apache Maven on Red Hat UBI DevContainers.",
+    "options": {
+        // See available versions at https://maven.apache.org/download.cgi and
+        // https://archive.apache.org/dist/maven/maven-3/
+        "target_version": {
+            "type": "string",
+            "proposals": ["3.9.16"],
+            "default": "3.9.16",
+            "description": "Select a supported Apache Maven version"
+        },
+        // Found at https://archive.apache.org/dist/maven/maven-3/<version>/binaries/apache-maven-<version>-bin.tar.gz.sha512
+        "target_checksum": {
+            "type": "string",
+            "proposals": [],
+            "default": "",
+            "description": "SHA512 of apache-maven-<version>-bin.tar.gz. Required only when target_version is not pinned in the role's _maven_pinned_checksums map."
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vscjava.vscode-maven"
+            ]
+        }
+    },
+    "installsAfter": ["./openjdk"],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
+}

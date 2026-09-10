@@ -67,6 +67,10 @@ latest_for() {
         npm)          npm_dist npm ;;
         pnpm)         npm_dist pnpm ;;
         ansible-core) fetch https://pypi.org/pypi/ansible-core/json | jq -r '.info.version' ;;
+        kaniko)       gh_tag osscontainertools/kaniko 'sed s/^v//' ;;
+        envbuilder)   gh_tag coder/envbuilder       'sed s/^v//' ;;
+        maven)        gh_tag apache/maven            'sed s/^maven-//' ;;
+        gradle)       gh_tag gradle/gradle           'sed s/^v//' ;;
 
         # Resolved WITHIN the declared major line. Comparing node 22.23.2 against
         # 24.19.0 would report drift for a deliberate decision -- a major bump is

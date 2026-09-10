@@ -117,6 +117,16 @@ declare -A ROLE_ARGS=(
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.12.1+1 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.12.5 -e _uv_checksum= -e _ruff_version=0.16.4'
   [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.13'
+  [kaniko]='-e _kaniko_version=1.28.4 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
+  [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
+  [maven]='-e _maven_version=3.9.16 -e _maven_checksum='
+  [gradle]='-e _gradle_version=9.7.1 -e _gradle_checksum='
+  # sshd carries a RUNNER flag, not just role args. run_role does not pass
+  # --privileged, and sshd is one of the three features that needs it: the
+  # userland lane cannot write /etc/ssh, so the second run would fail on
+  # permissions rather than report changed=0. run-feature.sh parses its
+  # arguments in any order, so the flag rides along here.
+  [sshd]='--privileged -e _sshd_port=2222 -e _sshd_authorized_keys_path=/run/secrets/authorized_keys'
   # Filled in below from what is actually installed -- see the note there.
   [claude-code]=''
   [openai-codex]=''
@@ -164,9 +174,64 @@ if [[ " ${FEATURES[*]} " == *" cuelang "* ]]; then
         run_role cuelang -e _cue_version=0.15 -e _cue_checksum=
 fi
 
+# maven pins SHA512, the only digest Apache publishes, so its shape messages
+# differ from every SHA256 feature. gradle accepts X.Y as well as X.Y.Z.
+if [[ " ${FEATURES[*]} " == *" maven "* ]]; then
+    check_fails "maven: missing -e is named" "_maven_checksum is defined" \
+        run_role maven -e _maven_version=3.9.16
+    check_fails "maven: empty mandatory option stops in the shell" "resolved empty" \
+        run_install maven TARGET_VERSION= TARGET_CHECKSUM=
+    check_fails "maven: unpinned version refuses to download unverified" "No SHA512 is pinned" \
+        run_role maven -e _maven_version=3.9.9 -e _maven_checksum=
+    check_fails "maven: malformed checksum is rejected by shape" "must be a 128-character SHA512" \
+        run_role maven -e _maven_version=3.9.16 -e _maven_checksum=deadbeef
+    check_fails "maven: malformed version is rejected by shape" "must look like X.Y.Z" \
+        run_role maven -e _maven_version=3.9 -e _maven_checksum=
+fi
+
+if [[ " ${FEATURES[*]} " == *" gradle "* ]]; then
+    check_fails "gradle: missing -e is named" "_gradle_checksum is defined" \
+        run_role gradle -e _gradle_version=9.7.1
+    check_fails "gradle: empty mandatory option stops in the shell" "resolved empty" \
+        run_install gradle TARGET_VERSION= TARGET_CHECKSUM=
+    check_fails "gradle: unpinned version refuses to download unverified" "No SHA256 is pinned" \
+        run_role gradle -e _gradle_version=8.10 -e _gradle_checksum=
+    check_fails "gradle: malformed checksum is rejected by shape" "must be a 64-character SHA256" \
+        run_role gradle -e _gradle_version=9.7.1 -e _gradle_checksum=deadbeef
+    check_fails "gradle: malformed version is rejected by shape" "must look like X.Y or X.Y.Z" \
+        run_role gradle -e _gradle_version=9 -e _gradle_checksum=
+fi
+
 if [[ " ${FEATURES[*]} " == *" grype "* ]]; then
     check_fails "checksums-file role names its missing param" "_grype_checksum is defined" \
         run_role grype -e _grype_version=0.117.0
+fi
+
+# The OCI-layer features resolve their digest from a pinned map rather than an
+# upstream checksums file, so they get their own coverage of that path.
+if [[ " ${FEATURES[*]} " == *" kaniko "* ]]; then
+    check_fails "unpinned version refuses to download unverified" "No SHA256 is pinned" \
+        run_role kaniko -e _kaniko_version=1.28.3 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum=
+    check_fails "missing -e is named" "_kaniko_warmer_checksum is defined" \
+        run_role kaniko -e _kaniko_version=1.28.4 -e _kaniko_executor_checksum=
+    check_fails "malformed version is rejected by shape" "must look like X.Y.Z" \
+        run_role kaniko -e _kaniko_version=1.28 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum=
+    check_fails "empty mandatory option stops in the shell" "resolved empty" \
+        run_install kaniko TARGET_VERSION= TARGET_EXECUTOR_CHECKSUM= TARGET_WARMER_CHECKSUM=
+fi
+
+if [[ " ${FEATURES[*]} " == *" envbuilder "* ]]; then
+    check_fails "malformed checksum is rejected by shape" "must be a 64-character SHA256" \
+        run_role envbuilder -e _envbuilder_version=1.3.0 -e _envbuilder_checksum=deadbeef
+fi
+
+# sshd's options are neither versions nor checksums, so its shape validation is
+# the one place the port/path contract is exercised.
+if [[ " ${FEATURES[*]} " == *" sshd "* ]]; then
+    check_fails "non-numeric port is rejected by shape" "digits only" \
+        run_role sshd --privileged -e _sshd_port=http -e _sshd_authorized_keys_path=/run/secrets/authorized_keys
+    check_fails "relative keys path is rejected by shape" "must be an absolute path" \
+        run_role sshd --privileged -e _sshd_port=2222 -e _sshd_authorized_keys_path=secrets/authorized_keys
 fi
 
 if [[ " ${FEATURES[*]} " == *" python "* ]]; then

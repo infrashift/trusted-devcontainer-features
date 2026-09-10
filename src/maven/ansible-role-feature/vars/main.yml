@@ -1,0 +1,54 @@
+# maven-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns. None of it is caller-settable, which is why it lives
+# here and not in defaults/main.yml.
+#
+# Maven is pure Java: one distribution serves every architecture, so
+# _target_arch does not enter the URL and the pinned map is keyed by version
+# alone. The runner still injects it, and the runner-contract assert still
+# checks it, so a broken runner is caught rather than tolerated.
+# ---------------------------------------------------------------------------
+# Example: apache-maven-3.9.16-bin.tar.gz
+_maven_tarball: "apache-maven-{{ _maven_version }}-bin.tar.gz"
+# archive.apache.org holds every release, the current one included. The
+# dlcdn.apache.org mirror drops a version as soon as it is superseded, which
+# would turn a pinned older version into a 404.
+_maven_download_url: "https://archive.apache.org/dist/maven/maven-3/{{ _maven_version }}/binaries/{{ _maven_tarball }}"
+
+# Version-scoped install prefix, with a symlink into ~/.local/bin. The tarball
+# unpacks to apache-maven-<version>/, so the upstream directory name is the
+# prefix. It is also the idempotency probe -- see tasks/main.yml.
+_maven_prefix: "{{ _target_user_home }}/.local/share/maven/apache-maven-{{ _maven_version }}"
+_maven_tmpdir: /tmp/maven-feature-install
+
+# Where the openjdk feature installs its JDK. mvn cannot run without one, and
+# the userland lane does not carry openjdk's containerEnv, so the verification
+# task points JAVA_HOME here when this path exists.
+_maven_java_home: "{{ _target_user_home }}/.local/share/java"
+
+# SHA512 digests pinned per version, from the .sha512 file Apache publishes
+# next to each distribution. SHA512 rather than SHA256 because that is the
+# only digest upstream publishes, so it is the one a user can verify against.
+_maven_pinned_checksums:
+  "3.9.16": "831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6"
+
+# Resolved checksum: an explicit _maven_checksum wins, otherwise the pinned
+# value for this version. A version absent from the map resolves to '' and is
+# caught by the assert in tasks/main.yml. The two names must differ: an
+# extra-var has the highest precedence in Ansible and cannot be overridden.
+_maven_effective_checksum: >-
+  {{ _maven_checksum if _maven_checksum | length > 0
+     else _maven_pinned_checksums.get(_maven_version, '') }}
+...

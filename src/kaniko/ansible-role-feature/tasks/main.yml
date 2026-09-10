@@ -1,0 +1,209 @@
+# kaniko-feature/ansible-role-feature/tasks/main.yml
+---
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET
+# ---------------------------------------------------------------------------
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _kaniko_version is defined and _kaniko_version | length > 0
+      - _kaniko_executor_checksum is defined
+      - _kaniko_warmer_checksum is defined
+      # SHAPE VALIDATION — assert the value's form, not just its presence. A
+      # malformed version otherwise passes here and fails later as a miss
+      # against the pinned map, which is far harder to trace back to the option.
+      - _kaniko_version is match('^\d+\.\d+\.\d+$')
+      - _kaniko_executor_checksum | length == 0 or _kaniko_executor_checksum is match('^[0-9a-fA-F]{64}$')
+      - _kaniko_warmer_checksum | length == 0 or _kaniko_warmer_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _kaniko_version           <- target_version            (mandatory, non-empty)
+        _kaniko_executor_checksum <- target_executor_checksum  (may be empty; resolved from the pinned map)
+        _kaniko_warmer_checksum   <- target_warmer_checksum    (may be empty; resolved from the pinned map)
+
+        target_version must look like X.Y.Z
+        each checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "kaniko {{ _kaniko_version }} ({{ _kaniko_arch }})"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS
+#
+# Probe by PATH, not by execution. kaniko's warmer has no version output of any
+# kind, and the executor's own `version` subcommand cannot run before it is
+# installed, so the version-scoped prefix is what makes "is 1.28.4 already here"
+# answerable. Both binaries are treated as one unit: they come from the same
+# source commit, and a half-installed pair should be repaired, not preserved.
+# ---------------------------------------------------------------------------
+- name: Check which kaniko {{ _kaniko_version }} binaries are already installed
+  ansible.builtin.stat:
+    path: "{{ _kaniko_prefix }}/{{ item.name }}"
+  loop: "{{ _kaniko_binaries }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: _kaniko_installed
+
+- name: Determine whether kaniko {{ _kaniko_version }} needs installing
+  ansible.builtin.set_fact:
+    _kaniko_install_required: >-
+      {{ _kaniko_installed.results | rejectattr('stat.exists') | list | length > 0 }}
+
+# A resolved-empty digest means get_url would SKIP verification rather than fail
+# it. Assert it before the download, so an unpinned version/arch combination is
+# a named error rather than a silently unverified binary. See ADR-006.
+- name: Assert that a layer digest is pinned for kaniko {{ _kaniko_version }} ({{ _kaniko_arch }})
+  ansible.builtin.assert:
+    that: item.checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for the kaniko {{ item.name }} layer at version
+      {{ _kaniko_version }} on {{ _kaniko_arch }}. Pass
+      target_{{ item.name }}_checksum to install a version or architecture
+      other than the pinned default.
+  loop: "{{ _kaniko_binaries }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: _kaniko_install_required | bool
+
+- name: Ensure the kaniko install prefix exists
+  ansible.builtin.file:
+    path: "{{ _kaniko_prefix }}"
+    state: directory
+    mode: '0755'
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Create the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _kaniko_tmpdir }}"
+    state: directory
+    mode: '0755'
+  when: _kaniko_install_required | bool
+
+# The pull token is anonymous, read-only and scoped to this one public
+# repository, and it expires in minutes. It is not a credential the image
+# carries, which is why it is fetched per run rather than configured.
+- name: Obtain an anonymous pull token for {{ _kaniko_oci_repo }}
+  ansible.builtin.uri:
+    url: "{{ _kaniko_token_url }}"
+    return_content: true
+    timeout: 60
+  register: _kaniko_pull_token
+  when: _kaniko_install_required | bool
+
+# The blob endpoint redirects to a pre-signed CDN URL that needs no auth, so
+# nothing is lost when the Authorization header is dropped across the redirect.
+- name: Download the kaniko {{ _kaniko_version }} layers
+  ansible.builtin.get_url:
+    url: "https://{{ _kaniko_registry }}/v2/{{ _kaniko_oci_repo }}/blobs/sha256:{{ item.checksum }}"
+    dest: "{{ _kaniko_tmpdir }}/{{ item.name }}.tar.gz"
+    checksum: "sha256:{{ item.checksum }}"
+    headers:
+      Authorization: "Bearer {{ _kaniko_pull_token.json.token }}"
+    mode: '0644'
+    timeout: 60
+  loop: "{{ _kaniko_binaries }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.tag }})"
+  when: _kaniko_install_required | bool
+
+# --strip-components=1 drops the layer's kaniko/ prefix so the binary lands
+# directly in the version prefix. Doing it here avoids a separate move task,
+# which would report changed=1 on every re-run.
+- name: Extract the kaniko binaries into {{ _kaniko_prefix }}
+  ansible.builtin.unarchive:
+    src: "{{ _kaniko_tmpdir }}/{{ item.name }}.tar.gz"
+    dest: "{{ _kaniko_prefix }}"
+    copy: false
+    extra_opts:
+      - --strip-components=1
+      - --wildcards
+      - "{{ item.member }}"
+  loop: "{{ _kaniko_binaries }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: _kaniko_install_required | bool
+
+- name: Link the kaniko binaries into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _kaniko_prefix }}/{{ item.name }}"
+    dest: "{{ _target_user_home }}/.local/bin/{{ item.link }}"
+    state: link
+  loop: "{{ _kaniko_binaries }}"
+  loop_control:
+    label: "{{ item.link }}"
+
+- name: Remove the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _kaniko_tmpdir }}"
+    state: absent
+
+# The executor reports "Kaniko version :  v1.28.4" and exits 0. Match the real
+# format, including the v prefix -- a bare substring test would also pass for
+# 1.28.40 if such a version ever shipped.
+- name: Get the kaniko executor version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/kaniko-executor version"
+  changed_when: false
+  register: _kaniko_executor_verify
+
+- name: Assert that the kaniko executor is installed and accessible
+  ansible.builtin.assert:
+    that: "('v' ~ _kaniko_version) in _kaniko_executor_verify.stdout"
+    fail_msg: "Expected kaniko v{{ _kaniko_version }}; executor reported: {{ _kaniko_executor_verify.stdout }}"
+    success_msg: "{{ _kaniko_executor_verify.stdout | trim }}"
+
+# The warmer cannot be asked its version -- it has no version subcommand, no
+# --version flag, and nothing in --help. Running it with no arguments exits
+# non-zero by design. So assert what can actually be established: the link
+# resolves into the version-scoped prefix, and the target is executable. The
+# pinned layer digest is what proves which version that is.
+- name: Stat the kaniko-warmer symlink
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/kaniko-warmer"
+    follow: false
+  register: _kaniko_warmer_link
+
+- name: Stat the kaniko warmer binary the symlink resolves to
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/kaniko-warmer"
+    follow: true
+  register: _kaniko_warmer_target
+
+- name: Assert that the kaniko warmer is installed and accessible
+  ansible.builtin.assert:
+    that:
+      - _kaniko_warmer_link.stat.islnk
+      - _kaniko_warmer_link.stat.lnk_source == _kaniko_prefix ~ '/warmer'
+      - _kaniko_warmer_target.stat.exists
+      - _kaniko_warmer_target.stat.executable
+    fail_msg: >-
+      kaniko-warmer does not resolve to an executable at
+      {{ _kaniko_prefix }}/warmer.
+    success_msg: "kaniko-warmer {{ _kaniko_version }} installed and verified."
+...

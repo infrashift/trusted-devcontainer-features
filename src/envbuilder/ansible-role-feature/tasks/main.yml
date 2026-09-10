@@ -1,0 +1,173 @@
+# envbuilder-feature/ansible-role-feature/tasks/main.yml
+---
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET
+# ---------------------------------------------------------------------------
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _envbuilder_version is defined and _envbuilder_version | length > 0
+      - _envbuilder_checksum is defined
+      # SHAPE VALIDATION — assert the value's form, not just its presence. A
+      # malformed version otherwise passes here and fails later as a miss
+      # against the pinned map, which is far harder to trace back to the option.
+      - _envbuilder_version is match('^\d+\.\d+\.\d+$')
+      - _envbuilder_checksum | length == 0 or _envbuilder_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _envbuilder_version  <- target_version   (mandatory, non-empty)
+        _envbuilder_checksum <- target_checksum  (may be empty; resolved from the pinned map)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "envbuilder {{ _envbuilder_version }} ({{ _envbuilder_arch }})"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS
+#
+# Probe by PATH, and never execute the binary. envbuilder has no version
+# subcommand: `envbuilder version` prints its banner and then goes on to run a
+# build, and a bogus subcommand produces byte-identical output. A probe that
+# starts a build engine is not a probe, so the version-scoped prefix is what
+# answers "is 1.3.0 already here".
+# ---------------------------------------------------------------------------
+- name: Check whether envbuilder {{ _envbuilder_version }} is already installed
+  ansible.builtin.stat:
+    path: "{{ _envbuilder_prefix }}/envbuilder"
+  register: _envbuilder_installed
+
+- name: Determine whether envbuilder {{ _envbuilder_version }} needs installing
+  ansible.builtin.set_fact:
+    _envbuilder_install_required: "{{ not _envbuilder_installed.stat.exists }}"
+
+# A resolved-empty digest means get_url would SKIP verification rather than fail
+# it. Assert it before the download, so an unpinned version/arch combination is
+# a named error rather than a silently unverified binary. See ADR-006.
+- name: Assert that a layer digest is pinned for envbuilder {{ _envbuilder_version }} ({{ _envbuilder_arch }})
+  ansible.builtin.assert:
+    that: _envbuilder_effective_checksum | trim | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for envbuilder {{ _envbuilder_version }} on
+      {{ _envbuilder_arch }}. Pass target_checksum to install a version or
+      architecture other than the pinned default.
+  when: _envbuilder_install_required | bool
+
+- name: Ensure the envbuilder install prefix exists
+  ansible.builtin.file:
+    path: "{{ _envbuilder_prefix }}"
+    state: directory
+    mode: '0755'
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Create the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _envbuilder_tmpdir }}"
+    state: directory
+    mode: '0755'
+  when: _envbuilder_install_required | bool
+
+# The pull token is anonymous, read-only and scoped to this one public
+# repository, and it expires in minutes. It is not a credential the image
+# carries, which is why it is fetched per run rather than configured.
+- name: Obtain an anonymous pull token for {{ _envbuilder_oci_repo }}
+  ansible.builtin.uri:
+    url: "{{ _envbuilder_token_url }}"
+    return_content: true
+    timeout: 60
+  register: _envbuilder_pull_token
+  when: _envbuilder_install_required | bool
+
+# The blob endpoint redirects to a pre-signed CDN URL that needs no auth, so
+# nothing is lost when the Authorization header is dropped across the redirect.
+- name: Download the envbuilder {{ _envbuilder_version }} layer
+  ansible.builtin.get_url:
+    url: "https://{{ _envbuilder_registry }}/v2/{{ _envbuilder_oci_repo }}/blobs/sha256:{{ _envbuilder_effective_checksum | trim }}"
+    dest: "{{ _envbuilder_tmpdir }}/envbuilder.tar.gz"
+    checksum: "sha256:{{ _envbuilder_effective_checksum | trim }}"
+    headers:
+      Authorization: "Bearer {{ _envbuilder_pull_token.json.token }}"
+    mode: '0644'
+    timeout: 120
+  when: _envbuilder_install_required | bool
+
+# --strip-components=2 drops the layer's .envbuilder/bin/ prefix so the binary
+# lands directly in the version prefix. Doing it here avoids a separate move
+# task, which would report changed=1 on every re-run.
+- name: Extract the envbuilder binary into {{ _envbuilder_prefix }}
+  ansible.builtin.unarchive:
+    src: "{{ _envbuilder_tmpdir }}/envbuilder.tar.gz"
+    dest: "{{ _envbuilder_prefix }}"
+    copy: false
+    extra_opts:
+      - --strip-components=2
+      - --wildcards
+      - "{{ _envbuilder_member }}"
+  when: _envbuilder_install_required | bool
+
+- name: Link envbuilder into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _envbuilder_prefix }}/envbuilder"
+    dest: "{{ _target_user_home }}/.local/bin/envbuilder"
+    state: link
+
+- name: Remove the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _envbuilder_tmpdir }}"
+    state: absent
+
+# Verified by path, deliberately. Asking envbuilder for its version means
+# running it, and running it means starting a build against whatever directory
+# it happens to land in. The pinned layer digest is what proves which version
+# sits at this path.
+- name: Stat the envbuilder symlink
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/envbuilder"
+    follow: false
+  register: _envbuilder_link
+
+- name: Stat the envbuilder binary the symlink resolves to
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/envbuilder"
+    follow: true
+  register: _envbuilder_target
+
+- name: Assert that envbuilder is installed and accessible
+  ansible.builtin.assert:
+    that:
+      - _envbuilder_link.stat.islnk
+      - _envbuilder_link.stat.lnk_source == _envbuilder_prefix ~ '/envbuilder'
+      - _envbuilder_target.stat.exists
+      - _envbuilder_target.stat.executable
+    fail_msg: >-
+      envbuilder does not resolve to an executable at
+      {{ _envbuilder_prefix }}/envbuilder.
+    success_msg: "envbuilder {{ _envbuilder_version }} installed and verified."
+...

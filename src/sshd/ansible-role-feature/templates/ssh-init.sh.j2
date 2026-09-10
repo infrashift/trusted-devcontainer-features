@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+#-------------------------------------------------------------------------------------------------------------
+# {{ _sshd_entrypoint_path }}
+# Rendered by the infrashift 'sshd' devcontainer feature. Edits are overwritten.
+#-------------------------------------------------------------------------------------------------------------
+#
+# Declared as this feature's "entrypoint", so the devcontainer CLI chains it
+# ahead of whatever the image already ran and hands that command to us as "$@".
+# Starting sshd is the whole job; the container's real command must still run,
+# which is why this always ends in `exec "$@"`.
+#
+# Two lanes, because the container user decides what sshd can do:
+#   root      the system sshd, /etc/ssh host keys, the 10- drop-in.
+#   non-root  a standalone sshd from the user's own config and host key. It can
+#             only ever admit the user running it -- which is precisely the
+#             AllowUsers policy the config already states.
+#
+# A failure to start sshd is logged loudly but never fatal. Bricking a developer's
+# whole container over the SSH daemon would be a worse outcome than losing remote
+# access to it.
+set -uo pipefail
+
+TARGET_USER='{{ _target_username }}'
+TARGET_HOME='{{ _target_user_home }}'
+SSHD_PORT="${SSHD_PORT:-{{ _sshd_port }}}"
+AUTHORIZED_KEYS_PATH="${AUTHORIZED_KEYS_PATH:-{{ _sshd_authorized_keys_path }}}"
+USER_CONFIG='{{ _sshd_user_config }}'
+USER_HOST_KEY='{{ _sshd_user_host_key }}'
+
+log() { printf 'ssh-init: %s\n' "$*" >&2; }
+
+install_authorized_keys() {
+    if [ ! -r "${AUTHORIZED_KEYS_PATH}" ]; then
+        log "WARNING: no readable public keys at ${AUTHORIZED_KEYS_PATH}."
+        log "WARNING: sshd is running but will admit no one. Mount a public key there."
+        return 0
+    fi
+    mkdir -p "${TARGET_HOME}/.ssh" || return 1
+    chmod 700 "${TARGET_HOME}/.ssh" || return 1
+    if [ "$(id -u)" -eq 0 ]; then
+        install -m 0600 -o "${TARGET_USER}" -g "${TARGET_USER}" \
+            "${AUTHORIZED_KEYS_PATH}" "${TARGET_HOME}/.ssh/authorized_keys" || return 1
+        chown "${TARGET_USER}:${TARGET_USER}" "${TARGET_HOME}/.ssh" || return 1
+    else
+        install -m 0600 "${AUTHORIZED_KEYS_PATH}" "${TARGET_HOME}/.ssh/authorized_keys" || return 1
+    fi
+    log "authorized_keys installed from ${AUTHORIZED_KEYS_PATH}"
+}
+
+start_sshd() {
+    if [ "$(id -u)" -eq 0 ]; then
+        # Repair host keys if /etc/ssh arrived empty, e.g. mounted over by a tmpfs.
+        ssh-keygen -A >/dev/null 2>&1 || true
+        /usr/sbin/sshd -t || { log "ERROR: system sshd config is invalid; not starting"; return 1; }
+        /usr/sbin/sshd || { log "ERROR: system sshd failed to start"; return 1; }
+        log "sshd listening on port ${SSHD_PORT} (system lane)"
+    else
+        if [ ! -f "${USER_HOST_KEY}" ]; then
+            ssh-keygen -q -t ed25519 -N '' -f "${USER_HOST_KEY}" \
+                || { log "ERROR: could not generate a host key at ${USER_HOST_KEY}"; return 1; }
+        fi
+        /usr/sbin/sshd -t -f "${USER_CONFIG}" \
+            || { log "ERROR: rootless sshd config is invalid; not starting"; return 1; }
+        /usr/sbin/sshd -f "${USER_CONFIG}" \
+            || { log "ERROR: rootless sshd failed to start"; return 1; }
+        log "sshd listening on port ${SSHD_PORT} (rootless lane; only ${TARGET_USER} may log in)"
+    fi
+}
+
+install_authorized_keys || log "WARNING: could not install authorized_keys"
+start_sshd || log "WARNING: continuing without sshd"
+
+# Chain to the command this entrypoint was handed. The devcontainer CLI always
+# supplies one; the guard exists so a hand-built image that does not cannot end
+# up with a container that starts sshd and then immediately exits.
+if [ "$#" -eq 0 ]; then
+    log "no command to chain to; holding the container open"
+    exec sleep infinity
+fi
+exec "$@"

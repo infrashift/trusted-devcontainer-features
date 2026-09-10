@@ -1,0 +1,40 @@
+---
+title: sshd
+description: Installs and hardens an OpenSSH server for remote access to Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'sshd');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature installs the `openssh-server` RPM and configures it for public-key-only access to the container's non-root user. It runs in the privileged lane, because it installs a system package and writes to `/etc` — the only other features that do so are `git` and `git-lfs`.
+
+Configuration is written to `/etc/ssh/sshd_config.d/10-trusted-devcontainer.conf` rather than by replacing `sshd_config`. Fedora's stock configuration includes that directory, and because sshd takes the first value it obtains for a keyword, the `10-` prefix means these settings win over the distribution's own `40-` and `50-` drop-ins. The configuration disables password and keyboard-interactive authentication, requires `publickey`, forbids root login, restricts `AllowUsers` to the container user, and disables X11 forwarding.
+
+Two details are load-bearing and easy to get wrong. First, the base image creates its user with `useradd` and no password, which leaves `!` in `/etc/shadow`; OpenSSH reads that as a locked account and refuses public-key authentication before it ever looks at `authorized_keys`. The role therefore sets the password field to `*`, which means "no password login" without meaning "locked". Second, host keys are generated at install time and baked into the image, so they rotate on every rebuild — that is the existing convention in this organization, and it is why the matching SSH client configuration disables strict host key checking for these workspaces.
+
+Authorized keys are never baked into the image and never appear in `devcontainer.json`. The feature's entrypoint script reads them at container start from the path given by `authorized_keys_path`, defaulting to `/run/secrets/authorized_keys`. If nothing is mounted there the container still starts, with a warning — sshd simply has no one it will let in.
+
+This is the first feature in the collection to declare an `entrypoint`, because sshd has to be started on every container start rather than merely installed once.
