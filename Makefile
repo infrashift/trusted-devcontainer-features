@@ -57,6 +57,10 @@ check-version-pins: ## Verify contract-test pins match the declared defaults
 check-currency: ## Report how far each pinned tool is behind upstream (warns only)
 	./scripts/check-version-currency.sh
 
+.PHONY: check-published-drift
+check-published-drift: ## Verify source matches what is published under its version (network)
+	./scripts/check-published-drift.sh --check
+
 .PHONY: check-fanout
 check-fanout: ## Verify dependents are bumped alongside bootstrap (BASE=main)
 	./scripts/check-bootstrap-fanout.sh $${BASE:-main}
@@ -81,7 +85,7 @@ lint-shell: ## shellcheck every script
 # Everything CI's repo-gate job runs, minus the container builds. Fast enough to
 # run before every push.
 .PHONY: check
-check: check-contract check-version-pins check-fanout check-feature-refs check-workflows lint-shell check-policy repo-gate ## Run every static check
+check: check-contract check-version-pins check-fanout check-published-drift check-feature-refs check-workflows lint-shell check-policy repo-gate ## Run every static check
 	@echo "── all static checks passed ──"
 
 

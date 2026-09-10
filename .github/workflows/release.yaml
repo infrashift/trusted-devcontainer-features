@@ -36,6 +36,19 @@ name: Release Dev Container Features
 # and send consumers somewhere they cannot pull from -- pinned, immutable and
 # wrong. scripts/review-staged-features.sh enforces that with EXPECT_DEPENDS_ON.
 #
+# UNCHANGED SOURCE KEEPS ITS DIGEST
+#
+# `devcontainer features publish` skips a version tag that already exists in
+# staging. That gate lives in staging, which persists between runs -- but the
+# first run against an empty staging namespace republished every feature, and
+# the tarball is not byte-reproducible, so unchanged bootstrap source came out
+# under a new digest and all 19 dependents were re-pinned to it. Consumers
+# pinning by digest then held two bootstraps. Each stage job now runs
+# scripts/check-published-drift.sh --seed first: source that is byte-identical
+# to what production already serves under its version is copied into staging
+# from production, so its digest cannot change; source that differs at an
+# existing version fails the release instead of being skipped silently.
+#
 # PREREQUISITE
 #
 # .github/pdp/public-keys/review.pub must exist and the Review-Actor environment
@@ -151,6 +164,22 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/phase1 && mkdir -p /tmp/phase1
           cp -r src/bootstrap /tmp/phase1/bootstrap
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e # v0.4
+
+      - name: Seed staging from production where the source is unchanged
+        # The feature tarball is not byte-reproducible, so publishing unchanged
+        # source into an empty staging namespace mints a NEW bootstrap digest,
+        # and every dependent is re-pinned to it. Identical source must keep
+        # its digest: copy production's bytes into staging so publish skips
+        # them. Source that differs at an already-published version fails here,
+        # because publish would skip it silently.
+        env:
+          FEATURES: '["bootstrap"]'
+          STAGING_NAMESPACE: ${{ env.STAGING_NAMESPACE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BASE_DIR: /tmp/phase1
+        run: ./scripts/check-published-drift.sh --seed
 
       - name: Publish bootstrap to staging
         uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
@@ -313,6 +342,19 @@ jobs:
             cp -r "$d" "/tmp/phase2/${name}"
           done
           ls -1 /tmp/phase2
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e # v0.4
+
+      - name: Seed staging from production where the source is unchanged
+        # Same rule as phase one. The trees in /tmp/phase2 already carry the
+        # production bootstrap digest, so a dependent whose source has not
+        # changed is byte-identical to what production already serves.
+        env:
+          FEATURES: ${{ needs.contract.outputs.dependents }}
+          STAGING_NAMESPACE: ${{ env.STAGING_NAMESPACE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BASE_DIR: /tmp/phase2
+        run: ./scripts/check-published-drift.sh --seed
 
       - name: Publish dependents to staging
         uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1

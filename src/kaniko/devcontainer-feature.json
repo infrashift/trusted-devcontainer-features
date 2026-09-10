@@ -11,7 +11,7 @@
 {
     "name": "kaniko-feature",
     "id": "kaniko",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Installs the kaniko executor and cache warmer on Red Hat UBI DevContainers.",
     "options": {
         "target_version": {

@@ -10,7 +10,7 @@
 {
     "name": "envbuilder-feature",
     "id": "envbuilder",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Installs Coder envbuilder, which builds development environments from repositories in a container, on Red Hat UBI DevContainers.",
     "options": {
         "target_version": {

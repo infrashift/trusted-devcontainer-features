@@ -3,7 +3,7 @@
 {
     "name": "bootstrap-feature",
     "id": "bootstrap",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "Provisions the pinned Ansible bootstrap environment (/opt/bootstrap) that every other trusted feature uses to install itself.",
     "options": {
         "uv_version": {

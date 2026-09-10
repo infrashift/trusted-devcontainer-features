@@ -31,6 +31,8 @@ set -euo pipefail
 
 BOOTSTRAP_DIR=/opt/bootstrap
 VENV_DIR="${BOOTSTRAP_DIR}/.bootstrap"
+STAMP="${BOOTSTRAP_DIR}/.provisioned"
+PINS="uv=${UV_VERSION} python=${PYTHON_VERSION} ansible-core=${ANSIBLE_CORE_VERSION}"
 
 echo "********************************************************************************"
 echo "BEGIN FEATURE ACTIVATION - bootstrap"
@@ -38,6 +40,31 @@ echo "  uv            ${UV_VERSION}"
 echo "  python        ${PYTHON_VERSION}"
 echo "  ansible-core  ${ANSIBLE_CORE_VERSION}"
 echo "********************************************************************************"
+
+# ---------------------------------------------------------------------------
+# IDEMPOTENCY
+#
+# Every dependent pins this feature by DIGEST. A consumer whose pins span two
+# releases therefore names two bootstraps, and the devcontainer CLI resolves
+# them as two features and runs this script twice. The second run used to die
+# at `uv venv` on the venv the first run had just created, taking the whole
+# build with it over an environment that was already correct.
+#
+# The stamp records the three pins the environment was built from. Identical
+# pins mean an identical environment, so the second run has nothing to do and
+# says so. Different pins mean a real change, and the venv is rebuilt from
+# scratch rather than patched in place.
+# ---------------------------------------------------------------------------
+if [ -f "${STAMP}" ] && [ -x "${VENV_DIR}/bin/ansible-playbook" ] && [ -x /usr/local/bin/uv ]; then
+    if [ "$(cat "${STAMP}")" = "${PINS}" ]; then
+        echo "bootstrap is already provisioned with identical pins (${PINS}); nothing to do."
+        echo "********************************************************************************"
+        echo "END FEATURE ACTIVATION - bootstrap"
+        echo "********************************************************************************"
+        exit 0
+    fi
+    echo "bootstrap was provisioned with different pins ($(cat "${STAMP}")); rebuilding."
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -103,7 +130,8 @@ export UV_CACHE_DIR=/tmp/uv-bootstrap-cache
 mkdir -p "${BOOTSTRAP_DIR}"
 
 echo "Creating ${VENV_DIR} on Python ${PYTHON_VERSION} ..."
-uv venv --python "${PYTHON_VERSION}" "${VENV_DIR}"
+# --clear: a venv left by a failed or differently-pinned run is replaced, never patched.
+uv venv --clear --python "${PYTHON_VERSION}" "${VENV_DIR}"
 
 echo "Installing ansible-core==${ANSIBLE_CORE_VERSION} ..."
 uv pip install --python "${VENV_DIR}/bin/python" "ansible-core==${ANSIBLE_CORE_VERSION}"
@@ -149,6 +177,9 @@ install -m 0644 "${SCRIPT_DIR}/assets/tasks/install-packages.yml" "${BOOTSTRAP_D
 # Lock it down: root-owned, world readable/executable, not writable by the
 # developer. The dev user runs this toolchain but cannot tamper with it.
 # ---------------------------------------------------------------------------
+# Written last, after everything above succeeded: a stamp that exists is a
+# promise that the environment it describes is complete.
+echo "${PINS}" > "${STAMP}"
 chown -R root:root "${BOOTSTRAP_DIR}"
 chmod -R a+rX "${BOOTSTRAP_DIR}"
 rm -rf "${UV_CACHE_DIR}"

@@ -9,7 +9,7 @@
 {
     "name": "maven-feature",
     "id": "maven",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Installs Apache Maven on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://maven.apache.org/download.cgi and
