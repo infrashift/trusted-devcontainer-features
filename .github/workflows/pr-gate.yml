@@ -71,6 +71,12 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: ./scripts/check-bootstrap-fanout.sh "$BASE_SHA"
 
+      - name: Verify published versions were not edited in place
+        # `devcontainer features publish` skips a version that already exists,
+        # so source that changed without a version bump is silently dropped and
+        # the old bytes ship again. Compare against production before merge.
+        run: ./scripts/check-published-drift.sh --check
+
       - name: Validate feature dependency references
         # Catches a reference to a feature that does not exist, at review time
         # rather than mid-release. The publish-time rewrite in release.yaml turns

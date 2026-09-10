@@ -240,6 +240,27 @@ if [[ " ${FEATURES[*]} " == *" python "* ]]; then
 fi
 
 # The runner contract itself: without the CLI-injected identity there is no safe default.
+# bootstrap is not a role, so the idempotency loop above skips it. It has its
+# own contract: a second run with identical pins must be a no-op that says so,
+# because a consumer whose feature pins span two releases runs it twice. The
+# pins come from the feature's own devcontainer-feature.json rather than a
+# second copy here.
+bootstrap_env() {
+    python3 - "${HERE}/../../src/bootstrap/devcontainer-feature.json" <<'PYEOF'
+import json, re, sys
+opts = json.loads(re.sub(r"(?m)^\s*//.*$", "", open(sys.argv[1]).read()))["options"]
+for k in ("uv_version", "python_version", "ansible_core_version"):
+    print(f"{k.upper()}={opts[k]['default']}")
+PYEOF
+}
+run_bootstrap_again() {
+    local envs=(); while IFS= read -r kv; do envs+=(-e "$kv"); done < <(bootstrap_env)
+    docker exec -u 0 -w "${REPO_IN_CTR}/src/bootstrap" "${envs[@]}" "${CID}" bash ./install.sh
+}
+export -f run_bootstrap_again bootstrap_env; export REPO_IN_CTR CID HERE
+check "bootstrap re-run with identical pins is a no-op" \
+    bash -c 'out=$(run_bootstrap_again 2>&1) && grep -q "already provisioned with identical pins" <<<"$out"'
+
 check_fails "role run outside run-feature.sh is refused" "_REMOTE_USER" \
     docker exec -u 0 -w "${REPO_IN_CTR}/src/jq" "${CID}" /opt/bootstrap/run-feature.sh --role ansible-role-feature
 

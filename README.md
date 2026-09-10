@@ -57,7 +57,7 @@ runtime installs it automatically.
 
 ### Testing
 
-Features are tested by building the six templates under `test-templates/` and
+Features are tested by building the seven templates under `test-templates/` and
 exercising them, which is what CI does. There is no per-feature `test/` tree.
 
 ```bash
@@ -70,7 +70,12 @@ make test-template TEMPLATE=python
 # Idempotency and failure-mode tests against that running container
 make test-contract TEMPLATE=python
 
-# Everything: contract check, then all six templates
+# Compare every feature's source against the bytes published under its
+# declared version (network). Drift at an existing version means publish
+# would silently skip it, so this fails until the version is bumped.
+make check-published-drift
+
+# Everything: contract check, then all seven templates
 make test
 
 # Remove test containers and the copied feature trees
