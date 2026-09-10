@@ -14,7 +14,8 @@ requires the signing secrets.
 | 3b. Reviewer | done — `ryancraig`, `prevent_self_review: false` |
 | 3c. Ref restriction | done — `custom_branch_policies`, one `branch main` policy |
 | 4. Teams | none, deliberately — see that step |
-| 5. Branch protection | **outstanding** — no ruleset yet |
+| 5. Branch protection | done — ruleset `main`, PR + `repo-gate`; 0 approvals, no bypass |
+| 6. Review keypair + Build/Review actors | done — `review.pub` committed; `Build-Actor` (no secrets) and `Review-Actor` created |
 
 Only step 5 remains. The sibling `trusted-devcontainer-templates` is at the same
 point, with its ruleset in place but its Release-Actor ref restriction still to
@@ -293,21 +294,59 @@ gh api -X POST "repos/${SLUG}/rulesets" --input - <<'JSON'
 JSON
 ```
 
-`required_approving_review_count: 0` and `require_code_owner_review: false` are
-deliberate: anything above zero blocks every PR you open, since you cannot
-approve your own.
+**What was actually applied differs from the payload above in one way**: the
+`required_status_checks` list contains `repo-gate` only, for the reason below.
+`required_approving_review_count` is 0 and `bypass_actors` is empty, exactly as
+the payload shows.
 
-Unlike the templates repo, **both contexts can be required immediately**. This
-repo's tests build the test templates from feature trees staged out of `src/`,
-so they do not resolve anything from the registry and do not depend on
-`bootstrap` being published. There is no ordering trap here.
+That is worth stating because it was briefly otherwise. On 2026-08-24 the count
+was set to 1 with a `RepositoryRole` 5 (admin) bypass, on the theory that it
+would enforce nothing at one member while already being correct for a second.
+Every PR afterwards reported `REVIEW_REQUIRED` and `BLOCKED`: you cannot approve
+your own pull request, so no approval can exist, and a bypass does not clear
+that state — it only offers an override on top of it. It was reverted the same
+day, and the PRs turned `CLEAN` immediately.
+
+The bypass was removed with it. `bypass_mode: always` applies to the whole
+ruleset, so leaving it would have let an admin merge past `repo-gate` — the
+check that actually works here, because it gates on CI rather than on headcount.
+
+`require_code_owner_review: false` stays as written, and for the stated reason:
+it has no bypass of its own, so it would block outright rather than degrade.
+Raise the approval count on the day a second maintainer joins, with
+`bypass_actors` left empty.
+
+**Only `repo-gate` is required.** An earlier version of this section claimed
+both contexts could be required immediately. The reasoning it gave was sound but
+answered the wrong question: it is true that there is no *ordering* trap here —
+the tests build from feature trees staged out of `src/`, resolve nothing from the
+registry, and do not wait on `bootstrap` being published.
+
+The trap is the **path filter**. `test-templates.yaml` runs only for changes
+under `src/`, `test-templates/`, `scripts/`, `tools.lock`, or its own file. A PR
+touching none of those never starts the workflow, so `test/gate` never reports,
+so a required `test/gate` waits forever — the precise failure this section warns
+about two paragraphs up, arrived at from the other direction.
+
+This is not hypothetical. The sibling templates repo required `build/gate`,
+whose workflow is path-filtered the same way, and its first documentation-only PR
+afterwards (#6) sat `BLOCKED` with `repo-gate` and `review/cve-policy` green and
+`build/gate` never reporting.
+
+`repo-gate` is safe precisely because `pr-gate.yml` is **not** path-filtered,
+which is the property step 6 tells you to verify. Requiring `test/gate` needs a
+seeding step first — `pr-gate.yml` publishing a `success` status for it when a PR
+touches no test-affecting path, the way the templates repo seeds
+`review/cve-policy`.
 
 One default worth knowing about: GitHub sets
 `require_extra_approval_for_unattributed_changes: true` on a new ruleset. A
 commit whose author email is not linked to a GitHub account counts as
 unattributed and needs an extra approval — which, at one member, nothing can
 supply. If a PR ever stalls asking for an approval you cannot give, that is the
-rule to look at.
+rule to look at. At `required_approving_review_count: 0` it cannot bite — there
+is no approval requirement for it to add to — but it becomes live the moment the
+count is raised for a second maintainer.
 
 ---
 
@@ -320,3 +359,98 @@ make check          # contract, workflow lint, shellcheck, policy, repo gate
 Then open a throwaway PR and confirm `repo-gate` reports on it even when the PR
 touches only documentation — that is the property `pr-gate.yml` exists to
 guarantee, and the reason it is not path-filtered.
+
+
+---
+
+## 6. The review keypair, and the Build/Review environments
+
+**The staged release cannot complete until this is done.** `release.yaml` fails
+at its first job with a message pointing here, which is deliberate: the
+alternative is discovering the gap three jobs later, after staging has already
+been published.
+
+### What changed, and why it needs a second key
+
+The release used to publish straight to the consumer-facing namespace and then
+verify what it had published — in one job, holding the signing key. That made
+the verification detective rather than preventive (the bad bytes were already
+what consumers pulled by the time it failed), and let one job both publish and
+attest that its own publish was correct.
+
+Now:
+
+| Stage | Environment | Holds | Can it ship? |
+|---|---|---|---|
+| `stage-*` | `Build-Actor` | nothing | no — staging only |
+| `review-*` | `Review-Actor` | review key | no — it signs a verdict |
+| `promote-*` | `Release-Actor` | release key | only digests the verdict names |
+
+The verdict is a **digest list**, not a pass/fail, so what was reviewed and what
+ships are the same bytes by construction. A compromised build actor can fill
+staging with anything and still cannot get it promoted: it does not hold the
+review key. That property is what the second keypair buys, and it holds
+regardless of headcount — unlike an approval requirement, which at one member
+buys nothing (see step 4).
+
+### Generate the keypair
+
+Same shape as step 1, a different key. Never reuse the release key: if one key
+both signs verdicts and promotes, the separation above collapses back into the
+thing it replaced.
+
+```bash
+cd "$(mktemp -d)"
+COSIGN_PASSWORD="$(openssl rand -base64 32)" cosign generate-key-pair
+# keep the password; it goes in the environment secret below
+```
+
+Commit the public half — and only the public half:
+
+```bash
+cp cosign.pub "${REPO}/.github/pdp/public-keys/review.pub"
+```
+
+### The two environments
+
+`Build-Actor` holds **no secrets**. Create it anyway: binding the staging jobs
+to an environment is what makes "this job cannot sign" a property of the
+configuration rather than of the YAML happening not to reference a secret.
+
+`Review-Actor` holds `COSIGN_PRIVATE_KEY` and `COSIGN_PASSWORD` from the keypair
+above.
+
+```bash
+SLUG=infrashift/trusted-devcontainer-features
+for e in Build-Actor Review-Actor; do
+  gh api -X PUT "repos/${SLUG}/environments/${e}" --silent
+done
+gh secret set COSIGN_PRIVATE_KEY --repo "$SLUG" --env Review-Actor < cosign.key
+gh secret set COSIGN_PASSWORD    --repo "$SLUG" --env Review-Actor
+```
+
+Reviewers on `Review-Actor` are the same judgement call as step 3: at one member
+an approval is a stop-and-look, not separation of duties. The key separation
+above is what holds regardless.
+
+### The staging namespace
+
+`release.yaml` publishes to `${{ github.repository }}-staging` — a separate GHCR
+namespace, not a tag prefix. Anything a consumer could resolve by accident is
+not staging.
+
+The first release creates those packages. They are **private by default**, which
+is correct: nothing outside this pipeline should pull from staging. The
+production packages keep whatever visibility they already have; promotion copies
+into them rather than recreating them.
+
+### Verify
+
+```bash
+gh api "repos/${SLUG}/environments" --jq '.environments[].name'   # 3 actors + github-pages
+test -s .github/pdp/public-keys/review.pub && echo "review key committed"
+```
+
+Then push a release and read the summary table: seven rows, three actors. A
+promotion that reports `verdict signature verified against .github/pdp/public-keys/review.pub`
+is the gate doing its job.
