@@ -15,6 +15,7 @@ requires the signing secrets.
 | 3c. Ref restriction | done — `custom_branch_policies`, one `branch main` policy |
 | 4. Teams | none, deliberately — see that step |
 | 5. Branch protection | done — ruleset `main`, PR + `repo-gate`; 0 approvals, no bypass |
+| 6. Review keypair + Build/Review actors | done — `review.pub` committed; `Build-Actor` (no secrets) and `Review-Actor` created |
 
 Only step 5 remains. The sibling `trusted-devcontainer-templates` is at the same
 point, with its ruleset in place but its Release-Actor ref restriction still to
@@ -358,3 +359,98 @@ make check          # contract, workflow lint, shellcheck, policy, repo gate
 Then open a throwaway PR and confirm `repo-gate` reports on it even when the PR
 touches only documentation — that is the property `pr-gate.yml` exists to
 guarantee, and the reason it is not path-filtered.
+
+
+---
+
+## 6. The review keypair, and the Build/Review environments
+
+**The staged release cannot complete until this is done.** `release.yaml` fails
+at its first job with a message pointing here, which is deliberate: the
+alternative is discovering the gap three jobs later, after staging has already
+been published.
+
+### What changed, and why it needs a second key
+
+The release used to publish straight to the consumer-facing namespace and then
+verify what it had published — in one job, holding the signing key. That made
+the verification detective rather than preventive (the bad bytes were already
+what consumers pulled by the time it failed), and let one job both publish and
+attest that its own publish was correct.
+
+Now:
+
+| Stage | Environment | Holds | Can it ship? |
+|---|---|---|---|
+| `stage-*` | `Build-Actor` | nothing | no — staging only |
+| `review-*` | `Review-Actor` | review key | no — it signs a verdict |
+| `promote-*` | `Release-Actor` | release key | only digests the verdict names |
+
+The verdict is a **digest list**, not a pass/fail, so what was reviewed and what
+ships are the same bytes by construction. A compromised build actor can fill
+staging with anything and still cannot get it promoted: it does not hold the
+review key. That property is what the second keypair buys, and it holds
+regardless of headcount — unlike an approval requirement, which at one member
+buys nothing (see step 4).
+
+### Generate the keypair
+
+Same shape as step 1, a different key. Never reuse the release key: if one key
+both signs verdicts and promotes, the separation above collapses back into the
+thing it replaced.
+
+```bash
+cd "$(mktemp -d)"
+COSIGN_PASSWORD="$(openssl rand -base64 32)" cosign generate-key-pair
+# keep the password; it goes in the environment secret below
+```
+
+Commit the public half — and only the public half:
+
+```bash
+cp cosign.pub "${REPO}/.github/pdp/public-keys/review.pub"
+```
+
+### The two environments
+
+`Build-Actor` holds **no secrets**. Create it anyway: binding the staging jobs
+to an environment is what makes "this job cannot sign" a property of the
+configuration rather than of the YAML happening not to reference a secret.
+
+`Review-Actor` holds `COSIGN_PRIVATE_KEY` and `COSIGN_PASSWORD` from the keypair
+above.
+
+```bash
+SLUG=infrashift/trusted-devcontainer-features
+for e in Build-Actor Review-Actor; do
+  gh api -X PUT "repos/${SLUG}/environments/${e}" --silent
+done
+gh secret set COSIGN_PRIVATE_KEY --repo "$SLUG" --env Review-Actor < cosign.key
+gh secret set COSIGN_PASSWORD    --repo "$SLUG" --env Review-Actor
+```
+
+Reviewers on `Review-Actor` are the same judgement call as step 3: at one member
+an approval is a stop-and-look, not separation of duties. The key separation
+above is what holds regardless.
+
+### The staging namespace
+
+`release.yaml` publishes to `${{ github.repository }}-staging` — a separate GHCR
+namespace, not a tag prefix. Anything a consumer could resolve by accident is
+not staging.
+
+The first release creates those packages. They are **private by default**, which
+is correct: nothing outside this pipeline should pull from staging. The
+production packages keep whatever visibility they already have; promotion copies
+into them rather than recreating them.
+
+### Verify
+
+```bash
+gh api "repos/${SLUG}/environments" --jq '.environments[].name'   # 3 actors + github-pages
+test -s .github/pdp/public-keys/review.pub && echo "review key committed"
+```
+
+Then push a release and read the summary table: seven rows, three actors. A
+promotion that reports `verdict signature verified against .github/pdp/public-keys/review.pub`
+is the gate doing its job.

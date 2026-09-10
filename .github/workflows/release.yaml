@@ -1,16 +1,58 @@
 name: Release Dev Container Features
 
 # Publishing stays on push to main -- that is the devcontainers convention, and
-# it matches how the reference repo promotes on merge. What was missing is who
-# approves and what proves it: this workflow previously published on every push
-# with workflow-level contents/packages write, no human gate, and no signature
-# on anything it pushed.
+# it matches how the reference repo promotes on merge.
+#
+# STAGE, REVIEW, THEN PROMOTE BY DIGEST
+#
+# This workflow used to publish straight to the consumer-facing namespace and
+# then verify what it had published, in one job, holding the signing key. Two
+# things were wrong with that. The verification was detective rather than
+# preventive -- by the time it failed, the bad bytes were already what consumers
+# pulled -- and one job both published and attested that its own publish was
+# correct, which is the separation the three-actor model exists to create.
+#
+#   stage-*    Build-Actor    publishes into a STAGING namespace. Consumers do
+#                             not resolve anything there.
+#   review-*   Review-Actor   reads the staged artifact back out of the
+#                             registry, checks it, and signs a verdict naming
+#                             the exact digests that passed.
+#   promote-*  Release-Actor  verifies that verdict against the committed
+#                             review.pub, copies exactly those digests into the
+#                             production namespace, and signs them.
+#
+# The verdict is a digest list rather than a pass/fail, so what was reviewed and
+# what ships are the same bytes by construction. A compromised build job can put
+# anything into staging and still cannot get it promoted: it does not hold the
+# review key.
+#
+# STILL TWO PHASES, AND NOW FOR A SECOND REASON
+#
+# dependsOn is pinned by digest, and a digest cannot be known before the thing
+# is published -- so bootstrap goes first and the other 19 follow. Under the
+# staged model the ordering matters more: promotion copies bytes verbatim, so
+# the dependents must be built against the PRODUCTION bootstrap digest, not the
+# staging one. A dependsOn naming the staging namespace would survive promotion
+# and send consumers somewhere they cannot pull from -- pinned, immutable and
+# wrong. scripts/review-staged-features.sh enforces that with EXPECT_DEPENDS_ON.
+#
+# PREREQUISITE
+#
+# .github/pdp/public-keys/review.pub must exist and the Review-Actor environment
+# must hold the matching private key. Until both are in place every promotion
+# fails closed at the signature check, which is the correct behaviour but means
+# no release can complete. See SETUP-ENVIRONMENTS.md.
 
 on:
   push:
     branches: [main]
 
 permissions: {}
+
+env:
+  # A separate GHCR namespace, not a tag prefix. Anything a consumer could
+  # resolve by accident is not staging.
+  STAGING_NAMESPACE: ${{ github.repository }}-staging
 
 concurrency:
   # Never cancel a release in flight. A half-published feature set is worse than
@@ -33,6 +75,24 @@ jobs:
         # and a feature violating the contract still published.
         run: ./scripts/check-role-contract.sh
 
+      - name: Assert the review key is committed
+        # Without it, promotion fails at `cosign verify-blob` with a message
+        # about a missing file three jobs later, after staging has already been
+        # published. Failing here instead says what is actually wrong, before
+        # anything is pushed anywhere.
+        run: |
+          set -euo pipefail
+          key=.github/pdp/public-keys/review.pub
+          if [ ! -s "$key" ]; then
+            echo "::error::${key} is missing or empty."
+            echo "The staged release promotes only digests named in a verdict signed by the"
+            echo "review actor, and verifies that verdict against this key. Generate the"
+            echo "keypair, commit the public half here, and put the private half in the"
+            echo "Review-Actor environment. See SETUP-ENVIRONMENTS.md."
+            exit 1
+          fi
+          echo "review key present: $(wc -c < "$key") bytes"
+
       - name: Compute the feature matrix
         id: matrix
         run: |
@@ -49,23 +109,70 @@ jobs:
           fi
           jq -r '.[] | "  \(.)"' features.json
           echo "features=$(jq -c '.' features.json)" >> "$GITHUB_OUTPUT"
+
+          # Phase two publishes and reviews everything EXCEPT bootstrap, which
+          # phase one has already promoted. Deriving the list here keeps the two
+          # phases reading from one source rather than two filters that can drift.
+          jq -c 'map(select(. != "bootstrap"))' features.json > dependents.json
+          jq -e 'length > 0' dependents.json > /dev/null \
+            || { echo "::error::no dependent features; expected 19"; exit 1; }
+          echo "dependents=$(jq -c '.' dependents.json)" >> "$GITHUB_OUTPUT"
     outputs:
       features: ${{ steps.matrix.outputs.features }}
+      dependents: ${{ steps.matrix.outputs.dependents }}
 
-  publish:
-    name: Publish & sign
+  # ==========================================================================
+  # PHASE ONE -- bootstrap
+  # ==========================================================================
+
+  stage-bootstrap:
+    name: Stage bootstrap
     needs: contract
     runs-on: ubuntu-latest
-    # The signing key lives here, so the contract job -- and anything that runs
-    # in it -- cannot sign or publish. That holds regardless of headcount and is
-    # the point of the environment. With a reviewer configured it also pauses
-    # for a person: a stop-and-look while the org has one member, separation of
-    # duties once it has two. See SETUP-ENVIRONMENTS.md step 3.
-    environment: Release-Actor
+    # No signing key here. This actor can fill staging with anything and still
+    # cannot get it promoted.
+    environment: Build-Actor
     permissions:
       contents: read
       packages: write
-      id-token: write   # required for the keyless Rekor pass
+    outputs:
+      staging: ${{ env.STAGING_NAMESPACE }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage bootstrap only
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/phase1 && mkdir -p /tmp/phase1
+          cp -r src/bootstrap /tmp/phase1/bootstrap
+
+      - name: Publish bootstrap to staging
+        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
+        with:
+          publish-features: "true"
+          base-path-to-features: "/tmp/phase1"
+          features-namespace: ${{ env.STAGING_NAMESPACE }}
+          # Git tags are cut by promotion, not by staging. A tag created here
+          # would claim a release that review can still reject.
+          disable-repo-tagging: "true"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  review-bootstrap:
+    name: Review staged bootstrap
+    needs: [contract, stage-bootstrap]
+    runs-on: ubuntu-latest
+    # Holds the review key and nothing else. It cannot publish or promote.
+    environment: Review-Actor
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
@@ -81,32 +188,78 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Features declare dependencies relatively ("./bootstrap"), which is correct
-      # in this repo -- the test templates stage src/* locally, so `make test`
-      # exercises the working tree rather than the last release. It is wrong the
-      # moment those bytes are published: a consumer resolves a relative path
-      # against THEIR .devcontainer/ and gets ENOENT. The first release shipped
-      # exactly that to all 19 dependent features.
-      # TWO PHASES, because dependsOn is pinned by digest and a digest cannot be
-      # known before the thing is published. Every feature dependsOn bootstrap and
-      # bootstrap dependsOn nothing, so the graph is exactly two levels -- no
-      # topological sort, just bootstrap and then the rest.
-      - name: Stage bootstrap for phase one
+      - name: Review the staged bootstrap
+        # bootstrap declares no dependsOn, so EXPECT_DEPENDS_ON is deliberately
+        # unset here -- there is nothing for it to point at yet.
+        env:
+          FEATURES: '["bootstrap"]'
+          STAGING_NAMESPACE: ${{ env.STAGING_NAMESPACE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OUT: staging-verdict.json
+        run: ./scripts/review-staged-features.sh
+
+      - name: Sign the verdict
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/phase1 && mkdir -p /tmp/phase1
-          cp -r src/bootstrap /tmp/phase1/bootstrap
+          cosign sign-blob --yes --key env://COSIGN_PRIVATE_KEY \
+            --output-signature staging-verdict.json.sig staging-verdict.json
 
-      - name: Publish bootstrap
-        uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          publish-features: "true"
-          base-path-to-features: "/tmp/phase1"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: verdict-bootstrap
+          path: |
+            staging-verdict.json
+            staging-verdict.json.sig
+          if-no-files-found: error
 
-      - name: Resolve the published bootstrap digest
-        id: bootstrap
+  promote-bootstrap:
+    name: Promote bootstrap
+    needs: [contract, review-bootstrap]
+    runs-on: ubuntu-latest
+    environment: Release-Actor
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # required for the keyless Rekor pass
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e # v0.4
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: verdict-bootstrap
+
+      - name: Promote the reviewed digest
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/promote-features.sh
+
+      - name: Sign the promoted bootstrap
+        env:
+          FEATURES: '["bootstrap"]'
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: ./scripts/sign-features.sh
+
+      - name: Resolve the production bootstrap digest
+        id: digest
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
@@ -116,35 +269,154 @@ jobs:
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] \
             || { echo "::error::malformed bootstrap digest: ${digest}"; exit 1; }
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
-          echo "bootstrap@${digest}"
+          echo "production bootstrap@${digest}"
 
-      - name: Rewrite local feature references to published ones
+  # ==========================================================================
+  # PHASE TWO -- the 19 dependents, built against the PRODUCTION bootstrap
+  # ==========================================================================
+
+  stage-dependents:
+    name: Stage dependents
+    needs: [contract, promote-bootstrap]
+    runs-on: ubuntu-latest
+    environment: Build-Actor
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rewrite references to the PRODUCTION bootstrap
+        # Not the staging one. These bytes are promoted verbatim, so the
+        # reference embedded here is the reference a consumer resolves.
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
-          BOOTSTRAP_DIGEST: ${{ steps.bootstrap.outputs.digest }}
+          BOOTSTRAP_DIGEST: ${{ needs.promote-bootstrap.outputs.digest }}
         run: ./scripts/rewrite-feature-refs.sh
 
-      - name: Publish the remaining features
+      - name: Stage everything except bootstrap
+        # bootstrap is already promoted. Re-publishing it here would stage a
+        # second copy that no verdict covers.
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/phase2 && mkdir -p /tmp/phase2
+          for d in src/*/; do
+            name=$(basename "$d")
+            [ "$name" = "bootstrap" ] && continue
+            [ "$name" = "SKELETON-feature" ] && continue
+            cp -r "$d" "/tmp/phase2/${name}"
+          done
+          ls -1 /tmp/phase2
+
+      - name: Publish dependents to staging
         uses: devcontainers/action@1082abd5d2bf3a11abccba70eef98df068277772 # v1
         with:
           publish-features: "true"
-          base-path-to-features: "./src"
+          base-path-to-features: "/tmp/phase2"
+          features-namespace: ${{ env.STAGING_NAMESPACE }}
+          disable-repo-tagging: "true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Reads the metadata back OUT of the registry. The rewrite script asserts
-      # its own output, but that only proves the script ran -- it cannot prove
-      # what reached the registry is what the script produced. This inspects the
-      # artifact a consumer would pull, which is the check that was missing.
-      - name: Verify no relative references reached the registry
-        env:
-          FEATURES: ${{ needs.contract.outputs.features }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: ./scripts/verify-published-refs.sh
+  review-dependents:
+    name: Review staged dependents
+    needs: [contract, promote-bootstrap, stage-dependents]
+    runs-on: ubuntu-latest
+    environment: Review-Actor
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      - name: Sign every published feature
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e # v0.4
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Review the staged dependents
+        # EXPECT_DEPENDS_ON is the check the staging split makes necessary:
+        # every dependsOn must name the production bootstrap at exactly the
+        # digest phase one promoted.
         env:
-          FEATURES: ${{ needs.contract.outputs.features }}
+          FEATURES: ${{ needs.contract.outputs.dependents }}
+          STAGING_NAMESPACE: ${{ env.STAGING_NAMESPACE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          BOOTSTRAP_DIGEST: ${{ needs.promote-bootstrap.outputs.digest }}
+          OUT: staging-verdict.json
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY,,}"
+          export EXPECT_DEPENDS_ON="ghcr.io/${repo}/bootstrap@${BOOTSTRAP_DIGEST}"
+          echo "expecting dependsOn == ${EXPECT_DEPENDS_ON}"
+          ./scripts/review-staged-features.sh
+
+      - name: Sign the verdict
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes --key env://COSIGN_PRIVATE_KEY \
+            --output-signature staging-verdict.json.sig staging-verdict.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verdict-dependents
+          path: |
+            staging-verdict.json
+            staging-verdict.json.sig
+          if-no-files-found: error
+
+  promote-dependents:
+    name: Promote dependents
+    needs: [contract, review-dependents]
+    runs-on: ubuntu-latest
+    environment: Release-Actor
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.6.1
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e # v0.4
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: verdict-dependents
+
+      - name: Promote the reviewed digests
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: ./scripts/promote-features.sh
+
+      - name: Sign the promoted dependents
+        env:
+          FEATURES: ${{ needs.contract.outputs.dependents }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
@@ -159,24 +431,39 @@ jobs:
 
   summary:
     name: Release Summary
-    needs: [contract, publish]
+    needs: [contract, stage-bootstrap, review-bootstrap, promote-bootstrap,
+            stage-dependents, review-dependents, promote-dependents]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Report
         env:
           CONTRACT: ${{ needs.contract.result }}
-          PUBLISH: ${{ needs.publish.result }}
+          STAGE_B: ${{ needs.stage-bootstrap.result }}
+          REVIEW_B: ${{ needs.review-bootstrap.result }}
+          PROMOTE_B: ${{ needs.promote-bootstrap.result }}
+          STAGE_D: ${{ needs.stage-dependents.result }}
+          REVIEW_D: ${{ needs.review-dependents.result }}
+          PROMOTE_D: ${{ needs.promote-dependents.result }}
+          BOOTSTRAP_DIGEST: ${{ needs.promote-bootstrap.outputs.digest }}
         run: |
           set -euo pipefail
           {
             echo "## Feature release"
             echo
-            echo "| Stage | Result |"
-            echo "|---|---|"
-            echo "| Role contract | ${CONTRACT} |"
-            echo "| Publish & sign | ${PUBLISH} |"
+            echo "| Stage | Actor | Result |"
+            echo "|---|---|---|"
+            echo "| Role contract | — | ${CONTRACT} |"
+            echo "| Stage bootstrap | Build | ${STAGE_B} |"
+            echo "| Review bootstrap | Review | ${REVIEW_B} |"
+            echo "| Promote bootstrap | Release | ${PROMOTE_B} |"
+            echo "| Stage dependents | Build | ${STAGE_D} |"
+            echo "| Review dependents | Review | ${REVIEW_D} |"
+            echo "| Promote dependents | Release | ${PROMOTE_D} |"
+            echo
+            echo "Production bootstrap: \`${BOOTSTRAP_DIGEST:-not promoted}\`"
           } >> "$GITHUB_STEP_SUMMARY"
-          for r in "$CONTRACT" "$PUBLISH"; do
+          for r in "$CONTRACT" "$STAGE_B" "$REVIEW_B" "$PROMOTE_B" \
+                   "$STAGE_D" "$REVIEW_D" "$PROMOTE_D"; do
             case "$r" in success|skipped) : ;; *) echo "::error::release stage did not succeed (${r})"; exit 1 ;; esac
           done
