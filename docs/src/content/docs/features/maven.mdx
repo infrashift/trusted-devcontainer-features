@@ -1,0 +1,36 @@
+---
+title: Maven
+description: Installs Apache Maven on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'maven');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature installs [Apache Maven](https://maven.apache.org/) as `mvn`. The Ansible role downloads the binary distribution (`apache-maven-<version>-bin.tar.gz`) from `archive.apache.org`, which holds every release including the current one, where the `dlcdn` mirror drops a version as soon as it is superseded. The tarball is verified against a pinned digest, or against an explicit `target_checksum` if one is provided. Apache publishes only a SHA512 next to each distribution, so that is the digest the role pins and accepts: `target_checksum` is 128 hex characters, not the 64 that every SHA256 feature takes. Maven is pure Java, so one digest per version covers both architectures.
+
+The distribution lands under a version-scoped prefix, `~/.local/share/maven/apache-maven-<version>/`, and `mvn` is symlinked into `~/.local/bin`, which the base image already puts on `PATH`. The launcher resolves that symlink to find its own home, so no `MAVEN_HOME` and no `containerEnv` entry is needed. The prefix doubles as the idempotency probe: if it already holds `bin/mvn`, the download is skipped and a re-run reports no change. Maven's local repository stays at its default, `~/.m2`.
+
+Maven cannot run without a JDK. The feature declares `installsAfter` `openjdk` for ordering only; it does not force `openjdk` in, so a system JDK on `PATH` works too. Because the feature runner's userland lane does not carry `openjdk`'s `containerEnv`, the role points `JAVA_HOME` at `~/.local/share/java` when that feature's JDK is present, then verifies the install by running `mvn --version` and matching the requested version exactly.

@@ -36,6 +36,8 @@ export default defineConfig({
 						{
 							label: 'Package Managers',
 							items: [
+								{ label: 'Gradle', slug: 'features/gradle', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'Maven', slug: 'features/maven', badge: { text: 'New', variant: 'tip' } },
 								{ label: 'npm', slug: 'features/npm' },
 								{ label: 'pnpm', slug: 'features/pnpm' },
 								{ label: 'UV & Ruff', slug: 'features/uv-ruff' },

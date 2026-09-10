@@ -126,6 +126,8 @@ Features install into user-scoped directories under the target user's home, reso
 | ``~/.local/share/go`` | Go installation |
 | ``~/.local/share/nodejs`` | Node.js installation |
 | ``~/.local/share/java`` | OpenJDK installation |
+| ``~/.local/share/maven/apache-maven-<version>`` | Maven installation (`mvn` linked into `~/.local/bin`) |
+| ``~/.local/share/gradle/gradle-<version>`` | Gradle installation (`gradle` linked into `~/.local/bin`) |
 | ``~/.local/share/dotnet`` | .NET SDK installation |
 | ``~/.local/share/pnpm`` | pnpm home directory |
 | ``~/.local/share/gopath`` | Go workspace (GOPATH) |
@@ -145,6 +147,9 @@ nodejs ──→ npm
       └──→ pnpm
 
 golang ──→ cuelang
+
+openjdk ──→ maven
+       └──→ gradle
 
 uv-ruff ──→ python ──→ ansible-core
 

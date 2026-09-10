@@ -165,6 +165,27 @@
     }
   },
   {
+    "id": "gradle",
+    "name": "Gradle",
+    "description": "Installs the Gradle build tool on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "package-managers",
+    "dependencies": ["openjdk"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "9.7.1",
+        "description": "Select a supported Gradle version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 of gradle-<version>-bin.zip. Required only when target_version is not pinned in the role's _gradle_pinned_checksums map."
+      }
+    }
+  },
+  {
     "id": "grype",
     "name": "Grype",
     "description": "Installs Anchore Grype vulnerability scanner on Red Hat UBI DevContainers.",
@@ -229,6 +250,27 @@
         "type": "string",
         "default": "",
         "description": "SHA256 of the OCI layer holding kaniko/warmer"
+      }
+    }
+  },
+  {
+    "id": "maven",
+    "name": "Maven",
+    "description": "Installs Apache Maven on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "package-managers",
+    "dependencies": ["openjdk"],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "3.9.16",
+        "description": "Select a supported Apache Maven version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA512 of apache-maven-<version>-bin.tar.gz. Required only when target_version is not pinned in the role's _maven_pinned_checksums map."
       }
     }
   },

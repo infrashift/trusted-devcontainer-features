@@ -119,6 +119,8 @@ declare -A ROLE_ARGS=(
   [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.13'
   [kaniko]='-e _kaniko_version=1.28.4 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
   [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
+  [maven]='-e _maven_version=3.9.16 -e _maven_checksum='
+  [gradle]='-e _gradle_version=9.7.1 -e _gradle_checksum='
   # sshd carries a RUNNER flag, not just role args. run_role does not pass
   # --privileged, and sshd is one of the three features that needs it: the
   # userland lane cannot write /etc/ssh, so the second run would fail on
@@ -170,6 +172,34 @@ if [[ " ${FEATURES[*]} " == *" cuelang "* ]]; then
         run_role cuelang -e _cue_version=0.17.1 -e _cue_checksum=deadbeef
     check_fails "malformed version is rejected by shape" "must look like X.Y.Z" \
         run_role cuelang -e _cue_version=0.15 -e _cue_checksum=
+fi
+
+# maven pins SHA512, the only digest Apache publishes, so its shape messages
+# differ from every SHA256 feature. gradle accepts X.Y as well as X.Y.Z.
+if [[ " ${FEATURES[*]} " == *" maven "* ]]; then
+    check_fails "maven: missing -e is named" "_maven_checksum is defined" \
+        run_role maven -e _maven_version=3.9.16
+    check_fails "maven: empty mandatory option stops in the shell" "resolved empty" \
+        run_install maven TARGET_VERSION= TARGET_CHECKSUM=
+    check_fails "maven: unpinned version refuses to download unverified" "No SHA512 is pinned" \
+        run_role maven -e _maven_version=3.9.9 -e _maven_checksum=
+    check_fails "maven: malformed checksum is rejected by shape" "must be a 128-character SHA512" \
+        run_role maven -e _maven_version=3.9.16 -e _maven_checksum=deadbeef
+    check_fails "maven: malformed version is rejected by shape" "must look like X.Y.Z" \
+        run_role maven -e _maven_version=3.9 -e _maven_checksum=
+fi
+
+if [[ " ${FEATURES[*]} " == *" gradle "* ]]; then
+    check_fails "gradle: missing -e is named" "_gradle_checksum is defined" \
+        run_role gradle -e _gradle_version=9.7.1
+    check_fails "gradle: empty mandatory option stops in the shell" "resolved empty" \
+        run_install gradle TARGET_VERSION= TARGET_CHECKSUM=
+    check_fails "gradle: unpinned version refuses to download unverified" "No SHA256 is pinned" \
+        run_role gradle -e _gradle_version=8.10 -e _gradle_checksum=
+    check_fails "gradle: malformed checksum is rejected by shape" "must be a 64-character SHA256" \
+        run_role gradle -e _gradle_version=9.7.1 -e _gradle_checksum=deadbeef
+    check_fails "gradle: malformed version is rejected by shape" "must look like X.Y or X.Y.Z" \
+        run_role gradle -e _gradle_version=9 -e _gradle_checksum=
 fi
 
 if [[ " ${FEATURES[*]} " == *" grype "* ]]; then

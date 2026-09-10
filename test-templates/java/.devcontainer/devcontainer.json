@@ -5,6 +5,8 @@
     "features": {
         "./bootstrap": {},
         "./openjdk": {},
+        "./maven": {},
+        "./gradle": {},
         "./git": {},
         "./git-lfs": {},
         "./grype": {},

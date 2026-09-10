@@ -1,0 +1,159 @@
+# gradle-feature/ansible-role-feature/tasks/main.yml
+---
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET
+# ---------------------------------------------------------------------------
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _gradle_version is defined and _gradle_version | length > 0
+      - _gradle_checksum is defined
+      # SHAPE VALIDATION — assert the value's form, not just its presence. A
+      # malformed version otherwise passes here and fails later as a miss
+      # against the pinned map, which is far harder to trace back to the option.
+      # Gradle numbers its releases X.Y (8.14) and its patches X.Y.Z (9.7.1),
+      # so the third component is optional.
+      - _gradle_version is match('^\d+\.\d+(\.\d+)?$')
+      - _gradle_checksum | length == 0 or _gradle_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _gradle_version  <- target_version   (mandatory, non-empty)
+        _gradle_checksum <- target_checksum  (may be empty; resolved from the pinned map)
+
+        target_version must look like X.Y or X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "gradle {{ _gradle_version }}"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS
+#
+# Probe by path, not by execution. gradle cannot run without a JDK, and the
+# userland lane carries no JAVA_HOME, so "is 9.7.1 already here" is answered
+# by the version-scoped prefix rather than by asking gradle.
+# ---------------------------------------------------------------------------
+- name: Check whether Gradle {{ _gradle_version }} is already installed
+  ansible.builtin.stat:
+    path: "{{ _gradle_prefix }}/bin/gradle"
+  register: _gradle_installed
+
+- name: Determine whether Gradle {{ _gradle_version }} needs installing
+  ansible.builtin.set_fact:
+    _gradle_install_required: "{{ not _gradle_installed.stat.exists }}"
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download, so an unpinned version is a named
+# error rather than a silently unverified archive. See ADR-006.
+- name: Assert that a checksum is available for Gradle {{ _gradle_version }}
+  ansible.builtin.assert:
+    that: _gradle_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for {{ _gradle_archive }}. Pass target_checksum to
+      install a version that is not in the role's pinned map. Gradle publishes
+      it at {{ _gradle_download_url }}.sha256
+  when: _gradle_install_required | bool
+
+- name: Ensure ~/.local/share/gradle exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/share/gradle"
+    state: directory
+    mode: '0755'
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Create the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _gradle_tmpdir }}"
+    state: directory
+    mode: '0755'
+  when: _gradle_install_required | bool
+
+- name: Download the Gradle {{ _gradle_version }} distribution
+  ansible.builtin.get_url:
+    url: "{{ _gradle_download_url }}"
+    dest: "{{ _gradle_tmpdir }}/{{ _gradle_archive }}"
+    checksum: "sha256:{{ _gradle_effective_checksum }}"
+    mode: '0644'
+    timeout: 60
+  when: _gradle_install_required | bool
+
+# The zip's top-level directory is gradle-<version>/, which is exactly the
+# version-scoped prefix, so no rename is needed. unzip comes from the base
+# image, which is what keeps this feature in the userland lane.
+- name: Extract Gradle into {{ _gradle_prefix }}
+  ansible.builtin.unarchive:
+    src: "{{ _gradle_tmpdir }}/{{ _gradle_archive }}"
+    dest: "{{ _target_user_home }}/.local/share/gradle"
+    copy: false
+  when: _gradle_install_required | bool
+
+# The gradle launcher resolves $0 through symlinks to find its own home, so a
+# link is enough; no GRADLE_HOME or containerEnv is required.
+- name: Link gradle into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _gradle_prefix }}/bin/gradle"
+    dest: "{{ _target_user_home }}/.local/bin/gradle"
+    state: link
+
+- name: Remove the temporary download directory
+  ansible.builtin.file:
+    path: "{{ _gradle_tmpdir }}"
+    state: absent
+
+# gradle needs a JDK to print its version. The openjdk feature installs one
+# under ~/.local/share/java but exposes it only through containerEnv, which is
+# not in effect here, so JAVA_HOME is pointed there explicitly when it exists.
+# Without it, gradle falls back to whatever java is on PATH -- a system JDK.
+- name: Check whether the openjdk feature's JDK is present
+  ansible.builtin.stat:
+    path: "{{ _gradle_java_home }}/bin/java"
+  register: _gradle_feature_jdk
+
+# --version is answered by the client process alone; no daemon is started.
+- name: Get the Gradle version
+  ansible.builtin.command:
+    cmd: "{{ _target_user_home }}/.local/bin/gradle --version"
+  environment: "{{ {'JAVA_HOME': _gradle_java_home} if _gradle_feature_jdk.stat.exists else {} }}"
+  changed_when: false
+  failed_when: false
+  register: _gradle_verify
+
+# gradle prints a line reading exactly "Gradle 9.7.1". Anchoring to the whole
+# line means 9.7.10 could never pass for 9.7.1.
+- name: Assert that Gradle is installed and accessible
+  ansible.builtin.assert:
+    that:
+      - _gradle_verify.rc == 0
+      - "('Gradle ' ~ _gradle_version) in _gradle_verify.stdout_lines"
+    fail_msg: >-
+      Expected Gradle {{ _gradle_version }}; gradle exited {{ _gradle_verify.rc }}
+      and reported: {{ _gradle_verify.stdout }} {{ _gradle_verify.stderr }}.
+      Gradle requires a JDK: add the openjdk feature, or provide java on PATH.
+    success_msg: "Gradle {{ _gradle_version }} installed and verified."
+...

@@ -1,0 +1,36 @@
+---
+title: Gradle
+description: Installs the Gradle build tool on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'gradle');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature installs [Gradle](https://gradle.org/) as `gradle`. The Ansible role downloads the binary-only distribution (`gradle-<version>-bin.zip`) from `services.gradle.org` and verifies it against a pinned SHA256, or against an explicit `target_checksum` if one is provided; Gradle publishes a `.sha256` next to every distribution, which is where the pins come from. Gradle is pure Java, so one digest per version covers both architectures. Version strings may be `X.Y` (8.14) or `X.Y.Z` (9.7.1), matching how Gradle numbers releases and patches.
+
+The distribution lands under a version-scoped prefix, `~/.local/share/gradle/gradle-<version>/`, and `gradle` is symlinked into `~/.local/bin`, which the base image already puts on `PATH`. The launcher resolves that symlink to find its own home, so no `GRADLE_HOME` and no `containerEnv` entry is needed. The prefix doubles as the idempotency probe: if it already holds `bin/gradle`, the download is skipped and a re-run reports no change. `GRADLE_USER_HOME` stays at its default, `~/.gradle`, and projects that ship a Gradle wrapper keep using the wrapper's own pinned distribution.
+
+Gradle cannot run without a JDK. The feature declares `installsAfter` `openjdk` for ordering only; it does not force `openjdk` in, so a system JDK on `PATH` works too. Because the feature runner's userland lane does not carry `openjdk`'s `containerEnv`, the role points `JAVA_HOME` at `~/.local/share/java` when that feature's JDK is present, then verifies the install by running `gradle --version` and matching the requested version as a whole line.

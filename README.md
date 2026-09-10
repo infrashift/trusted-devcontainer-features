@@ -18,9 +18,11 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `git` | Installs Git | `ghcr.io/infrashift/trusted-devcontainer-features/git:latest` |
 | `git-lfs` | Installs Git LFS | `ghcr.io/infrashift/trusted-devcontainer-features/git-lfs:latest` |
 | `golang` | Installs the Go programming language | `ghcr.io/infrashift/trusted-devcontainer-features/golang:latest` |
+| `gradle` | Installs the Gradle build tool | `ghcr.io/infrashift/trusted-devcontainer-features/gradle:latest` |
 | `grype` | Installs the Grype vulnerability scanner | `ghcr.io/infrashift/trusted-devcontainer-features/grype:latest` |
 | `jq` | Installs the jq JSON processor | `ghcr.io/infrashift/trusted-devcontainer-features/jq:latest` |
 | `kaniko` | Installs the kaniko executor and cache warmer for daemonless image builds | `ghcr.io/infrashift/trusted-devcontainer-features/kaniko:latest` |
+| `maven` | Installs Apache Maven | `ghcr.io/infrashift/trusted-devcontainer-features/maven:latest` |
 | `nodejs` | Installs Node.js | `ghcr.io/infrashift/trusted-devcontainer-features/nodejs:latest` |
 | `npm` | Updates npm to a specific version | `ghcr.io/infrashift/trusted-devcontainer-features/npm:latest` |
 | `openai-codex` | Installs OpenAI Codex CLI | `ghcr.io/infrashift/trusted-devcontainer-features/openai-codex:latest` |
