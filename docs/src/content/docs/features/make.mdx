@@ -1,0 +1,36 @@
+---
+title: GNU Make
+description: Installs GNU Make on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'make');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+Every seed repository ships a `Makefile`, and the golden workflow is spelled `make all` — in the seeds' own READMEs, in the RDW developer guides and in `DEVELOPER-SEED-TO-WORKSPACE.md`. The trusted base images carry no `make`, so a developer who followed those instructions inside a workspace got `make: command not found`. The pipeline's runner image hit the same wall earlier and was fixed there; the workspace image was not, because the pipeline runs `make build test` in the runner and never in the workspace.
+
+This feature installs the distribution's own `make` package at `/usr/bin/make`. It is a **privileged** feature: installing a system RPM means `install.sh` passes `--privileged`, so the shared runner stays root instead of dropping to the target user. Only three other features in this line do that.
+
+It takes no options. The distribution's `make` is the one we want, and pinning a version would mean building it from source for no benefit the golden workflow can observe. It installs `make` alone rather than a full build toolchain — the seeds' Makefiles drive shell scripts, and a language's compiler comes from that language's feature.

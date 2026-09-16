@@ -133,6 +133,8 @@ declare -A ROLE_ARGS=(
   # Filled in below from what is actually installed -- see the note there.
   [claude-code]=''
   [openai-codex]=''
+  # make takes no options; the entry must still exist or contract-tests prints SKIP.
+  [make]=''
   [git]='' [git-lfs]=''
 )
 

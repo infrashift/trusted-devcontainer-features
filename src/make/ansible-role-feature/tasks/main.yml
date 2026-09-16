@@ -1,0 +1,57 @@
+# make-feature/ansible-role-feature/tasks/main.yml
+---
+# SECURE DEVCONTAINER FEATURE BOOTSTRAP TASKS
+# _securedevcontainer_variant is detected once from /etc/os-release by the
+# bootstrap feature and published as a group var in /opt/bootstrap/inventory.yml.
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. It also takes no options: the
+# distribution's make is the make we want, and pinning a version would mean
+# building it from source for no benefit the golden workflow can observe.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+# TARGET FEATURE TASKS
+#
+# WHY THIS FEATURE EXISTS. Every seed repository ships a Makefile and the
+# golden workflow is spelled `make all' -- in the seeds' own READMEs, in
+# RDW-DEV-GUIDE-*.md and in DEVELOPER-SEED-TO-WORKSPACE.md. The trusted base
+# images carry no make, so a developer who followed those instructions inside a
+# workspace got `make: command not found' (found on chad/dotnet, gcloud-dc,
+# 2026-09-16). The pipeline's runner image hit the same wall earlier and was
+# fixed there; the workspace image was not.
+#
+# make, not make + gcc + the rest of a build toolchain: the Makefiles in the
+# seeds drive shell scripts, and a language's own compiler comes from that
+# language's feature.
+- name: Install system packages (make)
+  ansible.builtin.include_tasks: /opt/bootstrap/tasks/install-packages.yml
+  vars:
+    _packages:
+      - make
+
+- name: Get GNU Make version
+  ansible.builtin.command:
+    cmd: make --version
+  changed_when: false
+  register: _make_version_result
+
+- name: Assert that GNU Make is installed and accessible
+  ansible.builtin.assert:
+    that: "'GNU Make' in _make_version_result.stdout"
+    fail_msg: "{{ _make_version_result.stdout }}"
+    success_msg: "{{ _make_version_result.stdout_lines[0] }}"
+...

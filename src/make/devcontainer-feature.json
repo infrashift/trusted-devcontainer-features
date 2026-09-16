@@ -1,0 +1,12 @@
+// make-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+{
+    "name": "GNU Make Install",
+    "id": "make",
+    "version": "1.0.0",
+    "description": "A feature to install GNU Make on Redhat UBI DevContainers. The golden workflow every seed repository ships is a Makefile, so a workspace without make cannot run `make all`.",
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
+}

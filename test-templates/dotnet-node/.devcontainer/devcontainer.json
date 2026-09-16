@@ -1,9 +1,12 @@
 {
-    "build": { "dockerfile": "../../shared/Containerfile" },
+    "build": {
+        "dockerfile": "../../shared/Containerfile"
+    },
     "containerUser": "dev",
     "updateRemoteUserUID": false,
     "features": {
         "./bootstrap": {},
+        "./make": {},
         "./dotnet": {},
         "./sqlpackage": {},
         "./nodejs": {},
