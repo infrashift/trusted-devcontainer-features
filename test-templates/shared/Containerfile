@@ -81,6 +81,21 @@ ENV HOME=/home/${USERNAME}
 # them here mirrors what a real seed does in /etc/profile.d, and keeps the
 # template testing the FEATURES rather than that one hardcoded string.
 #
+# AND THE FEATURES CANNOT FIX THIS THEMSELVES -- TESTED, 2026-09-16. The obvious
+# repair is to write ${containerEnv:HOME} instead of /home/dev in each feature's
+# containerEnv. It does not work: the devcontainer CLI emits containerEnv
+# straight into a Dockerfile ENV, where Docker's own substitution reads the
+# value and rejects it --
+#
+#   failed to process "${containerEnv:HOME}/.local/share/dotnet":
+#   unsupported modifier (:H) in substitution
+#
+# -- so the build fails outright rather than resolving. containerEnv values are
+# literals, with no substitution available at that point, and a feature has no
+# way to know the account it will be installed for. Compensating HERE, as a seed
+# compensates in /etc/profile.d, is the available answer rather than a shortcut
+# past a better one.
+#
 # DOTNET_ROOT IS DELIBERATELY NOT SET HERE. A .NET apphost finds its runtime
 # through that variable, and under a non-default USERNAME the dotnet feature's
 # containerEnv points it at an account that does not exist. Leaving it wrong is
