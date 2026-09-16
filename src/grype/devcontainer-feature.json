@@ -3,7 +3,7 @@
 {
     "name": "grype-feature",
     "id": "grype",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "description": "Installs Anchore Grype vulnerability scanner on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/anchore/grype/releases
@@ -19,9 +19,6 @@
             "default": "",
             "description": "SHA256 checksum for the Grype binary (leave empty to download checksums file)"
         }
-    },
-    "containerEnv": {
-        "PATH": "/home/dev/.local/bin:${PATH}"
     },
     "installsAfter": [],
     "dependsOn": {

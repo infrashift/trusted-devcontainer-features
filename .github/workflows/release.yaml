@@ -274,18 +274,25 @@ jobs:
         with:
           name: verdict-bootstrap
 
+      # SIGN STAGING, THEN PROMOTE. The other order published bytes and signed
+      # them afterwards, so a signing failure left production holding an
+      # unsigned artifact under every consumer tag -- which a cosign keyless
+      # OIDC hiccup produced for real (sqlpackage 1.0.2, 2026-09-16).
+      # promote-features.sh now refuses a digest it cannot find a signature for,
+      # and carries the signature tags across with the bytes.
+      - name: Sign the staged bootstrap
+        env:
+          FEATURES: '["bootstrap"]'
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SIGN_NAMESPACE: ghcr.io/${{ env.STAGING_NAMESPACE }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: ./scripts/sign-features.sh
+
       - name: Promote the reviewed digest
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: ./scripts/promote-features.sh
-
-      - name: Sign the promoted bootstrap
-        env:
-          FEATURES: '["bootstrap"]'
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-        run: ./scripts/sign-features.sh
 
       - name: Resolve the production bootstrap digest
         id: digest
@@ -451,18 +458,20 @@ jobs:
         with:
           name: verdict-dependents
 
+      # Sign staging, then promote -- see the bootstrap phase for why.
+      - name: Sign the staged dependents
+        env:
+          FEATURES: ${{ needs.contract.outputs.dependents }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SIGN_NAMESPACE: ghcr.io/${{ env.STAGING_NAMESPACE }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: ./scripts/sign-features.sh
+
       - name: Promote the reviewed digests
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: ./scripts/promote-features.sh
-
-      - name: Sign the promoted dependents
-        env:
-          FEATURES: ${{ needs.contract.outputs.dependents }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-        run: ./scripts/sign-features.sh
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()

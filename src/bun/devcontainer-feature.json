@@ -3,7 +3,7 @@
 {
     "name": "bun-feature",
     "id": "bun",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "description": "Installs Bun JavaScript runtime on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/oven-sh/bun/releases
@@ -19,9 +19,6 @@
             "default": "",
             "description": "SHA256 checksum for the Bun binary"
         }
-    },
-    "containerEnv": {
-        "PATH": "/home/dev/.local/bin:${PATH}"
     },
     "installsAfter": [],
     "dependsOn": {

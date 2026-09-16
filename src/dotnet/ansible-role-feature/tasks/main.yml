@@ -120,4 +120,25 @@
     success_msg: ".NET SDK {{ _dotnet_version_result.stdout }} installed successfully"
 
 # Cleanup
+
+# ON PATH WITHOUT A containerEnv ENTRY. This feature used to announce its
+# directory through containerEnv, which the devcontainer CLI emits as a literal
+# Dockerfile ENV -- no substitution is available there, so the path had to be
+# written as /home/dev and was wrong for any other account. ~/.local/bin is
+# already on PATH in every base image here, so a link into it needs no variable
+# and is correct whoever the user is.
+# The dotnet host resolves its install root from the REAL path of the executable, so a symlink into ~/.local/bin works and DOTNET_ROOT stays for apphosts, which read the variable rather than argv[0].
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Link the binaries into ~/.local/bin so no PATH entry is needed
+  ansible.builtin.file:
+    src: "{{ _target_user_home }}/.local/share/dotnet/{{ item }}"
+    dest: "{{ _target_user_home }}/.local/bin/{{ item }}"
+    state: link
+    force: true
+  loop: ['dotnet']
 ...

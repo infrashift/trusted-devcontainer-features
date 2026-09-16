@@ -3,7 +3,7 @@
 {
     "name": "yq-feature",
     "id": "yq",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "description": "Installs yq YAML/JSON/XML processor on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/mikefarah/yq/releases
@@ -19,9 +19,6 @@
             "default": "",
             "description": "SHA256 checksum for the yq binary (leave empty to download checksums file)"
         }
-    },
-    "containerEnv": {
-        "PATH": "/home/dev/.local/bin:${PATH}"
     },
     "installsAfter": [],
     "dependsOn": {

@@ -67,13 +67,45 @@ while IFS=$'\t' read -r feature digest; do
     echo "           Staging moved after review. Refusing to promote." >&2
     exit 1; }
 
+  # THE SIGNATURE MUST ALREADY EXIST, and this is the gate that makes "signed"
+  # true rather than customary. Signing used to run AFTER this script, so a
+  # failure there left promoted-but-unsigned bytes in production with every
+  # consumer tag pointing at them and nothing downstream noticing -- which
+  # happened on a cosign keyless OIDC hiccup (sqlpackage 1.0.2, 2026-09-16).
+  # The release now signs staging first; refusing here is what makes the
+  # ordering enforced rather than merely intended.
+  sig_tag="sha256-${digest#sha256:}.sig"
+  if ! crane digest "${staging}/${feature}:${sig_tag}" >/dev/null 2>&1; then
+    echo "::error::${feature}: no signature in staging for ${digest}" >&2
+    echo "           Expected ${staging}/${feature}:${sig_tag}." >&2
+    echo "           Sign staging before promoting (SIGN_NAMESPACE=<staging> scripts/sign-features.sh)." >&2
+    exit 1
+  fi
+
   # Copy every tag staging carries, so production ends up with the same version,
   # major, minor and latest tags a consumer resolves against. Each copy is of the
   # SAME digest, so the tag set differs but the bytes cannot.
+  #
+  # EXCEPT the cosign tags. A signature is its own manifest under a tag derived
+  # from the digest it signs, so copying `$src' onto that name would overwrite
+  # the signature with the image and leave production looking signed while
+  # holding nothing of the sort. They are copied tag-to-tag below instead.
   mapfile -t tags < <(crane ls "${staging}/${feature}" 2>/dev/null | sort)
   [ "${#tags[@]}" -gt 0 ] || { echo "::error::${feature}: no tags in staging" >&2; exit 1; }
 
+  sigs=0
   for t in "${tags[@]}"; do
+    case "$t" in
+      sha256-*.sig|sha256-*.att|sha256-*.sbom)
+        if [ "${DRY_RUN:-0}" = "1" ]; then
+          echo "  would copy ${staging}/${feature}:${t} -> ${prod}/${feature}:${t}"
+        else
+          crane copy "${staging}/${feature}:${t}" "${prod}/${feature}:${t}"
+        fi
+        sigs=$((sigs + 1))
+        continue
+        ;;
+    esac
     if [ "${DRY_RUN:-0}" = "1" ]; then
       echo "  would copy ${src} -> ${prod}/${feature}:${t}"
     else
@@ -89,7 +121,7 @@ while IFS=$'\t' read -r feature digest; do
       echo "::error::${feature}: promoted digest ${landed} != reviewed ${digest}" >&2; exit 1; }
   fi
 
-  echo "  promoted ${feature} @ ${digest} (${#tags[@]} tag(s))"
+  echo "  promoted ${feature} @ ${digest} (${#tags[@]} tag(s), ${sigs} signature tag(s))"
   promoted=$((promoted + 1))
 done < <(jq -r '.features[] | [.feature, .digest] | @tsv' "$VERDICT")
 
