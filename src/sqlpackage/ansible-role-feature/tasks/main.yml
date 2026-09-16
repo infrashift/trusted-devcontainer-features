@@ -128,12 +128,38 @@
     - _sqlpackage_installed.rc == 0
   changed_when: true
 
-- name: Symlink the sqlpackage shim into ~/.local/bin
-  ansible.builtin.file:
-    src: "{{ _sqlpackage_shim }}"
+# A WRAPPER, NOT A SYMLINK, AND THE DIFFERENCE IS THE WHOLE BUG. Every other
+# tool this repository symlinks is a self-contained binary; sqlpackage is a .NET
+# APPHOST, which finds its runtime through DOTNET_ROOT and fails without it:
+#
+#   You must install .NET to run this application.
+#   App host version: 8.0.30 / .NET location: Not found
+#   Failed to resolve libhostfxr.so [not found]
+#
+# The dotnet feature installs the SDK under $HOME/.local/share/dotnet, which is
+# not a location the apphost probes. The seed's own image exports DOTNET_ROOT
+# from /etc/profile.d for LOGIN shells, so a symlink appears to work in a
+# developer's terminal and fails everywhere else -- during this very feature
+# install, in `ssh host sqlpackage ...', in any script with a plain shell. The
+# wrapper carries the location with the tool instead of relying on the caller's
+# environment, so it behaves the same in all of them.
+- name: Install the sqlpackage wrapper into ~/.local/bin
+  ansible.builtin.copy:
     dest: "{{ _sqlpackage_link }}"
-    state: link
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Installed by the sqlpackage devcontainer feature. sqlpackage is a .NET
+      # apphost: without DOTNET_ROOT it cannot find libhostfxr and exits 131.
+      DOTNET_ROOT="${DOTNET_ROOT:-{{ _target_user_home }}/.local/share/dotnet}"
+      export DOTNET_ROOT
+      export DOTNET_CLI_TELEMETRY_OPTOUT=1
+      export DOTNET_NOLOGO=1
+      exec "{{ _sqlpackage_shim }}" "$@"
 
+# Through the WRAPPER, deliberately: this is the path a developer invokes, so
+# verifying anything else would prove the tool runs in conditions they never
+# have. It needs no environment: block precisely because the wrapper carries it.
 - name: Verify the installed SqlPackage version
   ansible.builtin.command: "{{ _sqlpackage_link }} /version"
   register: _sqlpackage_verify

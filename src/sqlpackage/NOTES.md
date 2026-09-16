@@ -7,7 +7,25 @@ DACPAC (schema) and exports or imports a BACPAC (schema and data).
 ## Install Location
 
 - SqlPackage: `~/.local/share/sqlpackage/`
-- Symlink: `~/.local/bin/sqlpackage`
+- Wrapper: `~/.local/bin/sqlpackage`
+
+**A wrapper, not a symlink.** Every other tool in this line is a self-contained
+binary that a symlink suffices for. SqlPackage is a .NET **apphost**: it locates
+its runtime through `DOTNET_ROOT`, and the dotnet feature installs the SDK under
+`$HOME/.local/share/dotnet`, which the apphost does not probe. Without it:
+
+```
+You must install .NET to run this application.
+App host version: 8.0.30 / .NET location: Not found
+Failed to resolve libhostfxr.so [not found]
+```
+
+The seed's image exports `DOTNET_ROOT` from `/etc/profile.d` for **login**
+shells, so a symlink appears to work in a developer's terminal and fails
+everywhere else — during the feature install itself, in `ssh host sqlpackage …`,
+in any script with a plain shell. The wrapper carries the location with the tool
+rather than relying on the caller's environment, and honours an existing
+`DOTNET_ROOT` if one is set.
 
 The command is `sqlpackage`, lower case. `SqlPackage` is the .NET Framework
 spelling for Windows and does not resolve on Linux.
@@ -68,3 +86,21 @@ See available versions at https://www.nuget.org/packages/Microsoft.SqlPackage
     "./sqlpackage": {"target_version": "170.5.76"}
 }
 ```
+
+## Why CI did not catch this
+
+The `dotnet-node` test template runs as **`dev`**, and the `dotnet` feature's
+`containerEnv` hardcodes `DOTNET_ROOT=/home/dev/.local/share/dotnet` — correct
+for that account, and carried by `devcontainer exec`. So the template's
+`check "sqlpackage" sqlpackage /version` passed against a build that could not
+run in a real workspace.
+
+A real seed uses **`user`**, where that path does not exist, and reaches the tool
+over SSH, where sshd strips the environment before a login shell rebuilds it.
+The seed's own Containerfile records the general rule: *"a feature's
+containerEnv is metadata for the container the CLI would start, not for an SSH
+session."*
+
+The consequence is worth stating for the next feature: **anything that depends
+on `containerEnv` or on the `/home/dev` path passes this repository's CI and
+fails in a workspace.** A tool should carry what it needs, as this one now does.

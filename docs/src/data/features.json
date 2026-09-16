@@ -416,7 +416,7 @@
     "id": "sqlpackage",
     "name": "SqlPackage",
     "description": "Installs SqlPackage (DacFx) on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "testStatus": "passing",
     "category": "cli",
     "dependencies": [
