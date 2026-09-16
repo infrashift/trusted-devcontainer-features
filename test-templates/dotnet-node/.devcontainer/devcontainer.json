@@ -1,8 +1,13 @@
 {
     "build": {
-        "dockerfile": "../../shared/Containerfile"
+        "dockerfile": "../../shared/Containerfile",
+        "args": {
+            "USERNAME": "user",
+            "USER_UID": "1001",
+            "USER_GID": "0"
+        }
     },
-    "containerUser": "dev",
+    "containerUser": "user",
     "updateRemoteUserUID": false,
     "features": {
         "./bootstrap": {},

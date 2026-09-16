@@ -34,13 +34,35 @@ RUN dnf5 -y install --allowerasing --setopt=install_weak_deps=False \
     && dnf5 clean all \
     && rm -rf /var/cache/dnf
 
-# Create the devcontainer user
+# Create the devcontainer user.
+#
+# PARAMETERISED SO A TEMPLATE CAN REPRODUCE A REAL SEED'S ACCOUNT. The default
+# below -- dev, 1001:1001 -- is this repository's own convention and is NOT what
+# the trusted seeds use: they run as `user', uid 1001, GID 0, because the
+# platform's host volume is chowned to 1001:0 and its jobspec assumes it.
+#
+# That difference is not cosmetic, and it hid a real bug. Fifteen features write
+# a literal /home/dev into containerEnv; under the default account those paths
+# are correct, so a feature that depends on containerEnv passes here and fails in
+# a workspace, where the home directory is /home/user AND sshd strips the
+# environment before a login shell rebuilds it. sqlpackage 1.0.0 shipped exactly
+# that way: green in this repository, unable to run anywhere else.
+#
+# A template that names USERNAME=user USER_GID=0 therefore tests the contract
+# the seeds actually have. See test-templates/dotnet-node.
 ARG USERNAME=dev
 ARG USER_UID=1001
 ARG USER_GID=1001
 
-RUN groupadd --gid ${USER_GID} ${USERNAME} \
-    && useradd -m -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} ${USERNAME}
+# GID 0 is root's group and already exists, so it must not be created -- and a
+# group named after the user is still needed whatever the primary GID is: the
+# shared runner drops privileges with `setpriv --regid=$_REMOTE_USER', which
+# looks the GROUP up by the USER's name. The trusted seeds hit this exactly
+# once, when the first userland feature died on
+# `setpriv: failed to parse regid: 'user''.
+RUN if [ "${USER_GID}" != "0" ]; then groupadd --gid ${USER_GID} ${USERNAME}; fi \
+    && useradd -m -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} ${USERNAME} \
+    && if ! getent group ${USERNAME} >/dev/null 2>&1; then groupadd -g ${USER_UID} ${USERNAME}; fi
 
 # uv and the pinned Ansible bootstrap environment (/opt/bootstrap) are provided
 # by the 'bootstrap' devcontainer feature, which every other feature dependsOn.
@@ -50,7 +72,22 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 USER ${USERNAME}
 
 ENV HOME=/home/${USERNAME}
-ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+
+# THE TOOLCHAIN DIRECTORIES, resolved from USERNAME rather than hardcoded.
+# Features install under $HOME/.local/share/<tool> and announce the path through
+# containerEnv -- which every one of them writes as a literal /home/dev. That is
+# correct for the default account and wrong for any other, so a template that
+# names a different USERNAME would not find dotnet, node or pnpm at all. Adding
+# them here mirrors what a real seed does in /etc/profile.d, and keeps the
+# template testing the FEATURES rather than that one hardcoded string.
+#
+# DOTNET_ROOT IS DELIBERATELY NOT SET HERE. A .NET apphost finds its runtime
+# through that variable, and under a non-default USERNAME the dotnet feature's
+# containerEnv points it at an account that does not exist. Leaving it wrong is
+# the point: a tool that depends on the environment being right fails here,
+# which is how sqlpackage 1.0.0 should have been caught. A tool that carries its
+# own runtime location passes.
+ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.local/share/dotnet:/home/${USERNAME}/.local/share/nodejs/bin:/home/${USERNAME}/.local/share/pnpm:${PATH}"
 
 RUN mkdir -p ${HOME}/.local/bin \
     && echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ${HOME}/.bashrc \

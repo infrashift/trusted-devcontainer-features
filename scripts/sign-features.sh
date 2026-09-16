@@ -19,6 +19,17 @@ set -euo pipefail
 REGISTRY="${REGISTRY:-ghcr.io}"
 owner_repo="${GITHUB_REPOSITORY,,}"
 
+# WHERE TO SIGN. Defaults to the production namespace, which is what this script
+# did when it only ran after promotion. The release now signs STAGING and then
+# promotes the signature with the bytes, so production never holds an unsigned
+# artifact even for a moment -- see promote-features.sh, which refuses a digest
+# it cannot find a signature for.
+#
+# It happened: a cosign keyless step failed on a GitHub OIDC hiccup AFTER
+# promotion had copied every tag, leaving sqlpackage 1.0.2 live in the trusted
+# line with no signature and nothing downstream noticing (2026-09-16).
+SIGN_NAMESPACE="${SIGN_NAMESPACE:-${REGISTRY}/${owner_repo}}"
+
 signed=0
 skipped=0
 : > /tmp/signed.jsonl
@@ -30,7 +41,7 @@ while IFS= read -r feature; do
   [[ "$feature" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]] || {
     echo "::error::refusing to sign a feature named ${feature@Q}" >&2; exit 1; }
 
-  ref="${REGISTRY}/${owner_repo}/${feature}:latest"
+  ref="${SIGN_NAMESPACE}/${feature}:latest"
 
   # A feature whose version did not change is not re-published, so its tag may
   # legitimately not exist yet on a first release. Report it and move on rather
@@ -47,7 +58,7 @@ while IFS= read -r feature; do
 
   # Pin the signature to the digest, never the tag. A tag can move between the
   # signature and what a consumer pulls; a digest cannot.
-  uri="${REGISTRY}/${owner_repo}/${feature}@${digest}"
+  uri="${SIGN_NAMESPACE}/${feature}@${digest}"
   echo "  sign ${uri}"
 
   cosign sign --yes --key env://COSIGN_PRIVATE_KEY "$uri"
