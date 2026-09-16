@@ -7,7 +7,25 @@ DACPAC (schema) and exports or imports a BACPAC (schema and data).
 ## Install Location
 
 - SqlPackage: `~/.local/share/sqlpackage/`
-- Symlink: `~/.local/bin/sqlpackage`
+- Wrapper: `~/.local/bin/sqlpackage`
+
+**A wrapper, not a symlink.** Every other tool in this line is a self-contained
+binary that a symlink suffices for. SqlPackage is a .NET **apphost**: it locates
+its runtime through `DOTNET_ROOT`, and the dotnet feature installs the SDK under
+`$HOME/.local/share/dotnet`, which the apphost does not probe. Without it:
+
+```
+You must install .NET to run this application.
+App host version: 8.0.30 / .NET location: Not found
+Failed to resolve libhostfxr.so [not found]
+```
+
+The seed's image exports `DOTNET_ROOT` from `/etc/profile.d` for **login**
+shells, so a symlink appears to work in a developer's terminal and fails
+everywhere else — during the feature install itself, in `ssh host sqlpackage …`,
+in any script with a plain shell. The wrapper carries the location with the tool
+rather than relying on the caller's environment, and honours an existing
+`DOTNET_ROOT` if one is set.
 
 The command is `sqlpackage`, lower case. `SqlPackage` is the .NET Framework
 spelling for Windows and does not resolve on Linux.

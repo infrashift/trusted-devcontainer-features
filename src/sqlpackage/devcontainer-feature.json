@@ -8,7 +8,7 @@
 {
     "name": "sqlpackage-feature",
     "id": "sqlpackage",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Installs SqlPackage, the DacFx command line, on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",
     "options": {
         // See available versions at https://www.nuget.org/packages/Microsoft.SqlPackage
