@@ -67,13 +67,27 @@ if [ -z "${REPO_IN_CTR}" ] || ! docker exec "${CID}" test -d "${REPO_IN_CTR}/src
 fi
 echo "contract tests using ${REPO_IN_CTR}"
 
+# THE TARGET ACCOUNT COMES FROM THE TEMPLATE, NOT FROM A CONSTANT. This script
+# used to pass _REMOTE_USER=dev, which every template happened to have. The
+# dotnet-node template now builds the account a real seed uses -- `user', uid
+# 1001, GID 0 -- and a hardcoded `dev' fails there as `chown: invalid user' with
+# thirteen idempotency tests down behind it. containerUser is what the CLI
+# itself honours, so it is what this reads.
+TMPL_CONF="${HERE}/../${TEMPLATE}/.devcontainer/devcontainer.json"
+TARGET_USER="$(grep -oE '"containerUser"[[:space:]]*:[[:space:]]*"[^"]+"' "$TMPL_CONF" \
+                 | sed -E 's/.*:[[:space:]]*"([^"]+)"/\1/' | head -1)"
+TARGET_USER="${TARGET_USER:-dev}"
+TARGET_HOME="$(docker exec "${CID}" bash -lc "getent passwd ${TARGET_USER} | cut -d: -f6" 2>/dev/null | tr -d '\r')"
+TARGET_HOME="${TARGET_HOME:-/home/${TARGET_USER}}"
+echo "target account: ${TARGET_USER} (${TARGET_HOME})"
+
 # _REMOTE_USER/_REMOTE_USER_HOME are injected by the devcontainer CLI only during
 # feature installation, never into an exec environment, so pass them explicitly.
 # run-feature.sh resolves the role relative to $(pwd), hence -w.
 run_role() {
     local feature="$1"; shift
     docker exec -u 0 -w "${REPO_IN_CTR}/src/${feature}" \
-        -e _REMOTE_USER=dev -e _REMOTE_USER_HOME=/home/dev \
+        -e _REMOTE_USER="${TARGET_USER}" -e _REMOTE_USER_HOME="${TARGET_HOME}" \
         "${CID}" /opt/bootstrap/run-feature.sh --role ansible-role-feature "$@"
 }
 
@@ -81,7 +95,7 @@ run_install() {
     local feature="$1"; shift
     local envs=(); for kv in "$@"; do envs+=(-e "$kv"); done
     docker exec -u 0 -w "${REPO_IN_CTR}/src/${feature}" \
-        -e _REMOTE_USER=dev -e _REMOTE_USER_HOME=/home/dev \
+        -e _REMOTE_USER="${TARGET_USER}" -e _REMOTE_USER_HOME="${TARGET_HOME}" \
         "${envs[@]}" "${CID}" bash ./install.sh
 }
 
@@ -144,7 +158,7 @@ declare -A ROLE_ARGS=(
 # test, so pin each to whatever the image actually ended up with. The resolution
 # path itself is exercised by the build.
 installed_semver() {
-    docker exec -u dev "${CID}" bash -lc "$1 2>/dev/null" 2>/dev/null \
+    docker exec -u "${TARGET_USER}" "${CID}" bash -lc "$1 2>/dev/null" 2>/dev/null \
         | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true
 }
 _cc="$(installed_semver '~/.bun/bin/claude --version' || true)"
