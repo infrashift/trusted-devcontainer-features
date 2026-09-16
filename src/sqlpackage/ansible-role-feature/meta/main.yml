@@ -1,0 +1,29 @@
+# sqlpackage-feature/ansible-role-feature/meta/main.yml
+---
+galaxy_info:
+  author: ryancraig
+  description: SqlPackage (DacFx) installation for RHEL UBI and Fedora containers
+  company: infrashift.sh
+  # The bootstrap feature pins ansible-core 2.18.2. Roles use `is defined`
+  # guards and dict .get() chains that predate this, but the floor is set to
+  # what actually runs so a mismatch surfaces instead of being assumed away.
+  min_ansible_version: "2.18"
+  platforms:
+  - name: EL
+    versions:
+    - 9
+    - 10
+  - name: Fedora
+    versions:
+    - 43
+  galaxy_tags:
+    - sqlpackage
+    - dacfx
+    - mssql
+    - dotnet
+    - rhel
+    - fedora
+    - ubi
+
+dependencies: []
+...

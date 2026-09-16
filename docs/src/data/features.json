@@ -171,7 +171,9 @@
     "version": "1.1.0",
     "testStatus": "passing",
     "category": "package-managers",
-    "dependencies": ["openjdk"],
+    "dependencies": [
+      "openjdk"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -260,7 +262,9 @@
     "version": "1.1.0",
     "testStatus": "passing",
     "category": "package-managers",
-    "dependencies": ["openjdk"],
+    "dependencies": [
+      "openjdk"
+    ],
     "options": {
       "target_version": {
         "type": "string",
@@ -395,6 +399,24 @@
         "type": "string",
         "default": "3.12",
         "description": "Select a Python version to install"
+      }
+    }
+  },
+  {
+    "id": "sqlpackage",
+    "name": "SqlPackage",
+    "description": "Installs SqlPackage (DacFx) on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [
+      "dotnet"
+    ],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "170.5.76",
+        "description": "Select a supported SqlPackage version that publishes a net8.0 asset"
       }
     }
   },

@@ -114,6 +114,9 @@ declare -A ROLE_ARGS=(
   [pnpm]='-e _pnpm_version=10.12.1 -e _pnpm_checksum='
   [bun]='-e _bun_version=1.2.17 -e _bun_checksum='
   [dotnet]='-e _dotnet_version=8.0.424 -e _dotnet_checksum='
+  # No checksum arg: this role installs through `dotnet tool install', which
+  # verifies through NuGet, so there is no URL to pin. See src/sqlpackage/NOTES.md.
+  [sqlpackage]='-e _sqlpackage_version=170.5.76'
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.12.1+1 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.12.5 -e _uv_checksum= -e _ruff_version=0.16.4'
   [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.13'

@@ -1,0 +1,53 @@
+# sqlpackage-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role has actually been tested against. The variant is detected
+# once at bootstrap install time from /etc/os-release and published as a group
+# var in /opt/bootstrap/inventory.yml.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Everything below is computed from the inputs install.sh passes, or is a
+# constant this role owns.
+#
+# THERE IS NO PINNED CHECKSUM MAP HERE, AND THAT IS A DEPARTURE WORTH NAMING.
+# Every role that fetches a release tarball pins a per-arch SHA256 and hands it
+# to get_url, and check-role-contract.sh invariant 8 enforces that -- for
+# get_url. This role installs through `dotnet tool install`, which resolves and
+# verifies the package through NuGet's own machinery, so there is no URL to pin
+# and no digest to carry. src/uv-ruff has the same shape for `uv tool install
+# ruff`, and this is the second instance rather than a new idea. What stands in
+# for the pin: an exact --version (never a range), and an assert on the version
+# the installed binary reports. NOTES.md says so where a reader will find it.
+#
+# NO ARCHITECTURE IN ANY PATH. _target_arch still gates the run through the
+# runner-contract assert in tasks/main.yml, but a DotnetTool package is
+# IL plus a platform-agnostic shim -- NuGet picks the right runtime asset. A
+# role constant naming amd64 or arm64 here would be a lie that happened to
+# work on one of them.
+# ---------------------------------------------------------------------------
+
+# The SDK the dotnet feature installs. Named explicitly rather than trusting
+# PATH: run-feature.sh builds a minimal PATH for the setpriv lane, and the
+# dotnet feature's own containerEnv is metadata for a container the CLI would
+# start -- neither puts this on PATH during a feature install.
+_sqlpackage_dotnet_bin: "{{ _target_user_home }}/.local/share/dotnet/dotnet"
+
+# ~/.local/share/<tool> with a symlink into ~/.local/bin, the shape every
+# multi-file tool in this repo uses. --tool-path installs the shim AND a
+# .store/ tree beside it, so pointing it straight at ~/.local/bin would leave
+# a .store directory in the middle of the user's binaries.
+_sqlpackage_tool_path: "{{ _target_user_home }}/.local/share/sqlpackage"
+_sqlpackage_shim: "{{ _sqlpackage_tool_path }}/sqlpackage"
+_sqlpackage_link: "{{ _target_user_home }}/.local/bin/sqlpackage"
+
+# The NuGet package id. Lower case is how the package is published and how
+# Microsoft's own documentation spells the install; the COMMAND is also
+# lower-case `sqlpackage' on Linux, where `SqlPackage' is the .NET Framework
+# spelling and does not resolve.
+_sqlpackage_package_id: microsoft.sqlpackage
+...

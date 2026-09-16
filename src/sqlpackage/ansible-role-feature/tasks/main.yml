@@ -1,0 +1,151 @@
+# sqlpackage-feature/ansible-role-feature/tasks/main.yml
+---
+# ---------------------------------------------------------------------------
+# BOOTSTRAP BRACKET
+# ---------------------------------------------------------------------------
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _sqlpackage_version is defined and _sqlpackage_version | length > 0
+      # SHAPE VALIDATION. An unpinned or malformed version otherwise reaches
+      # `dotnet tool install --version', which treats some malformed values as
+      # a floating range and installs a DIFFERENT release successfully.
+      - _sqlpackage_version is match('^\d+\.\d+\.\d+$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _sqlpackage_version <- target_version  (mandatory, non-empty)
+
+        target_version must look like X.Y.Z
+    success_msg: "sqlpackage {{ _sqlpackage_version }}"
+
+# ---------------------------------------------------------------------------
+# FEATURE TASKS
+# ---------------------------------------------------------------------------
+
+# THE SDK IS A PRECONDITION, AND ITS ABSENCE MUST SAY SO. installsAfter is
+# ordering, not a requirement: a consumer that forgets the dotnet feature gets
+# this role anyway, and `dotnet tool install' would fail as "command not
+# found" from inside an Ansible command task -- which names this role's
+# shell, not the missing feature.
+- name: Assert that the .NET SDK is installed
+  ansible.builtin.stat:
+    path: "{{ _sqlpackage_dotnet_bin }}"
+  register: _sqlpackage_dotnet
+
+- name: Assert that the dotnet feature ran before this one
+  ansible.builtin.assert:
+    that: _sqlpackage_dotnet.stat.exists
+    fail_msg: >-
+      No .NET SDK at {{ _sqlpackage_dotnet_bin }}. SqlPackage is a .NET tool and
+      cannot be installed without one. Declare the dotnet feature alongside this
+      one in devcontainer.json; installsAfter orders the two but does not add it.
+
+# `sqlpackage /version' prints the four-part BUILD number -- 170.5.76.1 for
+# version 170.5.76 -- so the requested version is a prefix of what it reports.
+# That is safe here because the pin is always a full three-part version: a
+# prefix collision would need a release whose version string extends another's
+# at a dot boundary, which the X.Y.Z shape assert above already excludes.
+- name: Check the currently installed SqlPackage version
+  ansible.builtin.command: "{{ _sqlpackage_link }} /version"
+  register: _sqlpackage_installed
+  failed_when: false
+  changed_when: false
+
+- name: Determine whether SqlPackage {{ _sqlpackage_version }} needs installing
+  ansible.builtin.set_fact:
+    _sqlpackage_install_required: >-
+      {{ _sqlpackage_installed.rc != 0 or _sqlpackage_version not in (_sqlpackage_installed.stdout | default('')) }}
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+# --tool-path, not --global. A global install lands in ~/.dotnet/tools, which
+# is not on the login PATH any base image builds and which no other feature in
+# this repo writes to. The explicit path keeps the tool where every other
+# multi-file tool here lives, and makes the symlink below the only PATH
+# contract this feature relies on.
+#
+# The install reaches api.nuget.org and nothing else. That host is already
+# reachable from the environments this repo's images are built in, and it is
+# the whole reason this feature does not fetch the standalone zip from aka.ms:
+# see NOTES.md.
+- name: Install SqlPackage {{ _sqlpackage_version }}
+  ansible.builtin.command:
+    cmd: >-
+      {{ _sqlpackage_dotnet_bin }} tool install {{ _sqlpackage_package_id }}
+      --version {{ _sqlpackage_version }}
+      --tool-path {{ _sqlpackage_tool_path }}
+    creates: "{{ _sqlpackage_shim }}"
+  environment:
+    HOME: "{{ _target_user_home }}"
+    DOTNET_ROOT: "{{ _target_user_home }}/.local/share/dotnet"
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "1"
+  when: _sqlpackage_install_required | bool
+
+# An UPGRADE meets an existing shim, so `creates:' above skips it and the
+# verify below would fail on the old version. Update in place rather than
+# uninstall-then-install: `dotnet tool update' handles both directions, and a
+# failed uninstall would otherwise leave no tool at all.
+- name: Update SqlPackage to {{ _sqlpackage_version }} when an older one is present
+  ansible.builtin.command:
+    cmd: >-
+      {{ _sqlpackage_dotnet_bin }} tool update {{ _sqlpackage_package_id }}
+      --version {{ _sqlpackage_version }}
+      --tool-path {{ _sqlpackage_tool_path }}
+  environment:
+    HOME: "{{ _target_user_home }}"
+    DOTNET_ROOT: "{{ _target_user_home }}/.local/share/dotnet"
+    DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    DOTNET_NOLOGO: "1"
+  when:
+    - _sqlpackage_install_required | bool
+    - _sqlpackage_installed.rc == 0
+  changed_when: true
+
+- name: Symlink the sqlpackage shim into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _sqlpackage_shim }}"
+    dest: "{{ _sqlpackage_link }}"
+    state: link
+
+- name: Verify the installed SqlPackage version
+  ansible.builtin.command: "{{ _sqlpackage_link }} /version"
+  register: _sqlpackage_verify
+  changed_when: false
+
+# Assert the REQUESTED version installed, not merely that a binary runs. This
+# is also what catches a pin with no net8.0 asset: such a build installs
+# cleanly and then fails here with "You must install or update .NET to run this
+# application", at feature-install time rather than in a developer's workspace.
+- name: Assert that SqlPackage {{ _sqlpackage_version }} is installed and accessible
+  ansible.builtin.assert:
+    that: _sqlpackage_version in _sqlpackage_verify.stdout
+    fail_msg: "Expected sqlpackage {{ _sqlpackage_version }}; installed sqlpackage reported: {{ _sqlpackage_verify.stdout }}"
+    success_msg: "SqlPackage {{ _sqlpackage_version }} installed and verified."
+...

@@ -5,6 +5,7 @@
     "features": {
         "./bootstrap": {},
         "./dotnet": {},
+        "./sqlpackage": {},
         "./nodejs": {},
         "./npm": {},
         "./pnpm": {},
