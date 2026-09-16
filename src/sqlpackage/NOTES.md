@@ -24,8 +24,17 @@ The seed's image exports `DOTNET_ROOT` from `/etc/profile.d` for **login**
 shells, so a symlink appears to work in a developer's terminal and fails
 everywhere else — during the feature install itself, in `ssh host sqlpackage …`,
 in any script with a plain shell. The wrapper carries the location with the tool
-rather than relying on the caller's environment, and honours an existing
-`DOTNET_ROOT` if one is set.
+rather than relying on the caller's environment.
+
+**It sets `DOTNET_ROOT` unconditionally, and that is deliberate.** 1.0.1 wrote
+`${DOTNET_ROOT:-…}`, honouring an inherited value — which sounds courteous and
+was the bug. The `dotnet` feature's `containerEnv` hardcodes
+`DOTNET_ROOT=/home/dev/.local/share/dotnet`, so during a devcontainer build the
+variable is already set, to an account most images do not have. The default
+never applied, the apphost looked under `/home/dev`, and it exited 131 with
+*".NET location: Not found"* while the SDK sat in the target user's home. This
+feature asserts the SDK's real location before installing; that is the location
+the wrapper uses, whatever the environment claims.
 
 The command is `sqlpackage`, lower case. `SqlPackage` is the .NET Framework
 spelling for Windows and does not resolve on Linux.
