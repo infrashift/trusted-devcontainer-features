@@ -29,6 +29,7 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `openjdk` | Installs OpenJDK | `ghcr.io/infrashift/trusted-devcontainer-features/openjdk:latest` |
 | `pnpm` | Installs the pnpm package manager | `ghcr.io/infrashift/trusted-devcontainer-features/pnpm:latest` |
 | `python` | Installs a specific Python version via UV | `ghcr.io/infrashift/trusted-devcontainer-features/python:latest` |
+| `sqlpackage` | Installs SqlPackage (DacFx) for DACPAC and BACPAC work. Needs the `dotnet` feature. | `ghcr.io/infrashift/trusted-devcontainer-features/sqlpackage:latest` |
 | `sshd` | Installs and hardens an OpenSSH server for remote access to the container | `ghcr.io/infrashift/trusted-devcontainer-features/sshd:latest` |
 | `syft` | Installs the Syft SBOM generator | `ghcr.io/infrashift/trusted-devcontainer-features/syft:latest` |
 | `uv-ruff` | Installs UV and Ruff Python tools | `ghcr.io/infrashift/trusted-devcontainer-features/uv-ruff:latest` |

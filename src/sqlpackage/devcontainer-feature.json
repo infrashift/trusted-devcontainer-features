@@ -1,0 +1,53 @@
+// sqlpackage-feature/devcontainer-feature.json
+// Find Development Container Feature Specification at https://containers.dev/implementors/features/
+//
+// THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR EVERY OPTION DEFAULT.
+// The Ansible role deliberately carries no defaults of its own: the devcontainer
+// CLI materializes each "default" below into an env var, install.sh forwards it
+// as an Ansible extra-var, and extra-vars outrank role defaults.
+{
+    "name": "sqlpackage-feature",
+    "id": "sqlpackage",
+    "version": "1.0.0",
+    "description": "Installs SqlPackage, the DacFx command line, on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",
+    "options": {
+        // See available versions at https://www.nuget.org/packages/Microsoft.SqlPackage
+        //
+        // THE PIN MUST NAME A RELEASE THAT SHIPS A net8.0 ASSET. SqlPackage is a
+        // DotnetTool package whose nuspec declares a dependency group per target
+        // framework; 170.5.76 declares both net10.0 and net8.0, so `dotnet tool
+        // install` resolves the net8.0 one against the SDK the dotnet feature
+        // installs. A pin with only net10.0 installs and then fails at first run
+        // with "You must install or update .NET", which is not an install error
+        // and does not surface here.
+        "target_version": {
+            "type": "string",
+            "proposals": ["170.5.76", "170.4.83"],
+            "default": "170.5.76",
+            "description": "Select a supported SqlPackage version that publishes a net8.0 asset"
+        }
+    },
+    // The SDK must already be on disk: this role invokes the dotnet the dotnet
+    // feature installs, at ~/.local/share/dotnet/dotnet. installsAfter and not
+    // dependsOn, matching how cuelang orders itself after golang -- a consumer
+    // that wants SqlPackage is declaring the dotnet feature anyway, and a hard
+    // dependency would pin this feature to that feature's digest.
+    "installsAfter": [
+        "./dotnet"
+    ],
+    // NO containerEnv, deliberately. src/dotnet writes /home/dev into its PATH
+    // entry, which is wrong for any image whose remote user is not `dev' -- and
+    // sshd strips the environment anyway, so a feature's containerEnv never
+    // reaches a login shell in a workspace reached over SSH. The symlink this
+    // role drops in ~/.local/bin is already on PATH in every base image.
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-mssql.sql-database-projects-vscode"
+            ]
+        }
+    },
+    "dependsOn": {
+        "./bootstrap": {}
+    }
+}

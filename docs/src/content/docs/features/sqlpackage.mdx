@@ -1,0 +1,40 @@
+---
+title: SqlPackage
+description: Installs SqlPackage (DacFx) on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'sqlpackage');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+SqlPackage is the command line over DacFx. It deploys a **DACPAC**, which carries a database's schema, and it exports or imports a **BACPAC**, which carries schema and data together. It is what turns a SQL project built by `dotnet build` into a database that exists.
+
+This feature installs it as a .NET tool rather than as a downloaded archive: `dotnet tool install microsoft.sqlpackage --version <pinned> --tool-path ~/.local/share/sqlpackage`, followed by a symlink at `~/.local/bin/sqlpackage`, which is already on PATH in every base image here. The install therefore needs the .NET SDK on disk, which is why the feature declares `installsAfter` the `dotnet` feature — declare both in your `devcontainer.json`, because `installsAfter` orders the two and does not add the SDK for you. The role fails by name if it is missing.
+
+The command is `sqlpackage`, lower case, and its version flag is `/version` rather than `--version`. `SqlPackage` is the .NET Framework spelling for Windows and does not resolve on Linux.
+
+**The pinned version must publish a `net8.0` asset.** `microsoft.sqlpackage` is a `DotnetTool` package whose nuspec declares one dependency group per target framework; 170.5.76 declares both `net10.0` and `net8.0`, so `dotnet tool install` resolves the `net8.0` one against an SDK 8 image. Microsoft's download page describes SqlPackage as "built using .NET 10", which is true of the standalone zip and not of this package. A pin carrying only a `net10.0` asset installs cleanly and then fails at first run with *"You must install or update .NET"* — so the role asserts the version the installed binary reports, which turns that into a build-time failure instead of a surprise in someone's workspace.
+
+The install reaches `api.nuget.org` and nothing else. It deliberately does not fetch the standalone zip from `aka.ms/sqlpackage-linux`: behind a filtering egress proxy that redirector would need two allow-list entries rather than one, and `api.nuget.org` is already reachable wherever `dotnet restore` runs. Because `dotnet tool install` resolves and verifies through NuGet, this role carries no pinned SHA256 — an exact `--version` and the post-install version assert stand in for it. The `uv-ruff` feature has the same shape for `uv tool install ruff`.
