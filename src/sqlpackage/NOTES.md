@@ -86,3 +86,21 @@ See available versions at https://www.nuget.org/packages/Microsoft.SqlPackage
     "./sqlpackage": {"target_version": "170.5.76"}
 }
 ```
+
+## Why CI did not catch this
+
+The `dotnet-node` test template runs as **`dev`**, and the `dotnet` feature's
+`containerEnv` hardcodes `DOTNET_ROOT=/home/dev/.local/share/dotnet` — correct
+for that account, and carried by `devcontainer exec`. So the template's
+`check "sqlpackage" sqlpackage /version` passed against a build that could not
+run in a real workspace.
+
+A real seed uses **`user`**, where that path does not exist, and reaches the tool
+over SSH, where sshd strips the environment before a login shell rebuilds it.
+The seed's own Containerfile records the general rule: *"a feature's
+containerEnv is metadata for the container the CLI would start, not for an SSH
+session."*
+
+The consequence is worth stating for the next feature: **anything that depends
+on `containerEnv` or on the `/home/dev` path passes this repository's CI and
+fails in a workspace.** A tool should carry what it needs, as this one now does.
