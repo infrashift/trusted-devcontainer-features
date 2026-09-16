@@ -1,0 +1,7 @@
+# make-feature/ansible-role-feature/vars/main.yml
+---
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+...

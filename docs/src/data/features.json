@@ -256,6 +256,16 @@
     }
   },
   {
+    "id": "make",
+    "name": "GNU Make",
+    "description": "Installs GNU Make on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {}
+  },
+  {
     "id": "maven",
     "name": "Maven",
     "description": "Installs Apache Maven on Red Hat UBI DevContainers.",

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 source "$(dirname "$0")/test-lib.sh"
+check "make" make --version
 check "dotnet" dotnet --version
 # Lower case, and `/version' rather than `--version': `SqlPackage' is the .NET
 # Framework spelling and does not resolve on Linux.

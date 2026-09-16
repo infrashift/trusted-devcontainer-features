@@ -22,6 +22,7 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `grype` | Installs the Grype vulnerability scanner | `ghcr.io/infrashift/trusted-devcontainer-features/grype:latest` |
 | `jq` | Installs the jq JSON processor | `ghcr.io/infrashift/trusted-devcontainer-features/jq:latest` |
 | `kaniko` | Installs the kaniko executor and cache warmer for daemonless image builds | `ghcr.io/infrashift/trusted-devcontainer-features/kaniko:latest` |
+| `make` | Installs GNU Make — the golden workflow every seed ships is a Makefile | `ghcr.io/infrashift/trusted-devcontainer-features/make:latest` |
 | `maven` | Installs Apache Maven | `ghcr.io/infrashift/trusted-devcontainer-features/maven:latest` |
 | `nodejs` | Installs Node.js | `ghcr.io/infrashift/trusted-devcontainer-features/nodejs:latest` |
 | `npm` | Updates npm to a specific version | `ghcr.io/infrashift/trusted-devcontainer-features/npm:latest` |
