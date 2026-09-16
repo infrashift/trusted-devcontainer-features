@@ -73,36 +73,21 @@ USER ${USERNAME}
 
 ENV HOME=/home/${USERNAME}
 
-# THE TOOLCHAIN DIRECTORIES, resolved from USERNAME rather than hardcoded.
-# Features install under $HOME/.local/share/<tool> and announce the path through
-# containerEnv -- which every one of them writes as a literal /home/dev. That is
-# correct for the default account and wrong for any other, so a template that
-# names a different USERNAME would not find dotnet, node or pnpm at all. Adding
-# them here mirrors what a real seed does in /etc/profile.d, and keeps the
-# template testing the FEATURES rather than that one hardcoded string.
+# ONLY ~/.local/bin, and that is now enough. Features used to announce their
+# own directory through containerEnv, which the devcontainer CLI emits as a
+# literal Dockerfile ENV -- no substitution is available there, so every one of
+# them wrote /home/dev and was wrong for any other account. They now LINK their
+# binaries into ~/.local/bin instead, which needs no variable and is correct
+# whoever the user is, so this template compensates for nothing.
 #
-# AND THE FEATURES CANNOT FIX THIS THEMSELVES -- TESTED, 2026-09-16. The obvious
-# repair is to write ${containerEnv:HOME} instead of /home/dev in each feature's
-# containerEnv. It does not work: the devcontainer CLI emits containerEnv
-# straight into a Dockerfile ENV, where Docker's own substitution reads the
-# value and rejects it --
-#
-#   failed to process "${containerEnv:HOME}/.local/share/dotnet":
-#   unsupported modifier (:H) in substitution
-#
-# -- so the build fails outright rather than resolving. containerEnv values are
-# literals, with no substitution available at that point, and a feature has no
-# way to know the account it will be installed for. Compensating HERE, as a seed
-# compensates in /etc/profile.d, is the available answer rather than a shortcut
-# past a better one.
-#
-# DOTNET_ROOT IS DELIBERATELY NOT SET HERE. A .NET apphost finds its runtime
-# through that variable, and under a non-default USERNAME the dotnet feature's
-# containerEnv points it at an account that does not exist. Leaving it wrong is
-# the point: a tool that depends on the environment being right fails here,
-# which is how sqlpackage 1.0.0 should have been caught. A tool that carries its
-# own runtime location passes.
-ENV PATH="/home/${USERNAME}/.local/bin:/home/${USERNAME}/.local/share/dotnet:/home/${USERNAME}/.local/share/nodejs/bin:/home/${USERNAME}/.local/share/pnpm:${PATH}"
+# FOUR VARIABLES REMAIN ACCOUNT-DEPENDENT and cannot be linked away, because
+# they name a location rather than a binary: DOTNET_ROOT, JAVA_HOME, GOPATH and
+# PNPM_HOME. Under a non-default USERNAME they point at an account that does not
+# exist. That is left deliberately unfixed here: a tool that depends on the
+# environment being right fails in this template, which is how sqlpackage 1.0.0
+# should have been caught, and a tool that carries its own runtime location
+# passes.
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
 
 RUN mkdir -p ${HOME}/.local/bin \
     && echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ${HOME}/.bashrc \

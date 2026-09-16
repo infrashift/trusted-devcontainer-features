@@ -144,4 +144,25 @@
     that: "'v' + _nodejs_version in _nodejs_version_result.stdout"
     fail_msg: "{{ _nodejs_version_result.stdout }}"
     success_msg: "{{ _nodejs_version_result.stdout }}"
+
+# ON PATH WITHOUT A containerEnv ENTRY. This feature used to announce its
+# directory through containerEnv, which the devcontainer CLI emits as a literal
+# Dockerfile ENV -- no substitution is available there, so the path had to be
+# written as /home/dev and was wrong for any other account. ~/.local/bin is
+# already on PATH in every base image here, so a link into it needs no variable
+# and is correct whoever the user is.
+# npm and npx are themselves symlinks into ../lib/node_modules; a second link resolves through to the same real file, and npm locates its lib dir from that real path.
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+- name: Link the binaries into ~/.local/bin so no PATH entry is needed
+  ansible.builtin.file:
+    src: "{{ _target_user_home }}/.local/share/nodejs/bin/{{ item }}"
+    dest: "{{ _target_user_home }}/.local/bin/{{ item }}"
+    state: link
+    force: true
+  loop: ['node', 'npm', 'npx']
 ...
