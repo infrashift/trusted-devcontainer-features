@@ -3,7 +3,7 @@
 {
     "name": "ansible-core-feature",
     "id": "ansible-core",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "description": "Installs ansible-core via UV tool on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://pypi.org/project/ansible-core/
@@ -15,8 +15,8 @@
         },
         "target_python_version": {
             "type": "string",
-            "proposals": ["3.12", "3.13", "3.11"],
-            "default": "3.13",
+            "proposals": ["3.14", "3.13", "3.12"],
+            "default": "3.14",
             "description": "Select which Python version to use for the ansible-core venv"
         }
     },

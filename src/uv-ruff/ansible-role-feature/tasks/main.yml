@@ -134,7 +134,7 @@
 # No --python pin. Ruff is a self-contained binary, so the interpreter uv builds
 # its tool environment against is incidental -- but naming a version here forces
 # uv to fetch THAT interpreter whether or not the container already has one.
-# With the python feature on 3.13 and bootstrap on 3.13, a hardcoded 3.12 meant
+# With the python feature and bootstrap on the same minor, a hardcoded 3.12 meant
 # a third interpreter downloaded solely for ruff, carrying its own CVEs. Letting
 # uv resolve reuses what is already present.
 - name: Install Ruff {{ _ruff_version }} via uv tool install
