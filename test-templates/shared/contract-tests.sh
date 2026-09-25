@@ -116,7 +116,7 @@ echo "Idempotency — a second run must change nothing:"
 
 # Feature -> the extra-vars its install.sh passes, at their declared defaults.
 declare -A ROLE_ARGS=(
-  [python]='-e _python_version=3.13'
+  [python]='-e _python_version=3.14'
   [cuelang]='-e _cue_version=0.17.1 -e _cue_checksum='
   [golang]='-e _go_version=1.27.0 -e _go_checksum='
   [grype]='-e _grype_version=0.117.0 -e _grype_checksum='
@@ -133,7 +133,7 @@ declare -A ROLE_ARGS=(
   [sqlpackage]='-e _sqlpackage_version=170.5.76'
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.12.1+1 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.12.5 -e _uv_checksum= -e _ruff_version=0.16.4'
-  [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.13'
+  [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.14'
   [kaniko]='-e _kaniko_version=1.28.4 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
   [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
   [maven]='-e _maven_version=3.9.16 -e _maven_checksum='

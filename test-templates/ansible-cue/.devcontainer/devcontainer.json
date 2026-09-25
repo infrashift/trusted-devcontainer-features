@@ -6,10 +6,10 @@
         "./bootstrap": {},
         "./ansible-core": {
             "target_version": "2.21.3",
-            "target_python_version": "3.13"
+            "target_python_version": "3.14"
         },
         "./python": {
-            "target_version": "3.13"
+            "target_version": "3.14"
         },
         "./cuelang": {},
         "./git": {},
