@@ -398,7 +398,7 @@
     "id": "python",
     "name": "Python",
     "description": "Installs a specific Python version via UV on Red Hat UBI DevContainers.",
-    "version": "1.7.0",
+    "version": "1.7.1",
     "testStatus": "passing",
     "category": "languages",
     "dependencies": [

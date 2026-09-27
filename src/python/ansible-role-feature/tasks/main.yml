@@ -53,24 +53,24 @@
     owner: "{{ _target_username }}"
     group: "{{ _target_username }}"
 
-- name: Check if Python {{ _python_version }} is already installed
-  ansible.builtin.command:
-    cmd: "{{ _uv_bin }} python find {{ _python_version }}"
-  environment:
-    HOME: "{{ _target_user_home }}"
-    PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  failed_when: false
-  register: _python_find_result
-  changed_when: false
-
-- name: Install Python {{ _python_version }} via uv
+# ALWAYS run the install, even when `uv python find' already succeeds. Finding
+# an interpreter is not the same as having installed one: `uv tool install'
+# (uv-ruff's ruff, which this feature installs after) downloads a managed
+# CPython as a tool dependency and creates NO executable for it. `find' then
+# reports the version present, and a skipped install leaves the image with no
+# ~/.local/bin/python{{ _python_version }} at all -- which is what a
+# python + uv-ruff image shipped once the two defaults met at 3.14. The install
+# is idempotent: on an interpreter that is already there it only adds the
+# missing executable ("Installed Python ..."), and with nothing missing it
+# says "is already installed" and changes nothing.
+- name: Install Python {{ _python_version }} via uv (and its executable)
   ansible.builtin.command:
     cmd: "{{ _uv_bin }} python install {{ _python_version }}"
   environment:
     HOME: "{{ _target_user_home }}"
     PATH: "{{ _target_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin"
   register: _python_install_log
-  when: _python_find_result.rc != 0
+  changed_when: _python_install_log.stderr is search('Installed Python')
 
 - name: Verify Python {{ _python_version }} is installed
   ansible.builtin.command:
@@ -88,4 +88,22 @@
       - _python_verify_result.stdout is search('cpython-' ~ _python_version ~ '[.-]')
     fail_msg: "Python {{ _python_version }} could not be found after installation. Error: {{ _python_verify_result.stderr }}"
     success_msg: "Python {{ _python_version }} installed and verified."
+
+# The check above is the one that let the missing executable through: `find'
+# answers from uv's own registry, and the interpreter WAS registered. What a
+# developer runs is the executable on the PATH, so that is what is asserted.
+- name: Stat the python{{ _python_version }} executable
+  ansible.builtin.stat:
+    path: "{{ _target_user_home }}/.local/bin/python{{ _python_version }}"
+  register: _python_executable
+
+- name: Assert that python{{ _python_version }} is on the user's PATH
+  ansible.builtin.assert:
+    that:
+      - _python_executable.stat.exists
+      - _python_executable.stat.executable | default(false)
+    fail_msg: >-
+      uv has Python {{ _python_version }} but {{ _target_user_home }}/.local/bin/python{{ _python_version }}
+      does not exist: the interpreter is present and cannot be run by name.
+    success_msg: "{{ _target_user_home }}/.local/bin/python{{ _python_version }}"
 ...
