@@ -2,6 +2,7 @@
 source "$(dirname "$0")/test-lib.sh"
 check "ansible" ansible --version
 check "python" uv python find 3.14
+check "python3.14 on PATH" python3.14 --version
 check "cue" cue version
 check "git" git --version
 check "git-lfs" git-lfs --version
