@@ -80,8 +80,8 @@ esac
 # Checksums pinned for the DEFAULT uv version. If the version is overridden we
 # fall back to the checksum file published alongside that release.
 declare -A PINNED_SHA256=(
-    ["0.12.5:x86_64-unknown-linux-gnu"]="68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2"
-    ["0.12.5:aarch64-unknown-linux-gnu"]="9bf43b4d1a07665bf64d4c4e710930b382321a785e0eb10aac07f46471f86a31"
+    ["0.12.24:x86_64-unknown-linux-gnu"]="b4dfaef47d491a7296981f8374a4595f55dbf84e8937c8ecd2983574d8bb3da6"
+    ["0.12.24:aarch64-unknown-linux-gnu"]="5231be65f496304623895dacdbf1de8504fec90303684bdf05805aa34414dd21"
 )
 
 # ---------------------------------------------------------------------------
