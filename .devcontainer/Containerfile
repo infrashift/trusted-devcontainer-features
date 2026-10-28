@@ -1,4 +1,4 @@
-FROM ghcr.io/infrashift/trusted-base-images/trusted/fedora43-minimal@sha256:1ed67eb14da57087e206e45bba67a84264e213e8c545d64a9683fbc38bca3a65
+FROM ghcr.io/infrashift/trusted-base-images/trusted/fedora43-minimal@sha256:27dbbbb9470a39d04fb4154ec7bf9bff3e58d69365247f318eec5e8cd9783b2e
 
 USER root
 
