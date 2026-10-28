@@ -3,14 +3,14 @@
 {
     "name": "bun-feature",
     "id": "bun",
-    "version": "1.4.3",
+    "version": "1.5.0",
     "description": "Installs Bun JavaScript runtime on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/oven-sh/bun/releases
         "target_version": {
             "type": "string",
-            "proposals": ["1.2.17", "1.2.16"],
-            "default": "1.2.17",
+            "proposals": ["1.4.4", "1.2.17"],
+            "default": "1.4.4",
             "description": "Select a supported Bun version"
         },
         "target_checksum": {

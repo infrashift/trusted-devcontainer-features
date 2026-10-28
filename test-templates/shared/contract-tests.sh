@@ -126,7 +126,7 @@ declare -A ROLE_ARGS=(
   [nodejs]='-e _nodejs_version=22.23.4 -e _nodejs_checksum='
   [npm]='-e _npm_version=12.0.2'
   [pnpm]='-e _pnpm_version=10.34.9 -e _pnpm_checksum='
-  [bun]='-e _bun_version=1.2.17 -e _bun_checksum='
+  [bun]='-e _bun_version=1.4.4 -e _bun_checksum='
   [dotnet]='-e _dotnet_version=8.0.427 -e _dotnet_checksum='
   # No checksum arg: this role installs through `dotnet tool install', which
   # verifies through NuGet, so there is no URL to pin. See src/sqlpackage/NOTES.md.
