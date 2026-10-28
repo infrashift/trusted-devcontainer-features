@@ -125,7 +125,7 @@ declare -A ROLE_ARGS=(
   [yq]='-e _yq_version=4.54.1 -e _yq_checksum='
   [nodejs]='-e _nodejs_version=22.23.4 -e _nodejs_checksum='
   [npm]='-e _npm_version=12.0.2'
-  [pnpm]='-e _pnpm_version=10.12.1 -e _pnpm_checksum='
+  [pnpm]='-e _pnpm_version=10.34.9 -e _pnpm_checksum='
   [bun]='-e _bun_version=1.2.17 -e _bun_checksum='
   [dotnet]='-e _dotnet_version=8.0.427 -e _dotnet_checksum='
   # No checksum arg: this role installs through `dotnet tool install', which
