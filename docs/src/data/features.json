@@ -476,14 +476,14 @@
     "id": "uv-ruff",
     "name": "UV & Ruff",
     "description": "Installs Astral UV package manager and Ruff linter on Red Hat UBI DevContainers.",
-    "version": "1.6.3",
+    "version": "1.7.0",
     "testStatus": "passing",
     "category": "package-managers",
     "dependencies": [],
     "options": {
       "target_uv_version": {
         "type": "string",
-        "default": "0.12.24",
+        "default": "0.13.6",
         "description": "Select a supported UV version"
       },
       "target_uv_checksum": {
@@ -493,7 +493,7 @@
       },
       "target_ruff_version": {
         "type": "string",
-        "default": "0.16.4",
+        "default": "0.17.3",
         "description": "Select a supported Ruff version"
       }
     }
