@@ -170,7 +170,9 @@ done
 
 # Tools pinned by an option other than a feature's primary version. The nodejs
 # feature replaces the npm bundled with Node.js, so that pin drifts on its own.
-for extra in "nodejs|npm_version|npm"; do
+# Entries are feature|option|npm package.
+EXTRA_PINS=("nodejs|npm_version|npm")
+for extra in "${EXTRA_PINS[@]}"; do
     IFS='|' read -r feat opt label <<<"$extra"
     have=$(option_default "$feat" "$opt")
     [ -n "$have" ] || continue
