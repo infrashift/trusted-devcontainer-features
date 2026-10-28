@@ -24,6 +24,9 @@ _pnpm_download_url: "https://github.com/pnpm/pnpm/releases/download/v{{ _pnpm_ve
 
 # SHA256 digests pinned for the DEFAULT version, per architecture.
 _pnpm_pinned_checksums:
+  "10.34.9":
+    x64: "3ec79240658f0ee4e8977f21ee2c598c7a8b8d06b86dc564f2ec6cb099fd8ac2"
+    arm64: "85abd31b96964e6510cecb3b366ba024287191e0ee5978e5a9e2d3beb4a377d1"
   "10.12.1":
     x64: "eb2dc1f109bca046ce734d062c8dd8f34db2b58a115992f9b086456efd7b2305"
     arm64: "c2f9e9d42d81f9f40a0f895513d014a08d5ecb0abc9e15c426ecfde6f492706b"

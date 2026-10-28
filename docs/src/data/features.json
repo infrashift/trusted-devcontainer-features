@@ -375,7 +375,7 @@
     "id": "pnpm",
     "name": "pnpm",
     "description": "Installs pnpm package manager on Red Hat UBI DevContainers.",
-    "version": "1.4.3",
+    "version": "1.5.0",
     "testStatus": "passing",
     "category": "package-managers",
     "dependencies": [
@@ -384,7 +384,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "10.12.1",
+        "default": "10.34.9",
         "description": "Select a supported pnpm version"
       },
       "target_checksum": {

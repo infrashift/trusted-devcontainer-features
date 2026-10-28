@@ -3,14 +3,14 @@
 {
     "name": "pnpm-feature",
     "id": "pnpm",
-    "version": "1.4.3",
+    "version": "1.5.0",
     "description": "Installs pnpm package manager on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/pnpm/pnpm/releases
         "target_version": {
             "type": "string",
-            "proposals": ["10.12.1", "10.11.0", "9.15.9"],
-            "default": "10.12.1",
+            "proposals": ["10.34.9", "10.12.1", "9.15.9"],
+            "default": "10.34.9",
             "description": "Select a supported pnpm version"
         },
         "target_checksum": {
