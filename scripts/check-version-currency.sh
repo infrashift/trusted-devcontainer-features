@@ -100,7 +100,9 @@ not_comparable() {
 }
 
 gh_tag()  { fetch "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name' | eval "$2"; }
-npm_dist() { fetch "https://registry.npmjs.org/$1" | jq -r '."dist-tags".latest'; }
+# The dist-tags endpoint, not the full packument: npm's own packument is tens of
+# megabytes and overruns fetch's --max-time, which reported npm as "unknown".
+npm_dist() { fetch "https://registry.npmjs.org/-/package/$1/dist-tags" | jq -r '.latest'; }
 
 # devcontainer-feature.json is JSONC, and the option blocks span several lines --
 # grep -P is line-based, so a pattern spanning `{ ... "default": ... }` matches
