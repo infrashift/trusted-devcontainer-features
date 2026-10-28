@@ -123,7 +123,7 @@ declare -A ROLE_ARGS=(
   [syft]='-e _syft_version=1.55.0 -e _syft_checksum='
   [jq]='-e _jq_version=1.8.2 -e _jq_checksum='
   [yq]='-e _yq_version=4.54.1 -e _yq_checksum='
-  [nodejs]='-e _nodejs_version=22.23.4 -e _nodejs_checksum='
+  [nodejs]='-e _nodejs_version=22.23.4 -e _nodejs_checksum= -e _nodejs_npm_version=12.2.1'
   [npm]='-e _npm_version=12.2.1'
   [pnpm]='-e _pnpm_version=10.34.9 -e _pnpm_checksum='
   [bun]='-e _bun_version=1.4.4 -e _bun_checksum='

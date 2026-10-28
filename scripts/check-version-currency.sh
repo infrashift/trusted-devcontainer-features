@@ -127,6 +127,15 @@ for name in ("target_version", "target_uv_version", "python_version"):
 PYEOF
 }
 
+# The default of one named option.
+option_default() {
+    python3 - "src/$1/devcontainer-feature.json" "$2" <<'PYEOF' 2>/dev/null || true
+import json, re, sys
+doc = json.loads(re.sub(r'(?m)^\s*//.*$', '', open(sys.argv[1]).read()))
+print(doc.get("options", {}).get(sys.argv[2], {}).get("default", ""))
+PYEOF
+}
+
 behind=0
 unknown=0
 rows=""
@@ -155,6 +164,26 @@ for d in src/*/; do
         rows+="| \`${feat}\` | ${have} | ${want} | current |"$'\n'
     else
         rows+="| \`${feat}\` | ${have} | ${want} | **behind** |"$'\n'
+        behind=$((behind + 1))
+    fi
+done
+
+# Tools pinned by an option other than a feature's primary version. The nodejs
+# feature replaces the npm bundled with Node.js, so that pin drifts on its own.
+# Entries are feature|option|npm package.
+EXTRA_PINS=("nodejs|npm_version|npm")
+for extra in "${EXTRA_PINS[@]}"; do
+    IFS='|' read -r feat opt label <<<"$extra"
+    have=$(option_default "$feat" "$opt")
+    [ -n "$have" ] || continue
+    want=$(npm_dist "$label" 2>/dev/null || true)
+    if [ -z "$want" ] || [ "$want" = "null" ]; then
+        rows+="| \`${feat}\` (${label}) | ${have} | — | unknown |"$'\n'
+        unknown=$((unknown + 1))
+    elif [ "$have" = "$want" ]; then
+        rows+="| \`${feat}\` (${label}) | ${have} | ${want} | current |"$'\n'
+    else
+        rows+="| \`${feat}\` (${label}) | ${have} | ${want} | **behind** |"$'\n'
         behind=$((behind + 1))
     fi
 done

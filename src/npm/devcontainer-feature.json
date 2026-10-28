@@ -3,8 +3,8 @@
 {
     "name": "npm-feature",
     "id": "npm",
-    "version": "1.8.0",
-    "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
+    "version": "1.8.1",
+    "description": "Deprecated: the nodejs feature now replaces its bundled npm itself (option npm_version). Updates npm to a specific version on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://github.com/npm/cli/releases
         "target_version": {
