@@ -292,7 +292,7 @@
     "id": "nodejs",
     "name": "Node.js",
     "description": "Installs Node.js on Red Hat UBI DevContainers.",
-    "version": "1.5.4",
+    "version": "1.6.0",
     "testStatus": "passing",
     "category": "languages",
     "dependencies": [],
@@ -306,14 +306,19 @@
         "type": "string",
         "default": "",
         "description": "SHA256 checksum for the Node.js tarball"
+      },
+      "npm_version": {
+        "type": "string",
+        "default": "12.2.1",
+        "description": "npm version installed over the copy bundled with Node.js"
       }
     }
   },
   {
     "id": "npm",
     "name": "npm",
-    "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
-    "version": "1.8.0",
+    "description": "Deprecated: the nodejs feature now replaces its bundled npm itself (option npm_version). Updates npm to a specific version on Red Hat UBI DevContainers.",
+    "version": "1.8.1",
     "testStatus": "passing",
     "category": "package-managers",
     "dependencies": [

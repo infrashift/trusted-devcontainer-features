@@ -1,5 +1,10 @@
 # npm Feature
 
+> **Deprecated.** The nodejs feature now replaces the npm bundled with Node.js
+> itself, through its `npm_version` option (default 12.2.1). Set that option
+> instead of adding this feature. With both at their defaults this feature is a
+> no-op; it is kept so existing devcontainer.json files keep building.
+
 Updates [npm](https://www.npmjs.com/) to a specific version.
 
 ## Install Location

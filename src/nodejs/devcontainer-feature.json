@@ -3,21 +3,28 @@
 {
     "name": "nodejs-feature",
     "id": "nodejs",
-    "version": "1.5.4",
+    "version": "1.6.0",
     "description": "Installs Node.js on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://nodejs.org/en/download/
         "target_version": {
             "type": "string",
-            "proposals": ["22.16.0", "20.19.1"],
+            "proposals": ["22.23.4"],
             "default": "22.23.4",
-            "description": "Select a supported Node.js version"
+            "description": "Select a supported Node.js version. With a Node.js older than 22.22.2 (or 24.x older than 24.15.0), also set npm_version to a 10.x release: npm 12 does not run there."
         },
         "target_checksum": {
             "type": "string",
             "proposals": [],
             "default": "",
             "description": "SHA256 checksum for the Node.js tarball"
+        },
+        // See available versions at https://github.com/npm/cli/releases
+        "npm_version": {
+            "type": "string",
+            "proposals": ["12.2.1", "10.9.9"],
+            "default": "12.2.1",
+            "description": "npm version installed over the copy bundled with Node.js. The bundled npm (10.9.9 with Node.js 22.23.4) ships dependencies with published advisories, so it is always replaced. npm 12 requires Node.js ^22.22.2 || ^24.15.0 || >=26."
         }
     },
     "installsAfter": [],

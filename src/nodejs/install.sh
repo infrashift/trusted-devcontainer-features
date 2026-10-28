@@ -21,8 +21,10 @@ set -euo pipefail
 # The *_CHECKSUM options are legitimately empty (empty means "resolve from the
 # pinned map or the upstream checksums file"), so they keep :- rather than :?.
 : "${TARGET_VERSION:?feature option 'target_version' resolved empty — devcontainer-feature.json must declare a default}"
+: "${NPM_VERSION:?feature option 'npm_version' resolved empty — devcontainer-feature.json must declare a default}"
 
 exec /opt/bootstrap/run-feature.sh \
     --role ansible-role-feature \
     -e "_nodejs_version=${TARGET_VERSION}" \
-    -e "_nodejs_checksum=${TARGET_CHECKSUM:-}"
+    -e "_nodejs_checksum=${TARGET_CHECKSUM:-}" \
+    -e "_nodejs_npm_version=${NPM_VERSION}"
