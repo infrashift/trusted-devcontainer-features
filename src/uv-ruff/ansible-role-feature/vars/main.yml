@@ -27,6 +27,9 @@ _uv_download_url: https://github.com/astral-sh/uv/releases/download/{{ _uv_versi
 # files astral-sh publishes beside each asset. The uv download previously
 # passed no checksum argument at all.
 _uv_pinned_checksums:
+  "0.13.6":
+    x86_64-unknown-linux-gnu: "f29c3e94ffabd7e6f3ba521dba169a9b7ec12100bf3257087f0f24f6123f3645"
+    aarch64-unknown-linux-gnu: "229e194255c7958d86d56e8790d969a6f74736592133f0dfd0076f754c642c1d"
   "0.12.24":
     x86_64-unknown-linux-gnu: "b4dfaef47d491a7296981f8374a4595f55dbf84e8937c8ecd2983574d8bb3da6"
     aarch64-unknown-linux-gnu: "5231be65f496304623895dacdbf1de8504fec90303684bdf05805aa34414dd21"

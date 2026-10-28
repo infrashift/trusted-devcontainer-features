@@ -132,7 +132,7 @@ declare -A ROLE_ARGS=(
   # verifies through NuGet, so there is no URL to pin. See src/sqlpackage/NOTES.md.
   [sqlpackage]='-e _sqlpackage_version=170.5.76'
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.13+9 -e _openjdk_checksum='
-  [uv-ruff]='-e _uv_version=0.12.24 -e _uv_checksum= -e _ruff_version=0.16.4'
+  [uv-ruff]='-e _uv_version=0.13.6 -e _uv_checksum= -e _ruff_version=0.17.3'
   [ansible-core]='-e _ansible_core_version=2.21.5 -e _ansible_core_python_version=3.14'
   [kaniko]='-e _kaniko_version=1.28.6 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
   [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
