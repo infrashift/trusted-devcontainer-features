@@ -3,14 +3,14 @@
 {
     "name": "dotnet-feature",
     "id": "dotnet",
-    "version": "1.5.3",
+    "version": "1.5.4",
     "description": "Installs Microsoft .NET SDK on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://dotnet.microsoft.com/download/dotnet
         "target_version": {
             "type": "string",
             "proposals": ["8.0.418", "9.0.203"],
-            "default": "8.0.424",
+            "default": "8.0.427",
             "description": "Select a supported .NET SDK version"
         },
         "target_checksum": {

@@ -27,6 +27,9 @@ _go_download_url: https://go.dev/dl/{{ _go_tarball }}
 # target_checksum option default, so an arm64 build would have verified an
 # arm64 tarball against an amd64 digest.
 _go_pinned_checksums:
+  "1.27.3":
+    amd64: "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40"
+    arm64: "a06e99309dbcbdca1a8ccd2282c3ee146e55930886e26b4f1193269587165f49"
   "1.27.0":
     amd64: "675c26c449cbb18fc24b74650de1eabbae6e16f64326fd85a283fb3b58280685"
     arm64: "51798d2c42d0e1c6ed7fd9f48728b4193abac9e8aad6dbac2fe96a81f5909bda"

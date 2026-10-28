@@ -39,6 +39,7 @@ _gradle_java_home: "{{ _target_user_home }}/.local/share/java"
 # SHA256 digests pinned per version, from the .sha256 file Gradle publishes
 # next to each distribution at services.gradle.org.
 _gradle_pinned_checksums:
+  "9.8.2": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607"
   "9.7.1": "acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a"
   "8.14.5": "6f74b601422d6d6fc4e1f9a1ab6522f642c2fdcbc15ae33ebd30ba3d7198e854"
 

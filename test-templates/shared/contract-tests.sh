@@ -118,26 +118,26 @@ echo "Idempotency — a second run must change nothing:"
 declare -A ROLE_ARGS=(
   [python]='-e _python_version=3.14'
   [cuelang]='-e _cue_version=0.17.1 -e _cue_checksum='
-  [golang]='-e _go_version=1.27.0 -e _go_checksum='
-  [grype]='-e _grype_version=0.117.0 -e _grype_checksum='
-  [syft]='-e _syft_version=1.51.0 -e _syft_checksum='
+  [golang]='-e _go_version=1.27.3 -e _go_checksum='
+  [grype]='-e _grype_version=0.121.0 -e _grype_checksum='
+  [syft]='-e _syft_version=1.55.0 -e _syft_checksum='
   [jq]='-e _jq_version=1.8.2 -e _jq_checksum='
-  [yq]='-e _yq_version=4.53.6 -e _yq_checksum='
-  [nodejs]='-e _nodejs_version=22.23.2 -e _nodejs_checksum='
+  [yq]='-e _yq_version=4.54.1 -e _yq_checksum='
+  [nodejs]='-e _nodejs_version=22.23.4 -e _nodejs_checksum='
   [npm]='-e _npm_version=12.0.2'
   [pnpm]='-e _pnpm_version=10.12.1 -e _pnpm_checksum='
   [bun]='-e _bun_version=1.2.17 -e _bun_checksum='
-  [dotnet]='-e _dotnet_version=8.0.424 -e _dotnet_checksum='
+  [dotnet]='-e _dotnet_version=8.0.427 -e _dotnet_checksum='
   # No checksum arg: this role installs through `dotnet tool install', which
   # verifies through NuGet, so there is no URL to pin. See src/sqlpackage/NOTES.md.
   [sqlpackage]='-e _sqlpackage_version=170.5.76'
-  [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.12.1+1 -e _openjdk_checksum='
+  [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.13+9 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.12.24 -e _uv_checksum= -e _ruff_version=0.16.4'
-  [ansible-core]='-e _ansible_core_version=2.21.3 -e _ansible_core_python_version=3.14'
-  [kaniko]='-e _kaniko_version=1.28.4 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
+  [ansible-core]='-e _ansible_core_version=2.21.5 -e _ansible_core_python_version=3.14'
+  [kaniko]='-e _kaniko_version=1.28.6 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
   [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
-  [maven]='-e _maven_version=3.9.16 -e _maven_checksum='
-  [gradle]='-e _gradle_version=9.7.1 -e _gradle_checksum='
+  [maven]='-e _maven_version=3.10.0 -e _maven_checksum='
+  [gradle]='-e _gradle_version=9.8.2 -e _gradle_checksum='
   # sshd carries a RUNNER flag, not just role args. run_role does not pass
   # --privileged, and sshd is one of the three features that needs it: the
   # userland lane cannot write /etc/ssh, so the second run would fail on
@@ -197,33 +197,33 @@ fi
 # differ from every SHA256 feature. gradle accepts X.Y as well as X.Y.Z.
 if [[ " ${FEATURES[*]} " == *" maven "* ]]; then
     check_fails "maven: missing -e is named" "_maven_checksum is defined" \
-        run_role maven -e _maven_version=3.9.16
+        run_role maven -e _maven_version=3.10.0
     check_fails "maven: empty mandatory option stops in the shell" "resolved empty" \
         run_install maven TARGET_VERSION= TARGET_CHECKSUM=
     check_fails "maven: unpinned version refuses to download unverified" "No SHA512 is pinned" \
         run_role maven -e _maven_version=3.9.9 -e _maven_checksum=
     check_fails "maven: malformed checksum is rejected by shape" "must be a 128-character SHA512" \
-        run_role maven -e _maven_version=3.9.16 -e _maven_checksum=deadbeef
+        run_role maven -e _maven_version=3.10.0 -e _maven_checksum=deadbeef
     check_fails "maven: malformed version is rejected by shape" "must look like X.Y.Z" \
         run_role maven -e _maven_version=3.9 -e _maven_checksum=
 fi
 
 if [[ " ${FEATURES[*]} " == *" gradle "* ]]; then
     check_fails "gradle: missing -e is named" "_gradle_checksum is defined" \
-        run_role gradle -e _gradle_version=9.7.1
+        run_role gradle -e _gradle_version=9.8.2
     check_fails "gradle: empty mandatory option stops in the shell" "resolved empty" \
         run_install gradle TARGET_VERSION= TARGET_CHECKSUM=
     check_fails "gradle: unpinned version refuses to download unverified" "No SHA256 is pinned" \
         run_role gradle -e _gradle_version=8.10 -e _gradle_checksum=
     check_fails "gradle: malformed checksum is rejected by shape" "must be a 64-character SHA256" \
-        run_role gradle -e _gradle_version=9.7.1 -e _gradle_checksum=deadbeef
+        run_role gradle -e _gradle_version=9.8.2 -e _gradle_checksum=deadbeef
     check_fails "gradle: malformed version is rejected by shape" "must look like X.Y or X.Y.Z" \
         run_role gradle -e _gradle_version=9 -e _gradle_checksum=
 fi
 
 if [[ " ${FEATURES[*]} " == *" grype "* ]]; then
     check_fails "checksums-file role names its missing param" "_grype_checksum is defined" \
-        run_role grype -e _grype_version=0.117.0
+        run_role grype -e _grype_version=0.121.0
 fi
 
 # The OCI-layer features resolve their digest from a pinned map rather than an
@@ -232,7 +232,7 @@ if [[ " ${FEATURES[*]} " == *" kaniko "* ]]; then
     check_fails "unpinned version refuses to download unverified" "No SHA256 is pinned" \
         run_role kaniko -e _kaniko_version=1.28.3 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum=
     check_fails "missing -e is named" "_kaniko_warmer_checksum is defined" \
-        run_role kaniko -e _kaniko_version=1.28.4 -e _kaniko_executor_checksum=
+        run_role kaniko -e _kaniko_version=1.28.6 -e _kaniko_executor_checksum=
     check_fails "malformed version is rejected by shape" "must look like X.Y.Z" \
         run_role kaniko -e _kaniko_version=1.28 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum=
     check_fails "empty mandatory option stops in the shell" "resolved empty" \
