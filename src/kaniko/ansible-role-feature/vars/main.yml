@@ -50,13 +50,13 @@ _kaniko_tmpdir: /tmp/kaniko-feature-install
 # per-arch manifest, and find the layer whose tar contains kaniko/executor
 # (tag `vX.Y.Z`) or kaniko/warmer (tag `vX.Y.Z-warmer`).
 _kaniko_pinned_layers:
-  "1.29.0":
+  "1.28.6":
     amd64:
-      executor: "72d5058b1263de5facef306829e889f7b50a000a01bca2a47449b488fcc20da9"
-      warmer: "6918ba3b34e388c839eb172fa4fd77c6aa83950be2174ecf662dd1815ba0db99"
+      executor: "49c71aa9e7197af5dcf12811395f182f831c7e714ba94241908c955dd1649ca7"
+      warmer: "3faaef1f01f158fe94a21674187f443e45dd50ef99ef6d0be3cd5fa9af5792ad"
     arm64:
-      executor: "046b149573989683754cc9e7030afb838262b6c3d8d534f7afdac48e19d44844"
-      warmer: "d1871f9d2970609054efdfa16c2e1cb9a9d42e0a87440889bb9343cc125b0d27"
+      executor: "7d70fb15556fb8c2f8b945527bd816afb3ada58c05d6a21db68ae62a896848ef"
+      warmer: "30a23722fbd49c8205904fb8b2f44180946c93fc23d76d47fc00ea95bb21f361"
   "1.28.4":
     amd64:
       executor: "178745d29b29dc7eabe1112cddd1938ed36162d2903f65fd078ae17f982192ad"

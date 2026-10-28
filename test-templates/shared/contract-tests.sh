@@ -134,7 +134,7 @@ declare -A ROLE_ARGS=(
   [openjdk]='-e _openjdk_major_version=21 -e _openjdk_version=21.0.13+9 -e _openjdk_checksum='
   [uv-ruff]='-e _uv_version=0.12.24 -e _uv_checksum= -e _ruff_version=0.16.4'
   [ansible-core]='-e _ansible_core_version=2.21.5 -e _ansible_core_python_version=3.14'
-  [kaniko]='-e _kaniko_version=1.29.0 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
+  [kaniko]='-e _kaniko_version=1.28.6 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
   [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
   [maven]='-e _maven_version=3.10.0 -e _maven_checksum='
   [gradle]='-e _gradle_version=9.8.2 -e _gradle_checksum='
@@ -232,7 +232,7 @@ if [[ " ${FEATURES[*]} " == *" kaniko "* ]]; then
     check_fails "unpinned version refuses to download unverified" "No SHA256 is pinned" \
         run_role kaniko -e _kaniko_version=1.28.3 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum=
     check_fails "missing -e is named" "_kaniko_warmer_checksum is defined" \
-        run_role kaniko -e _kaniko_version=1.29.0 -e _kaniko_executor_checksum=
+        run_role kaniko -e _kaniko_version=1.28.6 -e _kaniko_executor_checksum=
     check_fails "malformed version is rejected by shape" "must look like X.Y.Z" \
         run_role kaniko -e _kaniko_version=1.28 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum=
     check_fails "empty mandatory option stops in the shell" "resolved empty" \
