@@ -26,14 +26,14 @@
     "id": "bun",
     "name": "Bun",
     "description": "Installs Bun JavaScript runtime on Red Hat UBI DevContainers.",
-    "version": "1.4.3",
+    "version": "1.5.0",
     "testStatus": "passing",
     "category": "languages",
     "dependencies": [],
     "options": {
       "target_version": {
         "type": "string",
-        "default": "1.2.17",
+        "default": "1.4.4",
         "description": "Select a supported Bun version"
       },
       "target_checksum": {
