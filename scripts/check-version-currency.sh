@@ -65,7 +65,10 @@ latest_for() {
         bun)          gh_tag oven-sh/bun             'sed s/^bun-v//' ;;
         uv-ruff)      gh_tag astral-sh/uv            'cat' ;;
         npm)          npm_dist npm ;;
-        pnpm)         npm_dist pnpm ;;
+        # Held on the 10.x line by choice: 11+ ships a tarball (binary + dist/)
+        # the role does not install, and 12 is a rewrite with breaking changes.
+        # 10.x still gets security releases, so track its newest patch.
+        pnpm)         npm_dist pnpm latest-10 ;;
         ansible-core) fetch https://pypi.org/pypi/ansible-core/json | jq -r '.info.version' ;;
         kaniko)       gh_tag osscontainertools/kaniko 'sed s/^v//' ;;
         envbuilder)   gh_tag coder/envbuilder       'sed s/^v//' ;;
@@ -102,7 +105,7 @@ not_comparable() {
 gh_tag()  { fetch "https://api.github.com/repos/$1/releases/latest" | jq -r '.tag_name' | eval "$2"; }
 # The dist-tags endpoint, not the full packument: npm's own packument is tens of
 # megabytes and overruns fetch's --max-time, which reported npm as "unknown".
-npm_dist() { fetch "https://registry.npmjs.org/-/package/$1/dist-tags" | jq -r '.latest'; }
+npm_dist() { fetch "https://registry.npmjs.org/-/package/$1/dist-tags" | jq -r --arg t "${2:-latest}" '.[$t]'; }
 
 # devcontainer-feature.json is JSONC, and the option blocks span several lines --
 # grep -P is line-based, so a pattern spanning `{ ... "default": ... }` matches
