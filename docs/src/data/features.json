@@ -313,7 +313,7 @@
     "id": "npm",
     "name": "npm",
     "description": "Updates npm to a specific version on Red Hat UBI DevContainers.",
-    "version": "1.7.2",
+    "version": "1.8.0",
     "testStatus": "passing",
     "category": "package-managers",
     "dependencies": [
@@ -322,7 +322,7 @@
     "options": {
       "target_version": {
         "type": "string",
-        "default": "12.0.2",
+        "default": "12.2.1",
         "description": "Select the npm version to install"
       }
     }
