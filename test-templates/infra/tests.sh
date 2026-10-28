@@ -8,14 +8,14 @@ source "$(dirname "$0")/test-lib.sh"
 
 # --- kaniko -----------------------------------------------------------------
 # The executor is the only one of the three binaries that can be asked its
-# version. Match the real output format: "Kaniko version :  v1.28.4".
+# version. Match the real output format: "Kaniko version :  v1.29.0".
 check "kaniko-executor runs" kaniko-executor version
 check "kaniko-executor reports the pinned version" \
-    bash -c 'kaniko-executor version | grep -q "v1\.28\.4"'
+    bash -c 'kaniko-executor version | grep -q "v1\.29\.0"'
 # The warmer has no version output of any kind, so the version-scoped install
 # prefix is the only place its version is legible.
 check "kaniko-warmer is executable at the pinned prefix" \
-    test -x "$HOME/.local/share/kaniko/1.28.4/warmer"
+    test -x "$HOME/.local/share/kaniko/1.29.0/warmer"
 check "kaniko-warmer is on PATH" bash -c 'command -v kaniko-warmer >/dev/null'
 
 # --- envbuilder -------------------------------------------------------------

@@ -27,6 +27,9 @@ _dotnet_download_url: "https://builds.dotnet.microsoft.com/dotnet/Sdk/{{ _dotnet
 # Note the algorithm: target_checksum for this feature is a SHA512.
 _dotnet_checksum_algorithm: sha512
 _dotnet_pinned_checksums:
+  "8.0.427":
+    x64: "85725692f465f5024b9b42a159a29d9f73e8c57ad9e8bfe1e7028a505d18031d68931e8aa3f9de44145b08170dde897c8a78e1aa18d4219698b6891af7095d39"
+    arm64: "2b851de08e94922b382d1d2754df112cd167f6e9b6f3d15d2cfe143fded1d5b05d6b196b545941d22c97db62bb426d71a4fe6e131a92e482c6ea1a7337ffedab"
   "8.0.424":
     x64: "6503fd9f464d5e3a4f43a881d2b74afc6a2c46ceda74d027f1565b7239f4b3ec884857c03c0dcd49eb52f384d5ae1fa5aaf135f0a6aabc5518103aceed643c74"
     arm64: "bb19b6779ad93d146055583d644ef269bb42501f6c7fdef51e14026cde9d5fd726d370de098a8d8504867fb24bfcb5ab88cc22bec812461aede334de1aacf7b6"
