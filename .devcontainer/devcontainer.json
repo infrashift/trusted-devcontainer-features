@@ -50,6 +50,7 @@
         "./npm": {},
         "./claude-code": {},
         "./openai-codex": {},
+        "./okfw": {},
         "./pnpm": {},
         "./bun": {},
         "./python": {"target_version": "3.12"},

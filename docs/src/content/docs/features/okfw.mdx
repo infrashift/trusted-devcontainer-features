@@ -1,0 +1,53 @@
+---
+title: okfw
+description: Installs okfw, the OKF Wiki CLI and MCP server, verified by checksum and cosign signature.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'okfw');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+[okfw](https://github.com/infrashift/okf-wiki) manages an OKF wiki: markdown concepts with YAML frontmatter in a `.okfw/` directory at the project root. The same binary is the CLI (`okfw search`, `okfw create`, ...) and an MCP stdio server (`okfw mcp`) for AI agents.
+
+The feature downloads the static release tarball for the container architecture (`amd64` or `arm64`) from the okf-wiki GitHub releases. It installs the binary only after two checks pass:
+
+1. **Checksum.** The tarball must match a SHA256 that is pinned in the role for each version and architecture. To install a version that is not the default, pass `target_checksum`. Get the value from the release's `SHA256SUMS`, after you verify that file's signature.
+2. **Signature.** The tarball's cosign bundle (`.sigstore.json`) must be signed by the okf-wiki release key. The key is pinned in the role and is never downloaded. The check is the same as `cosign verify-blob --key cosign.pub --insecure-ignore-tlog=true`. The role does it with the Python `cryptography` package in the bootstrap environment, so the feature needs no cosign binary and no extra packages.
+
+okf-wiki signs its releases offline, so there is no transparency-log entry to check. The pinned key and the pinned checksum are the trust root.
+
+The binary goes to `~/.local/bin/okfw`. The role then runs `okfw --version` and sends an MCP `initialize` request to `okfw mcp` to prove that both work.
+
+## Registering the MCP server
+
+The feature does not write any MCP client configuration. Each project registers the server itself. For Claude Code, add a `.mcp.json` at the project root:
+
+```json
+{
+  "mcpServers": {
+    "okfw": { "type": "stdio", "command": "okfw", "args": ["mcp"] }
+  }
+}
+```

@@ -51,6 +51,7 @@ export default defineConfig({
 								{ label: 'jq', slug: 'features/jq' },
 								{ label: 'yq', slug: 'features/yq' },
 								{ label: 'CUElang', slug: 'features/cuelang' },
+								{ label: 'okfw', slug: 'features/okfw', badge: { text: 'New', variant: 'tip' } },
 							],
 						},
 						{

@@ -333,6 +333,27 @@
     }
   },
   {
+    "id": "okfw",
+    "name": "okfw",
+    "description": "Installs okfw, the OKF Wiki CLI and MCP server, verified by checksum and cosign signature.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "2026.10.2",
+        "description": "Select a supported okfw release (without the leading v)"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 of the release tarball. Required when target_version is not the default. The cosign signature is verified in addition."
+      }
+    }
+  },
+  {
     "id": "openai-codex",
     "name": "OpenAI Codex",
     "description": "Installs OpenAI Codex CLI on Red Hat UBI DevContainers.",
