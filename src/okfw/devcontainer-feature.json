@@ -1,0 +1,27 @@
+// okfw-feature/devcontainer-feature.json
+// See https://containers.dev/implementors/features/ for the Development Container Feature specification.
+{
+    "name": "okfw-feature",
+    "id": "okfw",
+    "version": "1.0.0",
+    "description": "Installs okfw, the OKF Wiki CLI and MCP server, verified by checksum and cosign signature.",
+    "options": {
+        // See available versions at https://github.com/infrashift/okf-wiki/releases
+        // Targeting okfw-v{{ target_version }}-linux-{amd64,arm64}.tar.gz
+        "target_version": {
+            "type": "string",
+            "proposals": ["2026.10.2", "2026.10.1"],
+            "default": "2026.10.2",
+            "description": "Select a supported okfw release (without the leading v)"
+        },
+        "target_checksum": {
+            "type": "string",
+            "default": "",
+            "description": "SHA256 of the release tarball. Required when target_version is not the default. The cosign signature is verified in addition."
+        }
+    },
+    "installsAfter": [],
+    "dependsOn": {
+        "./bootstrap": {}
+    }
+}

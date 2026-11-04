@@ -61,6 +61,7 @@ latest_for() {
         jq)           gh_tag jqlang/jq               'sed s/^jq-//' ;;
         yq)           gh_tag mikefarah/yq            'sed s/^v//' ;;
         cuelang)      gh_tag cue-lang/cue            'sed s/^v//' ;;
+        okfw)         gh_tag infrashift/okf-wiki     'sed s/^v//' ;;
         golang)       fetch 'https://go.dev/dl/?mode=json' | jq -r '.[0].version' | sed 's/^go//' ;;
         bun)          gh_tag oven-sh/bun             'sed s/^bun-v//' ;;
         uv-ruff)      gh_tag astral-sh/uv            'cat' ;;

@@ -1,0 +1,62 @@
+# okfw-feature/ansible-role-feature/vars/main.yml
+---
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Computed from the inputs install.sh passes, or constants this role owns.
+# None of it is caller-settable, which is why it lives here rather than in
+# defaults/main.yml — defaults/ is reserved for inputs, and this role has none.
+#
+# _target_arch is injected unconditionally by /opt/bootstrap/run-feature.sh
+# (amd64 | arm64), and okf-wiki publishes assets under those same names. It is
+# deliberately NOT masked with `| default('amd64')`: that mask only hides a
+# broken runner, and hiding it means installing an amd64 binary on arm64 that
+# then passes its amd64 checksum and its amd64 signature.
+# ---------------------------------------------------------------------------
+_okfw_platform: linux
+_okfw_arch: "{{ _target_arch }}"
+# Upstream tags carry a leading v; the option does not (X.Y.Z, like every other feature).
+_okfw_tag: v{{ _okfw_version }}
+# Example: okfw-v2026.10.2-linux-amd64 (the directory inside the tarball has the same name)
+_okfw_basename: okfw-{{ _okfw_tag }}-{{ _okfw_platform }}-{{ _okfw_arch }}
+_okfw_tarball: "{{ _okfw_basename }}.tar.gz"
+_okfw_bundle: "{{ _okfw_tarball }}.sigstore.json"
+_okfw_release_url: https://github.com/infrashift/okf-wiki/releases/download/{{ _okfw_tag }}
+_okfw_download_url: "{{ _okfw_release_url }}/{{ _okfw_tarball }}"
+_okfw_bundle_url: "{{ _okfw_release_url }}/{{ _okfw_bundle }}"
+_okfw_tmp_dir: /tmp/okfw-feature-install
+
+# SHA256 digests pinned per version, per architecture. Taken from the release's
+# SHA256SUMS after `cosign verify-blob` of SHA256SUMS.sigstore.json passed
+# against the key below.
+_okfw_pinned_checksums:
+  "2026.10.2":
+    amd64: "55f29183b5264e47c7a41861f6189b4d8b644ed14ba55be56fa20d98f4f64c4f"
+    arm64: "6de8cbcf7d63c647a6777b3197aa27c9cf5a129d86e8db7ecefe06a44881f984"
+
+# Resolved checksum: an explicit _okfw_checksum wins, otherwise the pinned value
+# for this version and arch. The input and the resolved value must be separate
+# names — set_fact cannot override an extra-var. A version/arch pair absent
+# from the map resolves to '' and is caught by the assert in tasks/main.yml.
+_okfw_effective_checksum: >-
+  {{ _okfw_checksum if _okfw_checksum | length > 0
+     else _okfw_pinned_checksums.get(_okfw_version, {}).get(_okfw_arch, '') }}
+
+# THE SIGNATURE TRUST ROOT. The okf-wiki release key (ECDSA P-256), pinned here
+# and never fetched: a key downloaded next to the file it verifies proves
+# nothing. It is the key committed upstream as release/cosign.pub, and the
+# cosign.pub asset of v2026.10.0 to v2026.10.2.
+#   sha256(PEM file)     f912afb812fabb332536ced8efac95664de9e4519ead41613ddd944161484289
+#   bundle key hint      oGZw3lCbpqUX22v2M7k//qPG8FTn4xNB/l+RD/v72QI=  (base64 sha256 of the DER key)
+# A key rotation upstream is a change here, and therefore a feature version bump.
+_okfw_cosign_public_key: |
+  -----BEGIN PUBLIC KEY-----
+  MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+r6YYFghAxpijV7t7OueW/PMGAsz
+  +TRVBQ1c3YKm73TrWkNrqAZnTVeDoQE9nnmaErz64qLmHWfl5f6ZnMzSbw==
+  -----END PUBLIC KEY-----
+...
