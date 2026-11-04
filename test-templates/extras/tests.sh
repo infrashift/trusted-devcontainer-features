@@ -8,4 +8,9 @@ check "npm is the nodejs feature's npm_version, not the bundled one" \
 check "bun" bun --version
 check "claude" claude --version
 check "codex" codex --version
+check "okfw is the pinned release" bash -c 'okfw --version | grep -qx "okfw version v2026\.10\.2"'
+# The MCP server is the same binary; it must answer the handshake on stdio.
+check "okfw mcp answers initialize" bash -c \
+    'echo '"'"'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"tests","version":"1"}}}'"'"' \
+     | (cd /tmp && timeout 15 okfw mcp) | grep -q "\"result\""'
 report_results

@@ -127,18 +127,26 @@ for r in "${ROLES[@]}"; do
         violation "$name: masks a runner-injected variable with | default(...)"
     fi
 
-    # 8. Every download is verified. The three tasks that fetch a checksums FILE
-    #    are exempt: they are what verification is resolved from, so they cannot
-    #    verify themselves.
+    # 8. Every download is verified. Two kinds of task are exempt, because each
+    #    is what verification is resolved from and so cannot verify itself:
+    #      * "checksums file" -- the upstream file a checksum is read from.
+    #      * "signature bundle" -- a sigstore bundle. Its signature is checked
+    #        against a key pinned in the role, so a tampered or substituted
+    #        bundle fails that check (src/okfw). A role that downloads one must
+    #        also verify it; this exemption is not a licence to skip that.
     url_violations="$(awk -v n="$name" '
-        /^- name:/ { task=$0; sub(/^- name: /,"",task) }
-        /ansible\.builtin\.get_url:/ { inurl=1; has=0; next }
-        inurl && /^[[:space:]]+checksum:/ { has=1 }
+        # The block ends at the NEXT task, so test the name the get_url task
+        # had when the block opened (urltask), not the next task name. Testing
+        # `task` tested the following task, and grype passed only because the
+        # task after its checksums download is also named "...checksums file".
         inurl && (/^- name:/ || /^\.\.\./) {
-            if (!has && task !~ /checksums file/) print n ": get_url without checksum: -> " task
+            if (!has && urltask !~ /checksums file|signature bundle/) print n ": get_url without checksum: -> " urltask
             inurl=0
         }
-        END { if (inurl && !has && task !~ /checksums file/) print n ": get_url without checksum: -> " task }
+        /^- name:/ { task=$0; sub(/^- name: /,"",task) }
+        /ansible\.builtin\.get_url:/ { inurl=1; has=0; urltask=task; next }
+        inurl && /^[[:space:]]+checksum:/ { has=1 }
+        END { if (inurl && !has && urltask !~ /checksums file|signature bundle/) print n ": get_url without checksum: -> " urltask }
     ' "$tasks")"
     if [ -n "$url_violations" ]; then
         while IFS= read -r line; do violation "$line"; done <<<"$url_violations"

@@ -118,6 +118,7 @@ echo "Idempotency — a second run must change nothing:"
 declare -A ROLE_ARGS=(
   [python]='-e _python_version=3.14'
   [cuelang]='-e _cue_version=0.17.1 -e _cue_checksum='
+  [okfw]='-e _okfw_version=2026.10.2 -e _okfw_checksum='
   [golang]='-e _go_version=1.27.3 -e _go_checksum='
   [grype]='-e _grype_version=0.121.0 -e _grype_checksum='
   [syft]='-e _syft_version=1.55.0 -e _syft_checksum='
@@ -191,6 +192,38 @@ if [[ " ${FEATURES[*]} " == *" cuelang "* ]]; then
         run_role cuelang -e _cue_version=0.17.1 -e _cue_checksum=deadbeef
     check_fails "malformed version is rejected by shape" "must look like X.Y.Z" \
         run_role cuelang -e _cue_version=0.15 -e _cue_checksum=
+fi
+
+# okfw is the one role with a second gate: a cosign signature, verified against a
+# pinned key after the checksum passes. Each signature case uses an older
+# release (2026.10.1) with its correct tarball checksum, so the run gets past the
+# idempotency probe and gate 1, and stops at gate 2 -- before anything is
+# extracted over the installed binary. The bundle URL is overridden by -e
+# (extra-vars outrank role vars) to point at a real, validly signed bundle for a
+# DIFFERENT file, which is the substitution a mirror or proxy could attempt.
+if [[ " ${FEATURES[*]} " == *" okfw "* ]]; then
+    _okfw_old=2026.10.1
+    _okfw_old_sum_amd64=e43434cea8c53fe928b8f7933b0d3e68aa556f1cfadf8fb57e5eeddf91f37638
+    _okfw_old_sum_arm64=aa0561351df784cc25a07554b22d0393418c6e8001f84db72b5d35a27f581773
+    _okfw_arch="$(docker exec "${CID}" uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')"
+    _okfw_old_sum_var="_okfw_old_sum_${_okfw_arch}"
+    _okfw_rel="https://github.com/infrashift/okf-wiki/releases/download/v${_okfw_old}"
+
+    check_fails "okfw: missing -e is named" "_okfw_checksum is defined" \
+        run_role okfw -e _okfw_version=2026.10.2
+    check_fails "okfw: empty mandatory option stops in the shell" "resolved empty" \
+        run_install okfw TARGET_VERSION= TARGET_CHECKSUM=
+    check_fails "okfw: unpinned version refuses to download unverified" "No SHA256 is pinned" \
+        run_role okfw -e _okfw_version=${_okfw_old} -e _okfw_checksum=
+    check_fails "okfw: malformed checksum is rejected by shape" "must be a 64-character SHA256" \
+        run_role okfw -e _okfw_version=2026.10.2 -e _okfw_checksum=deadbeef
+    check_fails "okfw: leading v is rejected by shape" "must look like X.Y.Z" \
+        run_role okfw -e "_okfw_version=v2026.10.2" -e _okfw_checksum=
+    check_fails "okfw: a bundle for another file fails the signature gate" "bundle signs a different file" \
+        run_role okfw -e _okfw_version=${_okfw_old} -e "_okfw_checksum=${!_okfw_old_sum_var}" \
+            -e "_okfw_bundle_url=${_okfw_rel}/SHA256SUMS.sigstore.json"
+    check "okfw: the installed binary survived the failed install" \
+        bash -c "docker exec -u '${TARGET_USER}' '${CID}' '${TARGET_HOME}/.local/bin/okfw' --version | grep -q v2026.10.2"
 fi
 
 # maven pins SHA512, the only digest Apache publishes, so its shape messages

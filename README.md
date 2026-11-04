@@ -26,6 +26,7 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `maven` | Installs Apache Maven | `ghcr.io/infrashift/trusted-devcontainer-features/maven:latest` |
 | `nodejs` | Installs Node.js | `ghcr.io/infrashift/trusted-devcontainer-features/nodejs:latest` |
 | `npm` | Updates npm to a specific version | `ghcr.io/infrashift/trusted-devcontainer-features/npm:latest` |
+| `okfw` | Installs okfw, the OKF Wiki CLI and MCP server. Verifies a pinned checksum and the upstream cosign signature | `ghcr.io/infrashift/trusted-devcontainer-features/okfw:latest` |
 | `openai-codex` | Installs OpenAI Codex CLI | `ghcr.io/infrashift/trusted-devcontainer-features/openai-codex:latest` |
 | `openjdk` | Installs OpenJDK | `ghcr.io/infrashift/trusted-devcontainer-features/openjdk:latest` |
 | `pnpm` | Installs the pnpm package manager | `ghcr.io/infrashift/trusted-devcontainer-features/pnpm:latest` |
