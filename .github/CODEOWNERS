@@ -53,3 +53,12 @@
 # --- Documentation ---------------------------------------------------------
 /docs/                              @ryancraig
 /README.md                          @ryancraig
+
+# --- Project knowledge and agent instructions --------------------------------
+# The OKF wiki records decisions, findings, issues and plans. CLAUDE.md,
+# AGENTS.md and .mcp.json tell AI agents how to work in this repository.
+/.okfw/                             @ryancraig
+/CLAUDE.md                          @ryancraig
+/AGENTS.md                          @ryancraig
+/.mcp.json                          @ryancraig
+/.claude/                           @ryancraig

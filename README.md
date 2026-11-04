@@ -98,6 +98,24 @@ reports `changed=0`, and that a missing parameter, an empty mandatory option, an
 unpinned version and a malformed digest each fail by name before any work
 happens.
 
+## Project knowledge
+
+Plans, issues, dated findings and the reasons behind the design are kept in an
+[OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md)
+wiki in [`.okfw/`](.okfw/index.md), managed with
+[`okfw`](https://github.com/infrashift/okf-wiki). Start at the
+[wiki map](.okfw/wiki-map--01a1837af671.md).
+
+```bash
+okfw search "bootstrap"                 # Find concepts
+okfw search --kind issue --tag open     # Open issues
+okfw search --type plan --tag active    # Work in progress
+```
+
+All wiki prose follows Simplified Technical English (ASD-STE100). AI agents get
+the same instructions from `CLAUDE.md` and `AGENTS.md`, and `.mcp.json` serves the
+wiki to them over MCP.
+
 ## License
 
 MIT
