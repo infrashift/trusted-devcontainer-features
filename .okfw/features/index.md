@@ -9,7 +9,7 @@
 * [Feature: bun](feature-bun--01a183800d6f.md) - The bun feature installs the Bun JavaScript runtime from a GitHub release zip, verified against a pinned SHA256 checksum.
 * [Feature: claude-code](feature-claude-code--01a183800d91.md) - The claude-code feature installs the Claude Code CLI with bun install -g; it resolves the npm dist-tag latest to an exact version first.
 * [Feature: cuelang](feature-cuelang--01a183800db4.md) - The cuelang feature installs the cue command from a GitHub release tarball, verified against a pinned SHA256 checksum.
-* [Feature: dotnet](feature-dotnet--01a183800dda.md) - The dotnet feature installs the .NET SDK from the Microsoft CDN in ~/.local/share/dotnet, verified against a pinned SHA512 checksum.
+* [Feature: dotnet](feature-dotnet--01a183800dda.md) - The dotnet feature installs the .NET SDK 10 (default) or 8 from the Microsoft CDN in ~/.local/share/dotnet, verified against a pinned SHA512 checksum.
 * [Feature: envbuilder](feature-envbuilder--01a183800e01.md) - The envbuilder feature downloads the single image layer of Coder envbuilder from the registry; the pinned layer digest is the URL and the checksum.
 * [Feature: git](feature-git--01a183800e27.md) - The git feature installs the git RPM of the distribution with dnf5 in the privileged lane; it has no options.
 * [Feature: git-lfs](feature-git-lfs--01a183800e4e.md) - The git-lfs feature installs the git-lfs RPM of the distribution with dnf5 in the privileged lane; it has no options.

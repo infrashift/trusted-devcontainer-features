@@ -83,20 +83,20 @@
     "id": "dotnet",
     "name": ".NET SDK",
     "description": "Installs Microsoft .NET SDK on Red Hat UBI DevContainers.",
-    "version": "1.5.4",
+    "version": "2.0.0",
     "testStatus": "passing",
     "category": "languages",
     "dependencies": [],
     "options": {
       "target_version": {
         "type": "string",
-        "default": "8.0.427",
-        "description": "Select a supported .NET SDK version"
+        "default": "10.0.403",
+        "description": "Select a .NET SDK version. Pinned: 10.0.403 (default, LTS) and 8.0.427 (support ends 2026-11-10)."
       },
       "target_checksum": {
         "type": "string",
         "default": "",
-        "description": "SHA256 checksum for the .NET SDK tarball"
+        "description": "SHA512 checksum for the .NET SDK tarball. Empty uses the pinned checksum."
       }
     }
   },
@@ -442,7 +442,7 @@
     "id": "sqlpackage",
     "name": "SqlPackage",
     "description": "Installs SqlPackage (DacFx) on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "testStatus": "passing",
     "category": "cli",
     "dependencies": [
@@ -452,7 +452,7 @@
       "target_version": {
         "type": "string",
         "default": "170.5.76",
-        "description": "Select a supported SqlPackage version that publishes a net8.0 asset"
+        "description": "Select a supported SqlPackage version that publishes net10.0 and net8.0 assets"
       }
     }
   },

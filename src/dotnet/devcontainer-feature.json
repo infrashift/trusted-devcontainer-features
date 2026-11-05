@@ -3,21 +3,32 @@
 {
     "name": "dotnet-feature",
     "id": "dotnet",
-    "version": "1.5.4",
+    "version": "2.0.0",
     "description": "Installs Microsoft .NET SDK on Red Hat UBI DevContainers.",
     "options": {
         // See available versions at https://dotnet.microsoft.com/download/dotnet
+        //
+        // THE DEFAULT IS THE .NET 10 LTS LINE. 2.0.0 moved it from 8.0.427, and
+        // that is a breaking change for a project that RUNS on the 8.0 runtime:
+        // SDK 10 builds a net8.0 project but ships only the 10.0 runtime, so
+        // `dotnet run' and `dotnet test' exit 150 with "You must install or
+        // update .NET to run this application ... Framework:
+        // 'Microsoft.NETCore.App', version '8.0.0'". Set target_version to
+        // 8.0.427 to keep SDK 8.
+        //
+        // Each proposal has a pinned SHA512 in the role. Any other version needs
+        // target_checksum, or the role stops before it downloads (ADR-006).
         "target_version": {
             "type": "string",
-            "proposals": ["8.0.418", "9.0.203"],
-            "default": "8.0.427",
-            "description": "Select a supported .NET SDK version"
+            "proposals": ["10.0.403", "8.0.427"],
+            "default": "10.0.403",
+            "description": "Select a .NET SDK version. Pinned: 10.0.403 (default, LTS) and 8.0.427 (support ends 2026-11-10)."
         },
         "target_checksum": {
             "type": "string",
             "proposals": [],
             "default": "",
-            "description": "SHA256 checksum for the .NET SDK tarball"
+            "description": "SHA512 checksum for the .NET SDK tarball. Empty uses the pinned checksum."
         }
     },
     "containerEnv": {

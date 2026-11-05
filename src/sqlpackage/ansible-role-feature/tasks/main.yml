@@ -175,9 +175,10 @@
   changed_when: false
 
 # Assert the REQUESTED version installed, not merely that a binary runs. This
-# is also what catches a pin with no net8.0 asset: such a build installs
-# cleanly and then fails here with "You must install or update .NET to run this
-# application", at feature-install time rather than in a developer's workspace.
+# is also what catches a pin with no asset for the installed SDK line (net10.0
+# or net8.0): such a build installs cleanly and then fails here with "You must
+# install or update .NET to run this application", at feature-install time
+# rather than in a developer's workspace.
 - name: Assert that SqlPackage {{ _sqlpackage_version }} is installed and accessible
   ansible.builtin.assert:
     that: _sqlpackage_version in _sqlpackage_verify.stdout

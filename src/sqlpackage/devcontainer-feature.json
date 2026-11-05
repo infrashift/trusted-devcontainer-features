@@ -8,23 +8,24 @@
 {
     "name": "sqlpackage-feature",
     "id": "sqlpackage",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Installs SqlPackage, the DacFx command line, on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",
     "options": {
         // See available versions at https://www.nuget.org/packages/Microsoft.SqlPackage
         //
-        // THE PIN MUST NAME A RELEASE THAT SHIPS A net8.0 ASSET. SqlPackage is a
-        // DotnetTool package whose nuspec declares a dependency group per target
-        // framework; 170.5.76 declares both net10.0 and net8.0, so `dotnet tool
-        // install` resolves the net8.0 one against the SDK the dotnet feature
-        // installs. A pin with only net10.0 installs and then fails at first run
-        // with "You must install or update .NET", which is not an install error
-        // and does not surface here.
+        // THE PIN MUST NAME A RELEASE THAT SHIPS BOTH net10.0 AND net8.0 ASSETS.
+        // SqlPackage is a DotnetTool package whose nuspec declares a dependency
+        // group per target framework, and `dotnet tool install` resolves the
+        // highest one the installed SDK supports: net10.0 on the dotnet
+        // feature's default SDK 10, net8.0 when a consumer pins SDK 8. 170.5.76
+        // and 170.4.83 declare both. A pin without the asset for the SDK in the
+        // image installs and then fails at first run with "You must install or
+        // update .NET", which is not an install error and does not surface here.
         "target_version": {
             "type": "string",
             "proposals": ["170.5.76", "170.4.83"],
             "default": "170.5.76",
-            "description": "Select a supported SqlPackage version that publishes a net8.0 asset"
+            "description": "Select a supported SqlPackage version that publishes net10.0 and net8.0 assets"
         }
     },
     // The SDK must already be on disk: this role invokes the dotnet the dotnet
