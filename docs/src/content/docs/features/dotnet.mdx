@@ -27,10 +27,35 @@ export const feature = features.find(f => f.id === 'dotnet');
 
 <DependencyChain dependencies={feature.dependencies} />
 
+## Choosing a version
+
+The role pins a SHA512 checksum for one patch on each supported SDK line:
+
+| Line | Version | Status |
+|---|---|---|
+| 10.0 | `10.0.403` | **Default.** LTS, supported until 2028-11-14 |
+| 8.0 | `8.0.427` | Opt-in. LTS, support ends 2026-11-10 |
+
+To keep SDK 8, set `target_version`:
+
+```jsonc
+"ghcr.io/infrashift/trusted-devcontainer-features/dotnet:2": {
+    "target_version": "8.0.427"
+}
+```
+
+Any other version needs `target_checksum` (the SHA512 that Microsoft publishes at `<download_url>.sha512`). Without it, the role stops before it downloads.
+
+### Upgrading from 1.x
+
+Version 2.0.0 changes the default SDK from `8.0.427` to `10.0.403`. If you reference `:latest` or `:2` and do not set `target_version`, your next rebuild installs SDK 10. A reference to `:1` keeps SDK 8.
+
+SDK 10 builds a `net8.0` project, but it carries only the 10.0 runtime. So `dotnet run`, `dotnet test` and the built app exit with *"You must install or update .NET to run this application"* and name the missing framework *"'Microsoft.NETCore.App', version '8.0.0'"*. A `global.json` that pins an 8.0 SDK makes every `dotnet` command fail with *"A compatible .NET SDK was not found"*. To fix either, retarget to `net10.0`, or set `target_version` to `8.0.427`.
+
 ## How It Works
 
-This feature downloads the .NET SDK tarball from Microsoft's official CDN for the target architecture (`x64` or `aarch64`, derived from the container platform) and installs it into a user-local directory. The .NET SDK includes the runtime, libraries, and CLI tools needed to build and run .NET applications including ASP.NET Core, Blazor, and console apps.
+This feature downloads the .NET SDK tarball from Microsoft's official CDN for the target architecture (`x64` or `arm64`, derived from the container platform) and installs it into a user-local directory. The .NET SDK includes the runtime, libraries, and CLI tools needed to build and run .NET applications including ASP.NET Core, Blazor, and console apps.
 
-The Ansible playbook creates the `~/.local/share/dotnet` directory, downloads the SDK tarball for the specified version, and verifies the SHA512 checksum (Microsoft publishes SHA512, not SHA256, beside each SDK tarball) against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided. After extraction, the playbook configures the necessary environment variables: `DOTNET_ROOT` is set to point at the installation directory, and `~/.local/share/dotnet` is added to PATH so that the `dotnet` CLI is available globally.
+The Ansible role creates the `~/.local/share/dotnet` directory, downloads the SDK tarball for the specified version, and verifies the SHA512 checksum (Microsoft publishes SHA512, not SHA256, beside each SDK tarball) against the pinned per-architecture digest, or against an explicit `target_checksum` if one is provided. After extraction, the role links `dotnet` into `~/.local/bin`, which is already on PATH in every base image, and `containerEnv` sets `DOTNET_ROOT` to the installation directory.
 
-CLI telemetry is disabled by default via the `DOTNET_CLI_TELEMETRY_OPTOUT=1` environment variable, which prevents Microsoft from collecting usage data inside your devcontainer. The VS Code C# Dev Kit extension is recommended for full IntelliSense, debugging, and project management support. This feature has no dependencies on other features and can be installed standalone.
+CLI telemetry is disabled by default via the `DOTNET_CLI_TELEMETRY_OPTOUT=1` environment variable, which prevents Microsoft from collecting usage data inside your devcontainer. The VS Code C# Dev Kit extension is recommended for full IntelliSense, debugging, and project management support. The feature depends only on `bootstrap`, which `dependsOn` installs for you.

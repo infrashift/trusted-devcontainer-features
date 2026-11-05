@@ -14,9 +14,9 @@ _securedevcontainer_compatibility_list:
 # ---------------------------------------------------------------------------
 _dotnet_platform: linux
 _dotnet_arch: "{{ 'arm64' if _target_arch == 'arm64' else 'x64' }}"
-# Example: dotnet-sdk-8.0.418-linux-x64.tar.gz
+# Example: dotnet-sdk-10.0.403-linux-x64.tar.gz
 _dotnet_tarball: "dotnet-sdk-{{ _dotnet_version }}-{{ _dotnet_platform }}-{{ _dotnet_arch }}.tar.gz"
-# Example: https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.418/dotnet-sdk-8.0.418-linux-x64.tar.gz
+# Example: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-x64.tar.gz
 _dotnet_download_url: "https://builds.dotnet.microsoft.com/dotnet/Sdk/{{ _dotnet_version }}/{{ _dotnet_tarball }}"
 
 # Microsoft publishes SHA512 (not SHA256) alongside each SDK tarball, at
@@ -26,16 +26,20 @@ _dotnet_download_url: "https://builds.dotnet.microsoft.com/dotnet/Sdk/{{ _dotnet
 #
 # Note the algorithm: target_checksum for this feature is a SHA512.
 _dotnet_checksum_algorithm: sha512
+# ONE PIN PER SUPPORTED SDK LINE: the newest patch on each. 10.0 is the default
+# (LTS to 2028-11-14). 8.0 stays selectable through target_version for projects
+# that still run on the 8.0 runtime; it leaves support on 2026-11-10. A version
+# not in this map needs target_checksum, by design (ADR-006).
+#
+# Source: https://builds.dotnet.microsoft.com/dotnet/release-metadata/<line>/releases.json,
+# checked against <download_url>.sha512.
 _dotnet_pinned_checksums:
+  "10.0.403":
+    x64: "b7b3d8461cf98b07d2552ce9199702fa3ad010ac2671a5f8cd5136f7534e50f6855ba7bbb02b11494563f1d04156276a31cda1103b900e5eecd0d9473dc7b9c5"
+    arm64: "0966aa2b70f4677b8319be9df447a78a0dcd6164836425b55a68fd714f4023feb87b4cac21b9a996b79472ad54487cd0adcd2a9dfd570e2b2a1d26423a2baa9b"
   "8.0.427":
     x64: "85725692f465f5024b9b42a159a29d9f73e8c57ad9e8bfe1e7028a505d18031d68931e8aa3f9de44145b08170dde897c8a78e1aa18d4219698b6891af7095d39"
     arm64: "2b851de08e94922b382d1d2754df112cd167f6e9b6f3d15d2cfe143fded1d5b05d6b196b545941d22c97db62bb426d71a4fe6e131a92e482c6ea1a7337ffedab"
-  "8.0.424":
-    x64: "6503fd9f464d5e3a4f43a881d2b74afc6a2c46ceda74d027f1565b7239f4b3ec884857c03c0dcd49eb52f384d5ae1fa5aaf135f0a6aabc5518103aceed643c74"
-    arm64: "bb19b6779ad93d146055583d644ef269bb42501f6c7fdef51e14026cde9d5fd726d370de098a8d8504867fb24bfcb5ab88cc22bec812461aede334de1aacf7b6"
-  "8.0.418":
-    x64: "fbd9fc9f0bca73f771e79c12d721a18da97ba23c43794b941b110ccaac0fcd16156c996a5b9cfc0650120601791f2909e93ecb268f687c7b82889934c766c2b9"
-    arm64: "9193c9a77a5eedfac24974160e9b2d95865e88c8c4f0741042d2ebb4bc3317bf341ecb974ac6dad91c10d7adee22db717b35d3fef686f5aad67f4aff44574033"
 
 _dotnet_effective_checksum: >-
   {{ _dotnet_checksum if _dotnet_checksum | length > 0

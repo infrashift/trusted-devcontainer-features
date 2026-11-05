@@ -46,15 +46,16 @@ SqlPackage is a .NET tool, so the SDK must already be on disk. Declare the
 add the dotnet feature for you, and this role fails by name if the SDK is
 absent.
 
-**The pin must name a release that publishes a `net8.0` asset.**
-`microsoft.sqlpackage` is a `DotnetTool` package whose nuspec declares one
-dependency group per target framework — 170.5.76 declares both `net10.0` and
-`net8.0` — so `dotnet tool install` resolves the `net8.0` one against an SDK 8
-image. Microsoft's download page says SqlPackage is "built using .NET 10", which
-describes the standalone zip and not this package. A pin with only a `net10.0`
-asset installs cleanly and then fails at first run with *"You must install or
-update .NET"*; the role's verify assert catches that at build time rather than
-in a developer's workspace.
+**The pin must name a release that publishes both `net10.0` and `net8.0`
+assets.** `microsoft.sqlpackage` is a `DotnetTool` package whose nuspec declares
+one dependency group per target framework, and `dotnet tool install` resolves
+the highest one the installed SDK supports: `net10.0` on the dotnet feature's
+default SDK 10, `net8.0` when a consumer pins SDK 8. 170.5.76 and 170.4.83
+declare both. Microsoft's download page says SqlPackage is "built using .NET
+10", which describes the standalone zip and not this package. A pin without the
+asset for the SDK in the image installs cleanly and then fails at first run with
+*"You must install or update .NET"*; the role's verify assert catches that at
+build time rather than in a developer's workspace.
 
 ## Network
 

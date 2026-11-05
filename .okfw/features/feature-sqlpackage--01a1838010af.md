@@ -7,7 +7,7 @@ tags:
   - "sqlpackage"
   - "dotnet"
 created: "2026-10-28T12:12:50-05:00"
-timestamp: "2026-10-28T12:17:22-05:00"
+timestamp: "2026-11-04T12:00:00-06:00"
 description: "The sqlpackage feature installs SqlPackage as a .NET tool from NuGet; it needs the .NET SDK of the dotnet feature."
 generated:
   by: "claude-code/opus-5-5"
@@ -27,16 +27,17 @@ The `sqlpackage` feature installs SqlPackage, the DacFx command line, as a .NET 
 
 ## Options
 
-Feature version 1.0.4. The defaults are from `src/sqlpackage/devcontainer-feature.json` on 2026-10-28.
+Feature version 1.0.5. The defaults are from `src/sqlpackage/devcontainer-feature.json` on 2026-11-04.
 
 | Option | Default | Use |
 |---|---|---|
-| `target_version` | `170.5.76` | The SqlPackage version. It must publish a `net8.0` asset. |
+| `target_version` | `170.5.76` | The SqlPackage version. It must publish a `net10.0` asset and a `net8.0` asset. |
 
 ## Dependencies
 
 * `dependsOn`: `./bootstrap`. The runtime installs [Feature: bootstrap](/features/feature-bootstrap--01a183800d4f.md) first ([ADR-009: Mandatory dependencies with dependsOn](/decisions/adr-009-mandatory-dependencies-with-dependson--01a1838012db.md)).
 * `installsAfter`: `./dotnet`. This sets the order only. It does not install the other feature.
+* `dotnet tool install` selects the highest target framework that the installed SDK supports: `net10.0` on SDK 10, `net8.0` on SDK 8.
 * The role needs the .NET SDK at `~/.local/share/dotnet/dotnet`. It stops with an error if the SDK is missing. Add the `dotnet` feature in `devcontainer.json`, because `installsAfter` does not install it.
 
 ## Test templates

@@ -42,6 +42,10 @@ Do not put problems to fix here. Put them in `issues/` and link the finding.
 * [npm 12.2.1 clears 22 of 27 bundled-dependency advisories](/findings/npm-12-2-1-clears-22-of-27-bundled-dependency-advisories--01a183826829.md) — OSV scan from PR #29; 6 advisories wait upstream
 * [On 2026-08-23, stale feature tool pins caused most template CVE findings](/findings/on-2026-08-23-stale-feature-tool-pins-caused-most-template-cve-findings--01a183826856.md) — the first templates CVE gate run
 
+### Version changes
+
+* [On 2026-11-04, the SDK 10 default of dotnet 2.0.0 breaks consumers that run net8.0](/findings/on-2026-11-04-the-sdk-10-default-of-dotnet-2-0-0-breaks-consumers-that-run-net8-0--01a1aa473917.md) — who breaks when the default SDK moves from 8 to 10
+
 ### Registry state
 
 * [On 2026-10-28, jq tags 1.4.0 to 1.5.1 resolve to the 1.5.2 build](/findings/on-2026-10-28-jq-tags-1-4-0-to-1-5-1-resolve-to-the-1-5-2-build--01a183826888.md) — old version tags that promotion moved
