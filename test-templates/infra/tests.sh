@@ -66,4 +66,17 @@ check "valkey-cli is on PATH" bash -c 'command -v valkey-cli >/dev/null'
 check "redis-cli reports a connection error with no server" \
     bash -c 'out=$(redis-cli -h 127.0.0.1 -p 6379 PING 2>&1); echo "$out"; grep -qi "connect" <<<"$out"'
 
+# --- sqlcmd -----------------------------------------------------------------
+# go-sqlcmd prints a banner with the line "Version: v1.10.0".
+check "sqlcmd runs" sqlcmd --version
+check "sqlcmd reports the pinned version" \
+    bash -c 'sqlcmd --version | grep -qE "^Version: v1\.10\.0$"'
+check "sqlcmd links to the pinned prefix" \
+    bash -c '[ "$(readlink -f "$HOME/.local/bin/sqlcmd")" = "$HOME/.local/share/sqlcmd/1.10.0/sqlcmd" ]'
+check "sqlcmd_debug is not installed" \
+    bash -c '! test -e "$HOME/.local/share/sqlcmd/1.10.0/sqlcmd_debug"'
+# Nothing listens on 1433 here. The CLI must fail to connect, by name.
+check "sqlcmd reports a connection error with no server" \
+    bash -c 'out=$(sqlcmd -S 127.0.0.1,1433 -U sa -P none -l 5 -Q "SELECT 1" 2>&1); echo "$out"; grep -qi "connect" <<<"$out"'
+
 report_results

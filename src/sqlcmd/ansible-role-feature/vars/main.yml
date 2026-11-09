@@ -1,0 +1,67 @@
+# sqlcmd-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role supports. go-sqlcmd is a statically linked Go binary: it
+# needs no glibc symbol and no shared library, so it has no variant floor.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# This role installs go-sqlcmd, the current Microsoft sqlcmd, from its GitHub
+# release tarball. It is NOT the legacy ODBC sqlcmd from mssql-tools18: that one
+# needs the Microsoft dnf repository, msodbcsql18, unixODBC, an interactive
+# EULA acceptance and the privileged lane, and dnf cannot pin its checksum.
+#
+# go-sqlcmd names its arches amd64 / arm64, the same as the _target_arch that
+# /opt/bootstrap/run-feature.sh injects, so no arch map is needed. The assert
+# in tasks/main.yml limits _target_arch to those two values.
+# ---------------------------------------------------------------------------
+
+# Example: sqlcmd-linux-amd64.tar.bz2
+_sqlcmd_tarball: "sqlcmd-linux-{{ _target_arch }}.tar.bz2"
+# Release tags carry a v prefix; target_version does not.
+# Example: https://github.com/microsoft/go-sqlcmd/releases/download/v1.10.0/sqlcmd-linux-amd64.tar.bz2
+_sqlcmd_download_url: "https://github.com/microsoft/go-sqlcmd/releases/download/v{{ _sqlcmd_version }}/{{ _sqlcmd_tarball }}"
+
+# Version-scoped install prefix, with a link into ~/.local/bin.
+_sqlcmd_prefix: "{{ _target_user_home }}/.local/share/sqlcmd/{{ _sqlcmd_version }}"
+_sqlcmd_tmpdir: /tmp/sqlcmd-feature-install
+# The tarball is flat. Only the CLI and its third-party notices are taken.
+# sqlcmd_debug (about 30 MB, unstripped) is not installed.
+_sqlcmd_members:
+  - sqlcmd
+  - NOTICE.md
+
+# The tarball is bzip2-compressed. ansible.builtin.unarchive runs `tar -j`,
+# which needs a bzip2 binary that fedora43-minimal and the UBI minimal images
+# do not ship. The runner's own CPython (uv-managed, built with _bz2) extracts
+# the named members with tarfile and the 'data' filter, which refuses absolute
+# paths, links out of the destination and device files, and clears the
+# group/other write bits the tarball sets (its members are 0777).
+_sqlcmd_extract_script: >-
+  import sys, tarfile;
+  t = tarfile.open(sys.argv[1], 'r:bz2');
+  t.extractall(sys.argv[2], members=[t.getmember(m) for m in sys.argv[3:]], filter='data')
+
+# SHA256 digests pinned per version, per architecture, keyed by _target_arch.
+# go-sqlcmd publishes no checksum file. Each value below is the digest GitHub
+# records for the release asset (GET /repos/microsoft/go-sqlcmd/releases/tags/v<ver>,
+# .assets[].digest), checked against sha256sum of the downloaded tarball.
+#
+# To add a version, see src/sqlcmd/NOTES.md.
+_sqlcmd_pinned_checksums:
+  "1.10.0":
+    amd64: "92516d98c63d99b0994de5b61350c91f6915f9b76f139a59039fbcb225c2e987"
+    arm64: "9faaa981f9c374f319ac796dedb4678499b8596c87d5b6c512e9b0e7a3b74f8e"
+
+# Resolved checksum: an explicit _sqlcmd_checksum wins, otherwise the pinned
+# value for this version and arch. A version/arch pair absent from the map
+# resolves to '' and is caught by the assert in tasks/main.yml, rather than
+# silently skipping verification (ADR-006).
+_sqlcmd_effective_checksum: >-
+  {{ _sqlcmd_checksum if _sqlcmd_checksum | length > 0
+     else _sqlcmd_pinned_checksums.get(_sqlcmd_version, {}).get(_target_arch, '') }}
+...

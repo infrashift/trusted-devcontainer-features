@@ -75,6 +75,7 @@ latest_for() {
         envbuilder)   gh_tag coder/envbuilder       'sed s/^v//' ;;
         # Valkey tags carry no v prefix. releases/latest is the newest stable.
         redis-cli)    gh_tag valkey-io/valkey        'cat' ;;
+        sqlcmd)       gh_tag microsoft/go-sqlcmd     'sed s/^v//' ;;
         maven)        gh_tag apache/maven            'sed s/^maven-//' ;;
         gradle)       gh_tag gradle/gradle           'sed s/^v//' ;;
 

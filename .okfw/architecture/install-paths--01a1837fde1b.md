@@ -6,11 +6,11 @@ tags:
   - "architecture"
   - "install-paths"
 created: "2026-10-28T12:12:37-05:00"
-timestamp: "2026-10-28T12:20:26-05:00"
+timestamp: "2026-11-09T10:53:06-06:00"
 description: "Userland features install below the dev user home: binaries link into ~/.local/bin, tool trees go in ~/.local/share/<tool>."
 generated:
   by: "claude-code/opus-5-5"
-  at: "2026-10-28T12:20:26-05:00"
+  at: "2026-11-09T10:53:06-06:00"
 status: "draft"
 resource: "https://github.com/infrashift/trusted-devcontainer-features/blob/main/docs/src/content/docs/reference/architecture.md"
 sources:
@@ -32,6 +32,7 @@ A userland feature installs below the home directory of the target user. The rol
 | `~/.local/share/gradle/gradle-<version>` | Gradle, with `gradle` linked into `~/.local/bin` |
 | `~/.local/share/kaniko/<version>` | kaniko executor and warmer |
 | `~/.local/share/valkey/<version>` | `valkey-cli` and its `LICENSE`, with `redis-cli` and `valkey-cli` linked into `~/.local/bin` |
+| `~/.local/share/sqlcmd/<version>` | go-sqlcmd `sqlcmd` and its `NOTICE.md`, with `sqlcmd` linked into `~/.local/bin` |
 | `~/.local/share/gopath` | `GOPATH` |
 | `~/.local/share/pnpm` | `PNPM_HOME` |
 | `~/.bun/bin` | Bun global installs: `claude` and `codex` |

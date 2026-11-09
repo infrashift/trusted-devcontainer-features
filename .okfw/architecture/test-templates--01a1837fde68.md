@@ -7,11 +7,11 @@ tags:
   - "testing"
   - "test-templates"
 created: "2026-10-28T12:12:37-05:00"
-timestamp: "2026-10-28T12:20:27-05:00"
+timestamp: "2026-11-09T10:53:06-06:00"
 description: "Seven dev containers in test-templates/ build the working-tree features on the shared Containerfile and run smoke tests in tests.sh."
 generated:
   by: "claude-code/opus-5-5"
-  at: "2026-10-28T12:20:27-05:00"
+  at: "2026-11-09T10:53:06-06:00"
 status: "draft"
 resource: "https://github.com/infrashift/trusted-devcontainer-features/tree/main/test-templates"
 sources:
@@ -35,7 +35,7 @@ All templates build from `test-templates/shared/Containerfile`, which uses the d
 | `dotnet-node` | `make`, `dotnet`, `sqlpackage`, `nodejs`, `npm`, `pnpm`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `user`, GID 0 |
 | `extras` | `nodejs`, `bun`, `claude-code`, `openai-codex` | `dev` |
 | `go-cue` | `golang`, `cuelang`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `dev` |
-| `infra` | `kaniko`, `envbuilder`, `sshd`, `redis-cli` | `dev` |
+| `infra` | `kaniko`, `envbuilder`, `sshd`, `redis-cli`, `sqlcmd` | `dev` |
 | `java` | `openjdk`, `maven`, `gradle`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `dev` |
 | `python` | `python`, `uv-ruff`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `dev` |
 

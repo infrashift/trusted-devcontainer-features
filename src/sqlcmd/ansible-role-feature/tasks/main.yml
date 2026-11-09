@@ -1,0 +1,146 @@
+# sqlcmd-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _sqlcmd_version is defined and _sqlcmd_version | length > 0
+      - _sqlcmd_checksum is defined
+      - _sqlcmd_version is match('^\d+\.\d+\.\d+$')
+      - _sqlcmd_checksum | length == 0 or _sqlcmd_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _sqlcmd_version  <- target_version   (mandatory, non-empty)
+        _sqlcmd_checksum <- target_checksum  (may be empty; uses the pinned map)
+
+        target_version must look like X.Y.Z, without the v prefix
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "go-sqlcmd {{ _sqlcmd_version }} ({{ _target_arch }})"
+
+# sqlcmd installation tasks
+- name: Check the currently installed sqlcmd version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/sqlcmd --version"
+  register: _sqlcmd_installed
+  failed_when: false
+  changed_when: false
+
+# go-sqlcmd prints a banner with a line "Version: v1.10.0". Match the whole
+# line, so that 1.10.0 does not match 1.10.01 or 11.10.0.
+- name: Determine whether sqlcmd {{ _sqlcmd_version }} needs installing
+  ansible.builtin.set_fact:
+    _sqlcmd_install_required: >-
+      {{ _sqlcmd_installed.rc != 0
+         or not (_sqlcmd_installed.stdout | default('')
+                 is search('(?m)^Version: v' ~ (_sqlcmd_version | regex_escape) ~ '$')) }}
+
+- name: Ensure the versioned install prefix exists
+  ansible.builtin.file:
+    path: "{{ _sqlcmd_prefix }}"
+    state: directory
+    mode: '0755'
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unpinned version/arch pair is a
+# named error, not a silently unverified binary (ADR-006).
+- name: Assert that a checksum is available for go-sqlcmd {{ _sqlcmd_version }} ({{ _target_arch }})
+  ansible.builtin.assert:
+    that: _sqlcmd_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for go-sqlcmd {{ _sqlcmd_version }} {{ _sqlcmd_tarball }}.
+      Pass target_checksum to install a version or architecture that is not in
+      the role's pinned map.
+  when: _sqlcmd_install_required | bool
+
+- name: Ensure the temporary extraction directory exists
+  ansible.builtin.file:
+    path: "{{ _sqlcmd_tmpdir }}"
+    state: directory
+    mode: '0755'
+  when: _sqlcmd_install_required | bool
+
+# get_url verifies the download in the same step.
+- name: Download the go-sqlcmd release tarball
+  ansible.builtin.get_url:
+    url: "{{ _sqlcmd_download_url }}"
+    dest: "{{ _sqlcmd_tmpdir }}/{{ _sqlcmd_tarball }}"
+    mode: '0644'
+    checksum: "sha256:{{ _sqlcmd_effective_checksum }}"
+    timeout: 120
+  when: _sqlcmd_install_required | bool
+
+# Not ansible.builtin.unarchive: it needs a bzip2 binary. See
+# _sqlcmd_extract_script in vars/main.yml.
+- name: Extract sqlcmd and its notices from the tarball
+  ansible.builtin.command:
+    argv: "{{ [ansible_python_interpreter, '-I', '-c', _sqlcmd_extract_script,
+               _sqlcmd_tmpdir ~ '/' ~ _sqlcmd_tarball, _sqlcmd_tmpdir] + _sqlcmd_members }}"
+  changed_when: true
+  when: _sqlcmd_install_required | bool
+
+- name: Install sqlcmd into the versioned prefix
+  ansible.builtin.copy:
+    src: "{{ _sqlcmd_tmpdir }}/sqlcmd"
+    dest: "{{ _sqlcmd_prefix }}/sqlcmd"
+    remote_src: true
+    mode: '0755'
+  when: _sqlcmd_install_required | bool
+
+- name: Install the go-sqlcmd notices into the versioned prefix
+  ansible.builtin.copy:
+    src: "{{ _sqlcmd_tmpdir }}/NOTICE.md"
+    dest: "{{ _sqlcmd_prefix }}/NOTICE.md"
+    remote_src: true
+    mode: '0644'
+  when: _sqlcmd_install_required | bool
+
+- name: Remove the temporary extraction directory
+  ansible.builtin.file:
+    path: "{{ _sqlcmd_tmpdir }}"
+    state: absent
+
+- name: Link sqlcmd into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _sqlcmd_prefix }}/sqlcmd"
+    dest: "{{ _target_user_home }}/.local/bin/sqlcmd"
+    state: link
+
+- name: Verify the installed sqlcmd version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/sqlcmd --version"
+  register: _sqlcmd_verify
+  changed_when: false
+
+- name: Assert that sqlcmd {{ _sqlcmd_version }} is installed and accessible
+  ansible.builtin.assert:
+    that: "_sqlcmd_verify.stdout is search('(?m)^Version: v' ~ (_sqlcmd_version | regex_escape) ~ '$')"
+    fail_msg: "Expected go-sqlcmd {{ _sqlcmd_version }}; sqlcmd reported: {{ _sqlcmd_verify.stdout }}"
+    success_msg: "sqlcmd reports Version: v{{ _sqlcmd_version }}"
+...

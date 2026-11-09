@@ -6,11 +6,11 @@ tags:
   - "hub"
   - "feature"
 created: "2026-10-28T12:07:16-05:00"
-timestamp: "2026-10-28T12:07:16-05:00"
+timestamp: "2026-11-09T10:53:06-06:00"
 description: "One pointer concept for each published feature, with its version, options and dependencies."
 generated:
   by: "claude-code/opus-5-5"
-  at: "2026-10-28T12:07:16-05:00"
+  at: "2026-11-09T10:53:06-06:00"
 status: "draft"
 ---
 
@@ -81,6 +81,7 @@ The sources of truth are `src/<name>/devcontainer-feature.json`, the role in `sr
 | [Feature: grype](/features/feature-grype--01a183800ecb.md) | Grype scanner, checksums file. |
 | [Feature: syft](/features/feature-syft--01a183801108.md) | Syft SBOM generator, checksums file. |
 | [Feature: redis-cli](/features/feature-redis-cli--01a1bf265536.md) | `valkey-cli` with a `redis-cli` link, pinned SHA256 for each architecture. |
+| [Feature: sqlcmd](/features/feature-sqlcmd--01a1c13a0b27.md) | Microsoft go-sqlcmd, pinned SHA256 for each architecture. |
 
 ### Container build tools
 
