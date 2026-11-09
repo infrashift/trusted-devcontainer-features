@@ -137,6 +137,7 @@ declare -A ROLE_ARGS=(
   [ansible-core]='-e _ansible_core_version=2.21.5 -e _ansible_core_python_version=3.14'
   [kaniko]='-e _kaniko_version=1.28.6 -e _kaniko_executor_checksum= -e _kaniko_warmer_checksum='
   [envbuilder]='-e _envbuilder_version=1.3.0 -e _envbuilder_checksum='
+  [redis-cli]='-e _redis_cli_version=9.1.3 -e _redis_cli_checksum='
   [maven]='-e _maven_version=3.10.0 -e _maven_checksum='
   [gradle]='-e _gradle_version=9.8.2 -e _gradle_checksum='
   # sshd carries a RUNNER flag, not just role args. run_role does not pass

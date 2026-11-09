@@ -1,0 +1,65 @@
+# redis-cli-feature/ansible-role-feature/vars/main.yml
+---
+# Variants this role supports. The jammy builds below need GLIBC_2.34 at most
+# and libssl.so.3 / libcrypto.so.3 (openssl-libs), so UBI 9 (glibc 2.34) is the
+# floor. A move to the noble builds would raise the floor to 2.39 and drop ubi9.
+_securedevcontainer_compatibility_list:
+  - ubi9
+  - ubi10
+  - fedora43
+
+# ---------------------------------------------------------------------------
+# DERIVED VALUES AND ROLE CONSTANTS
+#
+# Redis publishes no prebuilt CLI binaries, and Fedora 43 replaced its redis
+# package with Valkey. This role installs valkey-cli from the official Valkey
+# release tarball and links redis-cli to it. valkey-cli speaks the Redis
+# protocol (RESP2/RESP3) and accepts the redis-cli flags.
+#
+# Valkey names its arches x86_64 / arm64; /opt/bootstrap/run-feature.sh injects
+# _target_arch as amd64 / arm64. Map, never mask with `| default(...)`.
+# ---------------------------------------------------------------------------
+_redis_cli_arch_map:
+  amd64: x86_64
+  arm64: arm64
+_redis_cli_arch: "{{ _redis_cli_arch_map[_target_arch] }}"
+
+# jammy, not noble: the jammy build has the lower glibc floor (see above).
+_redis_cli_distro: jammy
+
+# Example: valkey-9.1.3-jammy-x86_64
+_redis_cli_dist: "valkey-{{ _redis_cli_version }}-{{ _redis_cli_distro }}-{{ _redis_cli_arch }}"
+_redis_cli_tarball: "{{ _redis_cli_dist }}.tar.gz"
+# Example: https://download.valkey.io/releases/valkey-9.1.3-jammy-x86_64.tar.gz
+_redis_cli_download_url: "https://download.valkey.io/releases/{{ _redis_cli_tarball }}"
+
+# Version-scoped install prefix, with links into ~/.local/bin.
+_redis_cli_prefix: "{{ _target_user_home }}/.local/share/valkey/{{ _redis_cli_version }}"
+_redis_cli_tmpdir: /tmp/redis-cli-feature-install
+# Only the CLI and its licence are taken from the tarball. The server, sentinel
+# and benchmark binaries (about 90 MB) are not installed.
+_redis_cli_members:
+  - "{{ _redis_cli_dist }}/bin/valkey-cli"
+  - "{{ _redis_cli_dist }}/share/LICENSE"
+
+# SHA256 digests pinned per version, per architecture, keyed by _target_arch.
+# Valkey publishes <tarball>.sha256 next to each tarball; each value below was
+# checked against that file AND against sha256sum of the downloaded tarball.
+#
+# To add a version: fetch
+#   https://download.valkey.io/releases/valkey-<ver>-jammy-{x86_64,arm64}.tar.gz{,.sha256}
+# run `sha256sum -c`, and confirm with `objdump -T bin/valkey-cli` that the
+# highest GLIBC_ symbol is still <= 2.34.
+_redis_cli_pinned_checksums:
+  "9.1.3":
+    amd64: "939667f38a99972af6d4ad7045a97876d6db6c4f331f6609290dab2e354fff1e"
+    arm64: "33e0ac674548424746528b947ef65538d624ef69478445158d690d02ce6c8e36"
+
+# Resolved checksum: an explicit _redis_cli_checksum wins, otherwise the pinned
+# value for this version and arch. A version/arch pair absent from the map
+# resolves to '' and is caught by the assert in tasks/main.yml, rather than
+# silently skipping verification (ADR-006).
+_redis_cli_effective_checksum: >-
+  {{ _redis_cli_checksum if _redis_cli_checksum | length > 0
+     else _redis_cli_pinned_checksums.get(_redis_cli_version, {}).get(_target_arch, '') }}
+...

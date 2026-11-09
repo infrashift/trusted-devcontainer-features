@@ -439,6 +439,27 @@
     }
   },
   {
+    "id": "redis-cli",
+    "name": "redis-cli",
+    "description": "Installs redis-cli (the Redis-protocol-compatible Valkey CLI) on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "9.1.3",
+        "description": "Select a supported Valkey CLI version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the Valkey release tarball"
+      }
+    }
+  },
+  {
     "id": "sqlpackage",
     "name": "SqlPackage",
     "description": "Installs SqlPackage (DacFx) on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",

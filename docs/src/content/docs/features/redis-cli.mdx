@@ -1,0 +1,36 @@
+---
+title: redis-cli
+description: Installs redis-cli (the Redis-protocol-compatible Valkey CLI) on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'redis-cli');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+Redis publishes no prebuilt CLI binaries, and Fedora 43 replaced its `redis` package with Valkey. This feature installs `valkey-cli` from the official Valkey release tarball and links `redis-cli` to it. `valkey-cli` speaks the Redis protocol (RESP2 and RESP3) and accepts the `redis-cli` flags, so it connects to Redis and Valkey servers.
+
+The Ansible role maps the container architecture (`amd64` or `arm64`) to the Valkey artifact (`x86_64` or `arm64`) and downloads the `jammy` build. It verifies the SHA256 against the pinned digest for that version and architecture, or against an explicit `target_checksum`. It extracts only `valkey-cli` and its licence into `~/.local/share/valkey/<version>/`, and links `valkey-cli` and `redis-cli` into `~/.local/bin`. The last task runs `redis-cli --version` and confirms the requested version.
+
+The `jammy` build needs glibc 2.34 or later and `libssl.so.3`, so the feature runs on UBI 9, UBI 10 and Fedora 43. CI builds and tests it on native amd64 and arm64 runners.

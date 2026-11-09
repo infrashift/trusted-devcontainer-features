@@ -1,0 +1,147 @@
+# redis-cli-feature/ansible-role-feature/tasks/main.yml
+---
+# Assert that the devcontainer variant is compatible with this role
+- name: Assert that _securedevcontainer_variant is in the _securedevcontainer_compatibility_list
+  ansible.builtin.assert:
+    that: _securedevcontainer_variant in _securedevcontainer_compatibility_list
+    fail_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is NOT in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+    success_msg: "_securedevcontainer_variant = '{{ _securedevcontainer_variant }}' is in the _securedevcontainer_compatibility_list = '{{ _securedevcontainer_compatibility_list }}'."
+
+# ---------------------------------------------------------------------------
+# PARAMETER BRACKET — this role has NO defaults. Every value below must arrive
+# as an extra-var from install.sh, so a missing one fails here, by name, before
+# any work happens.
+# ---------------------------------------------------------------------------
+- name: Assert that the runner contract was satisfied
+  ansible.builtin.assert:
+    that:
+      - _target_username is defined and _target_username | length > 0
+      - _target_user_home is defined and _target_user_home | length > 0
+      - _target_arch in ['amd64', 'arm64']
+    fail_msg: >-
+      This role must be invoked through /opt/bootstrap/run-feature.sh, which
+      injects _target_username, _target_user_home and _target_arch.
+
+- name: Assert that every required role parameter was supplied
+  ansible.builtin.assert:
+    that:
+      - _redis_cli_version is defined and _redis_cli_version | length > 0
+      - _redis_cli_checksum is defined
+      - _redis_cli_version is match('^\d+\.\d+\.\d+$')
+      - _redis_cli_checksum | length == 0 or _redis_cli_checksum is match('^[0-9a-fA-F]{64}$')
+    fail_msg: >-
+      A required role parameter was not supplied. This role has NO defaults by
+      design — install.sh must pass each one via -e, sourced from the matching
+      option default in devcontainer-feature.json:
+        _redis_cli_version  <- target_version   (mandatory, non-empty)
+        _redis_cli_checksum <- target_checksum  (may be empty; uses the pinned map)
+
+        target_version must look like X.Y.Z
+        target_checksum, when not empty, must be a 64-character SHA256 hex digest
+    success_msg: "valkey-cli {{ _redis_cli_version }} ({{ _redis_cli_arch }})"
+
+# redis-cli installation tasks
+- name: Check the currently installed redis-cli version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/redis-cli --version"
+  register: _redis_cli_installed
+  failed_when: false
+  changed_when: false
+
+# valkey-cli prints "valkey-cli 9.1.3 (git:29173b67)", also when it runs as
+# redis-cli. Match the whole version token, so that 9.1.3 does not match 9.1.30.
+- name: Determine whether valkey-cli {{ _redis_cli_version }} needs installing
+  ansible.builtin.set_fact:
+    _redis_cli_install_required: >-
+      {{ _redis_cli_installed.rc != 0
+         or not (_redis_cli_installed.stdout | default('')
+                 is match('^valkey-cli ' ~ (_redis_cli_version | regex_escape) ~ '( |$)')) }}
+
+- name: Ensure the versioned install prefix exists
+  ansible.builtin.file:
+    path: "{{ _redis_cli_prefix }}"
+    state: directory
+    mode: '0755'
+
+- name: Ensure ~/.local/bin exists
+  ansible.builtin.file:
+    path: "{{ _target_user_home }}/.local/bin"
+    state: directory
+    mode: '0755'
+
+# A resolved-empty checksum means get_url would SKIP verification rather than
+# fail it. Assert it before the download so an unpinned version/arch pair is a
+# named error, not a silently unverified binary (ADR-006).
+- name: Assert that a checksum is available for valkey {{ _redis_cli_version }} ({{ _redis_cli_arch }})
+  ansible.builtin.assert:
+    that: _redis_cli_effective_checksum | length > 0
+    fail_msg: >-
+      No SHA256 is pinned for {{ _redis_cli_tarball }}. Pass target_checksum to
+      install a version or architecture that is not in the role's pinned map.
+  when: _redis_cli_install_required | bool
+
+- name: Ensure the temporary extraction directory exists
+  ansible.builtin.file:
+    path: "{{ _redis_cli_tmpdir }}"
+    state: directory
+    mode: '0755'
+  when: _redis_cli_install_required | bool
+
+# get_url verifies the download in the same step.
+- name: Download the Valkey release tarball
+  ansible.builtin.get_url:
+    url: "{{ _redis_cli_download_url }}"
+    dest: "{{ _redis_cli_tmpdir }}/{{ _redis_cli_tarball }}"
+    mode: '0644'
+    checksum: "sha256:{{ _redis_cli_effective_checksum }}"
+    timeout: 120
+  when: _redis_cli_install_required | bool
+
+- name: Extract valkey-cli and its licence from the tarball
+  ansible.builtin.unarchive:
+    src: "{{ _redis_cli_tmpdir }}/{{ _redis_cli_tarball }}"
+    dest: "{{ _redis_cli_tmpdir }}"
+    remote_src: true
+    include: "{{ _redis_cli_members }}"
+  when: _redis_cli_install_required | bool
+
+- name: Install valkey-cli into the versioned prefix
+  ansible.builtin.copy:
+    src: "{{ _redis_cli_tmpdir }}/{{ _redis_cli_dist }}/bin/valkey-cli"
+    dest: "{{ _redis_cli_prefix }}/valkey-cli"
+    remote_src: true
+    mode: '0755'
+  when: _redis_cli_install_required | bool
+
+- name: Install the Valkey licence into the versioned prefix
+  ansible.builtin.copy:
+    src: "{{ _redis_cli_tmpdir }}/{{ _redis_cli_dist }}/share/LICENSE"
+    dest: "{{ _redis_cli_prefix }}/LICENSE"
+    remote_src: true
+    mode: '0644'
+  when: _redis_cli_install_required | bool
+
+- name: Remove the temporary extraction directory
+  ansible.builtin.file:
+    path: "{{ _redis_cli_tmpdir }}"
+    state: absent
+
+- name: Link valkey-cli and redis-cli into ~/.local/bin
+  ansible.builtin.file:
+    src: "{{ _redis_cli_prefix }}/valkey-cli"
+    dest: "{{ _target_user_home }}/.local/bin/{{ item }}"
+    state: link
+  loop:
+    - valkey-cli
+    - redis-cli
+
+- name: Verify the installed redis-cli version
+  ansible.builtin.command: "{{ _target_user_home }}/.local/bin/redis-cli --version"
+  register: _redis_cli_verify
+  changed_when: false
+
+- name: Assert that redis-cli {{ _redis_cli_version }} is installed and accessible
+  ansible.builtin.assert:
+    that: _redis_cli_verify.stdout is match('^valkey-cli ' ~ (_redis_cli_version | regex_escape) ~ '( |$)')
+    fail_msg: "Expected valkey-cli {{ _redis_cli_version }}; redis-cli reported: {{ _redis_cli_verify.stdout }}"
+    success_msg: "{{ _redis_cli_verify.stdout }}"
+...

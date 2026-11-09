@@ -52,4 +52,18 @@ check "sshd answers with an SSH banner on 2222" bash -c '
 check "sshd admits no one without a mounted key" \
     bash -c '! test -f "$HOME/.ssh/authorized_keys"'
 
+# --- redis-cli --------------------------------------------------------------
+# redis-cli is a link to valkey-cli in the version-scoped prefix. valkey-cli
+# prints "valkey-cli 9.1.3 (git:<sha>)", also when it runs as redis-cli.
+check "redis-cli runs" redis-cli --version
+check "redis-cli reports the pinned version" \
+    bash -c 'redis-cli --version | grep -qE "^valkey-cli 9\.1\.3( |$)"'
+check "redis-cli links to the pinned prefix" \
+    bash -c '[ "$(readlink -f "$HOME/.local/bin/redis-cli")" = "$HOME/.local/share/valkey/9.1.3/valkey-cli" ]'
+check "valkey-cli is on PATH" bash -c 'command -v valkey-cli >/dev/null'
+# Nothing listens on 6379 here. The CLI must fail to connect, by name, rather
+# than crash on a missing shared library.
+check "redis-cli reports a connection error with no server" \
+    bash -c 'out=$(redis-cli -h 127.0.0.1 -p 6379 PING 2>&1); echo "$out"; grep -qi "connect" <<<"$out"'
+
 report_results
