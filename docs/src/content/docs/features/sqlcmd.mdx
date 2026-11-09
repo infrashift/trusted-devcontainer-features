@@ -1,0 +1,38 @@
+---
+title: sqlcmd
+description: Installs Microsoft sqlcmd (go-sqlcmd) for SQL Server and Azure SQL on Red Hat UBI DevContainers.
+---
+
+import features from '../../../data/features.json';
+import TestBadge from '../../../components/TestBadge.astro';
+import OptionsTable from '../../../components/OptionsTable.astro';
+import DependencyChain from '../../../components/DependencyChain.astro';
+import GhcrUsage from '../../../components/GhcrUsage.astro';
+
+export const feature = features.find(f => f.id === 'sqlcmd');
+
+## Status
+
+**Version:** {feature.version} | **Tests:** <TestBadge status={feature.testStatus} />
+
+## Usage
+
+<GhcrUsage featureId={feature.id} options={feature.options} />
+
+## Options
+
+<OptionsTable options={feature.options} />
+
+## Dependencies
+
+<DependencyChain dependencies={feature.dependencies} />
+
+## How It Works
+
+This feature installs [go-sqlcmd](https://github.com/microsoft/go-sqlcmd), the current Microsoft `sqlcmd`. It is one statically linked Go binary that connects to SQL Server, Azure SQL and Fabric. It accepts the flags of the legacy ODBC `sqlcmd` (`-S`, `-U`, `-P`, `-d`, `-Q`, `-i`, `-G` and the others) and adds the `sqlcmd config`, `sqlcmd query` and `sqlcmd create` subcommands.
+
+The feature does not install the legacy `sqlcmd` from `mssql-tools18`. That package needs the Microsoft dnf repository, the ODBC driver, an EULA acceptance and root, and a `dnf` install cannot pin its checksum.
+
+The Ansible role downloads `sqlcmd-linux-<arch>.tar.bz2` for `amd64` or `arm64` from the GitHub release. It verifies the SHA256 against the pinned digest for that version and architecture, or against an explicit `target_checksum`. It extracts only `sqlcmd` and `NOTICE.md` into `~/.local/share/sqlcmd/<version>/` and links `sqlcmd` into `~/.local/bin`. The last task runs `sqlcmd --version` and confirms the requested version.
+
+The binary needs no shared library, so the feature runs on UBI 9, UBI 10 and Fedora 43. CI builds and tests it on native amd64 and arm64 runners.

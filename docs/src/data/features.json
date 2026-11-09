@@ -460,6 +460,27 @@
     }
   },
   {
+    "id": "sqlcmd",
+    "name": "sqlcmd",
+    "description": "Installs Microsoft sqlcmd (go-sqlcmd) for SQL Server and Azure SQL on Red Hat UBI DevContainers.",
+    "version": "1.0.0",
+    "testStatus": "passing",
+    "category": "cli",
+    "dependencies": [],
+    "options": {
+      "target_version": {
+        "type": "string",
+        "default": "1.10.0",
+        "description": "Select a supported go-sqlcmd version"
+      },
+      "target_checksum": {
+        "type": "string",
+        "default": "",
+        "description": "SHA256 checksum for the go-sqlcmd release tarball"
+      }
+    }
+  },
+  {
     "id": "sqlpackage",
     "name": "SqlPackage",
     "description": "Installs SqlPackage (DacFx) on Red Hat UBI DevContainers. Deploys DACPACs and exports or imports BACPACs.",

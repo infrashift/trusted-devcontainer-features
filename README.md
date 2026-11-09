@@ -32,6 +32,7 @@ Each feature is metadata plus an Ansible role. A single shared runner — provid
 | `pnpm` | Installs the pnpm package manager | `ghcr.io/infrashift/trusted-devcontainer-features/pnpm:latest` |
 | `python` | Installs a specific Python version via UV | `ghcr.io/infrashift/trusted-devcontainer-features/python:latest` |
 | `redis-cli` | Installs redis-cli (the Redis-compatible Valkey CLI) for amd64 and arm64 | `ghcr.io/infrashift/trusted-devcontainer-features/redis-cli:latest` |
+| `sqlcmd` | Installs Microsoft sqlcmd (go-sqlcmd) for SQL Server and Azure SQL, for amd64 and arm64 | `ghcr.io/infrashift/trusted-devcontainer-features/sqlcmd:latest` |
 | `sqlpackage` | Installs SqlPackage (DacFx) for DACPAC and BACPAC work. Needs the `dotnet` feature. | `ghcr.io/infrashift/trusted-devcontainer-features/sqlpackage:latest` |
 | `sshd` | Installs and hardens an OpenSSH server for remote access to the container | `ghcr.io/infrashift/trusted-devcontainer-features/sshd:latest` |
 | `syft` | Installs the Syft SBOM generator | `ghcr.io/infrashift/trusted-devcontainer-features/syft:latest` |

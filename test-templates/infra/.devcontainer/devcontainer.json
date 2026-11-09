@@ -7,6 +7,7 @@
         "./kaniko": {},
         "./envbuilder": {},
         "./sshd": {},
-        "./redis-cli": {}
+        "./redis-cli": {},
+        "./sqlcmd": {}
     }
 }

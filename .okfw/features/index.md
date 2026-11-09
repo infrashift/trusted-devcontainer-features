@@ -28,6 +28,7 @@
 * [Feature: pnpm](feature-pnpm--01a183801056.md) - The pnpm feature installs the pnpm standalone binary into ~/.local/bin, verified against a pinned SHA256 checksum.
 * [Feature: python](feature-python--01a183801082.md) - The python feature installs a Python version with uv python install; it uses the uv of the dev user, or else the bootstrap uv.
 * [Feature: redis-cli](feature-redis-cli--01a1bf265536.md) - The redis-cli feature installs valkey-cli from the pinned Valkey release tarball for amd64 or arm64 and links redis-cli to it.
+* [Feature: sqlcmd](feature-sqlcmd--01a1c13a0b27.md) - The sqlcmd feature installs Microsoft go-sqlcmd from the pinned GitHub release tarball for amd64 or arm64 and links sqlcmd into ~/.local/bin.
 * [Feature: sqlpackage](feature-sqlpackage--01a1838010af.md) - The sqlpackage feature installs SqlPackage as a .NET tool from NuGet; it needs the .NET SDK of the dotnet feature.
 * [Feature: sshd](feature-sshd--01a1838010dc.md) - The sshd feature installs and hardens an OpenSSH server for public-key access; it is the only feature with an entrypoint.
 * [Feature: syft](feature-syft--01a183801108.md) - The syft feature installs the Anchore Syft SBOM generator; it verifies the tarball against the checksums file of the release.
