@@ -7,21 +7,19 @@ tags:
   - "redis-cli"
   - "valkey"
 created: "2026-11-09T01:12:02-06:00"
-timestamp: "2026-11-09T01:12:13-06:00"
+timestamp: "2026-11-09T11:20:34-06:00"
 description: "The redis-cli feature installs valkey-cli from the pinned Valkey release tarball for amd64 or arm64 and links redis-cli to it."
 status: "draft"
 resource: "https://github.com/infrashift/trusted-devcontainer-features/blob/main/docs/src/content/docs/features/redis-cli.mdx"
 generated:
   by: "claude-code/opus-5-5"
-  at: "2026-11-09T01:12:13-06:00"
+  at: "2026-11-09T11:20:34-06:00"
 sources:
   - resource: "https://github.com/infrashift/trusted-devcontainer-features/blob/main/src/redis-cli/devcontainer-feature.json"
     title: "redis-cli devcontainer-feature.json"
   - resource: "https://valkey.io/download/"
     title: "Valkey downloads"
 ---
-
-# Feature: redis-cli
 
 # Feature: redis-cli
 
