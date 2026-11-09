@@ -6,6 +6,7 @@
         "./bootstrap": {},
         "./kaniko": {},
         "./envbuilder": {},
-        "./sshd": {}
+        "./sshd": {},
+        "./redis-cli": {}
     }
 }

@@ -35,7 +35,7 @@ All templates build from `test-templates/shared/Containerfile`, which uses the d
 | `dotnet-node` | `make`, `dotnet`, `sqlpackage`, `nodejs`, `npm`, `pnpm`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `user`, GID 0 |
 | `extras` | `nodejs`, `bun`, `claude-code`, `openai-codex` | `dev` |
 | `go-cue` | `golang`, `cuelang`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `dev` |
-| `infra` | `kaniko`, `envbuilder`, `sshd` | `dev` |
+| `infra` | `kaniko`, `envbuilder`, `sshd`, `redis-cli` | `dev` |
 | `java` | `openjdk`, `maven`, `gradle`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `dev` |
 | `python` | `python`, `uv-ruff`, `git`, `git-lfs`, `grype`, `syft`, `jq`, `yq` | `dev` |
 

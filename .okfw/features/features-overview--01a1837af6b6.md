@@ -80,6 +80,7 @@ The sources of truth are `src/<name>/devcontainer-feature.json`, the role in `sr
 | [Feature: yq](/features/feature-yq--01a18380115a.md) | yq binary. |
 | [Feature: grype](/features/feature-grype--01a183800ecb.md) | Grype scanner, checksums file. |
 | [Feature: syft](/features/feature-syft--01a183801108.md) | Syft SBOM generator, checksums file. |
+| [Feature: redis-cli](/features/feature-redis-cli--01a1bf265536.md) | `valkey-cli` with a `redis-cli` link, pinned SHA256 for each architecture. |
 
 ### Container build tools
 

@@ -52,6 +52,7 @@ export default defineConfig({
 								{ label: 'yq', slug: 'features/yq' },
 								{ label: 'CUElang', slug: 'features/cuelang' },
 								{ label: 'okfw', slug: 'features/okfw', badge: { text: 'New', variant: 'tip' } },
+								{ label: 'redis-cli', slug: 'features/redis-cli', badge: { text: 'New', variant: 'tip' } },
 							],
 						},
 						{

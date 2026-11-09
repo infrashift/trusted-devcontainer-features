@@ -31,6 +31,7 @@ A userland feature installs below the home directory of the target user. The rol
 | `~/.local/share/maven/apache-maven-<version>` | Maven, with `mvn` linked into `~/.local/bin` |
 | `~/.local/share/gradle/gradle-<version>` | Gradle, with `gradle` linked into `~/.local/bin` |
 | `~/.local/share/kaniko/<version>` | kaniko executor and warmer |
+| `~/.local/share/valkey/<version>` | `valkey-cli` and its `LICENSE`, with `redis-cli` and `valkey-cli` linked into `~/.local/bin` |
 | `~/.local/share/gopath` | `GOPATH` |
 | `~/.local/share/pnpm` | `PNPM_HOME` |
 | `~/.bun/bin` | Bun global installs: `claude` and `codex` |

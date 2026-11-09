@@ -73,6 +73,8 @@ latest_for() {
         ansible-core) fetch https://pypi.org/pypi/ansible-core/json | jq -r '.info.version' ;;
         kaniko)       gh_tag osscontainertools/kaniko 'sed s/^v//' ;;
         envbuilder)   gh_tag coder/envbuilder       'sed s/^v//' ;;
+        # Valkey tags carry no v prefix. releases/latest is the newest stable.
+        redis-cli)    gh_tag valkey-io/valkey        'cat' ;;
         maven)        gh_tag apache/maven            'sed s/^maven-//' ;;
         gradle)       gh_tag gradle/gradle           'sed s/^v//' ;;
 
