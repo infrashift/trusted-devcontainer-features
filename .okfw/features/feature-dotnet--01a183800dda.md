@@ -10,7 +10,7 @@ timestamp: "2026-11-04T12:00:00-06:00"
 description: "The dotnet feature installs the .NET SDK 10 (default) or 8 from the Microsoft CDN in ~/.local/share/dotnet, verified against a pinned SHA512 checksum."
 generated:
   by: "claude-code/opus-5-5"
-  at: "2026-10-28T12:17:21-05:00"
+  at: "2026-11-04T12:00:00-06:00"
 status: "draft"
 resource: "https://github.com/infrashift/trusted-devcontainer-features/blob/main/docs/src/content/docs/features/dotnet.mdx"
 sources:
