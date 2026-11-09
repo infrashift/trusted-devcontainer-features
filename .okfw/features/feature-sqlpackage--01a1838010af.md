@@ -11,7 +11,7 @@ timestamp: "2026-11-04T12:00:00-06:00"
 description: "The sqlpackage feature installs SqlPackage as a .NET tool from NuGet; it needs the .NET SDK of the dotnet feature."
 generated:
   by: "claude-code/opus-5-5"
-  at: "2026-10-28T12:17:22-05:00"
+  at: "2026-11-04T12:00:00-06:00"
 status: "draft"
 resource: "https://github.com/infrashift/trusted-devcontainer-features/blob/main/docs/src/content/docs/features/sqlpackage.mdx"
 sources:
